@@ -31,8 +31,6 @@ namespace mainwind
 		void regClass(void);
 		void createWind(void);
 		void showWind(void);
-		static bool CALLBACK AboutDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam);
-		static bool CALLBACK ToolDlgProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam);
 
 	private:
 		WNDCLASSEX	m_wndClassEx;
@@ -44,6 +42,7 @@ namespace mainwind
 		static LRESULT	CALLBACK StaticWndProc(HWND, UINT, WPARAM, LPARAM);
 		LRESULT CALLBACK mainWndProc(UINT	uMsg, WPARAM	wParam, LPARAM	lParam);
 		static void ErrorExit(LPTSTR lpszFunction);
+		void getFileName(void);
 
 	};
 

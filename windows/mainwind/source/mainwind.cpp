@@ -19,6 +19,7 @@
 
 #include <windows.h>
 #include <strsafe.h>
+#include <commctrl.h> // included in order to use tool bar related functionalities
 #include "resource.h"
 #include "mainwind.h"
 
@@ -104,7 +105,7 @@ namespace mainwind
 		void
 		) {
 			// Step 2: Creating the Window
-			m_hwnd = CreateWindowEx(
+			m_hWnd = CreateWindowEx(
 							WS_EX_CLIENTEDGE,					// Extended Style For The Window
 							(LPCWSTR)m_pClassName,				// Class Name
 							(LPCWSTR)L"The title of my window",	// Window Title
@@ -118,7 +119,7 @@ namespace mainwind
 							m_hInstance,						// Instance
 							this);								//  Pass this class To WM_CREATE
 
-			if(m_hwnd == NULL)
+			if(m_hWnd == NULL)
 			{
 				MessageBox(NULL, (LPCWSTR)L"Window Creation Failed!", (LPCWSTR)L"Error!",
 					MB_ICONEXCLAMATION | MB_OK);
@@ -136,8 +137,8 @@ namespace mainwind
 	MainWind::showWind(
 		void
 		) {
-			ShowWindow(m_hwnd, m_nCmdShow);
-			UpdateWindow(m_hwnd);
+			ShowWindow(m_hWnd, m_nCmdShow);
+			UpdateWindow(m_hWnd);
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -150,42 +151,24 @@ namespace mainwind
 	LRESULT	CALLBACK 
 		MainWind::StaticWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-			MainWind* pParent;
+		MainWind* pParent;
 
 	   // Get pointer to window
 	   if(uMsg == WM_CREATE)
 	   {
-		   pParent = (MainWind*)((LPCREATESTRUCT)lParam)->lpCreateParams;
-		  SetWindowLongPtr(hWnd,GWL_USERDATA,(LONG_PTR)pParent);
+			pParent = (MainWind*)((LPCREATESTRUCT)lParam)->lpCreateParams;
+			SetWindowLongPtr(hWnd,GWL_USERDATA,(LONG_PTR)pParent);
+			
+			createWindowsMenu(hWnd);
+			pParent->m_hWndToolbar = createToolBar(hWnd);
+			setWindowsIcon(hWnd);
 
-			HMENU hMenu, hSubMenu;
-			HICON hIcon, hIconSm;
+			HWND hStatus = CreateWindowEx(0, STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0,
+						hWnd, (HMENU)IDC_MAIN_STATUS, GetModuleHandle(NULL), NULL);
 
-			hMenu = CreateMenu();
-
-			hSubMenu = CreatePopupMenu();
-			AppendMenu(hSubMenu, MF_STRING, ID_FILE_EXIT, (LPCWSTR)L"&Exit");
-			AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, (LPCWSTR)L"&File");
-			AppendMenu(hMenu, MF_STRING, ID_OPEN_FILE, (LPCWSTR)L"&Open");
-			AppendMenu(hMenu, MF_STRING, ID_HELP_ABOUT, (LPCWSTR)L"&Help");
-			SetMenu(hWnd, hMenu);
-
-
-			hIcon = static_cast<HICON> (LoadImage(NULL, (LPCWSTR)L"C:\\Users\\akathire\\Desktop\\t114_make\\common\\icon\\if_Batman_73346.ico", IMAGE_ICON, 32, 32, LR_LOADFROMFILE));
-			if(hIcon) {
-				SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
-			}
-			else {
-				MessageBox(hWnd, (LPCWSTR)L"Could not load large icon!", (LPCWSTR)L"Error", MB_OK | MB_ICONERROR);
-			}
-
-			hIconSm = static_cast<HICON> (LoadImage(NULL, (LPCWSTR)L"C:\\Users\\akathire\\Desktop\\t114_make\\common\\icon\\if_James_Bond_Beamers_73384.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE));
-			if(hIconSm) {
-				SendMessage(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)hIconSm);
-			}
-			else {
-				MessageBox(hWnd, (LPCWSTR)L"Could not load small icon!", (LPCWSTR)L"Error", MB_OK | MB_ICONERROR);
-			}
+			int statwidths[] = {100, -1};
+			SendMessage(hStatus, SB_SETPARTS, sizeof(statwidths)/sizeof(int), (LPARAM)statwidths);
+			SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)"Hi there :)");
 	   }
 	   else
 	   {
@@ -193,7 +176,7 @@ namespace mainwind
 		  if(!pParent) return DefWindowProc(hWnd,uMsg,wParam,lParam);
 	   }
 
-	   pParent->m_hwnd = hWnd;
+	   pParent->m_hWnd = hWnd;
 	   return pParent->mainWndProc(uMsg,wParam,lParam);
 	}
 
@@ -219,9 +202,10 @@ namespace mainwind
 					{
 					case ID_FILE_EXIT:
 						{
-							PostMessage(m_hwnd, WM_CLOSE, 0, 0);
+							PostMessage(m_hWnd, WM_CLOSE, 0, 0);
 							break;
 						}
+					case ID_FILE_OPEN:
 					case ID_OPEN_FILE:
 						{
 							getFileName();
@@ -229,7 +213,7 @@ namespace mainwind
 						}
 					case ID_HELP_ABOUT:
 						{
-							MessageBox(m_hwnd, (LPCWSTR)L"No help document", (LPCWSTR)L"Message",
+							MessageBox(m_hWnd, (LPCWSTR)L"No help document", (LPCWSTR)L"Message",
 								MB_OK | MB_ICONINFORMATION);
 							break;
 						}
@@ -242,7 +226,7 @@ namespace mainwind
 				}
 			case WM_CLOSE:
 				{
-					DestroyWindow(m_hwnd);
+					DestroyWindow(m_hWnd);
 					break;
 				}
 			case WM_DESTROY:
@@ -258,11 +242,34 @@ namespace mainwind
 					char szFileName[MAX_PATH];
 					HINSTANCE hInstance = GetModuleHandle(NULL);
 					GetModuleFileName(hInstance, (LPWCH)szFileName, MAX_PATH);
-					MessageBox(m_hwnd, (LPCWSTR)szFileName, (LPCWSTR)L"This program is:", MB_OK | MB_ICONINFORMATION);
+					MessageBox(m_hWnd, (LPCWSTR)szFileName, (LPCWSTR)L"This program is:", MB_OK | MB_ICONINFORMATION);
+					break;
+				}
+			case WM_SIZE :
+				{
+					HWND hTool;
+					RECT rcTool;
+					int iToolHeight;
+
+				    HWND hStatus;
+					RECT rcStatus;
+					int iStatusHeight;
+
+					// Size toolbar and get height
+					hTool = GetDlgItem(m_hWnd, IDC_MAIN_TOOL);
+					SendMessage(hTool, TB_AUTOSIZE, 0, 0);
+					GetWindowRect(hTool, &rcTool);
+					iToolHeight = rcTool.bottom - rcTool.top;
+
+					// Size status bar and get height
+					hStatus = GetDlgItem(m_hWnd, IDC_MAIN_STATUS);
+					SendMessage(hStatus, WM_SIZE, 0, 0);
+					GetWindowRect(hStatus, &rcStatus);
+					iStatusHeight = rcStatus.bottom - rcStatus.top;
 					break;
 				}
 			default:
-				return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
+				return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 		}
 		return 0;
 	}
@@ -326,7 +333,7 @@ namespace mainwind
 			ZeroMemory(&ofn, sizeof(ofn));
 
 			ofn.lStructSize = sizeof(ofn); // SEE NOTE BELOW
-			ofn.hwndOwner = m_hwnd;
+			ofn.hwndOwner = m_hWnd;
 			ofn.lpstrFilter = (LPCWSTR) "Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
 			ofn.lpstrFile = (LPWSTR) szFileName;
 			ofn.nMaxFile = MAX_PATH;
@@ -338,6 +345,103 @@ namespace mainwind
 				MessageBox(NULL, (LPWSTR)szFileName, (LPCWSTR)L"FileName!",
 					MB_ICONEXCLAMATION | MB_OK);
 			}
+		}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	HWND*
+		MainWind::createToolBar(
+			HWND hWnd
+		) { 
+				
+				static HWND hWndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE, 0, 0, 0, 0,
+									hWnd, (HMENU)IDC_MAIN_TOOL, GetModuleHandle(NULL), NULL);
+
+				// Send the TB_BUTTONSTRUCTSIZE message, which is required for
+				// backward compatibility.
+				SendMessage(hWndToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
+
+				TBBUTTON tbb[3];
+				TBADDBITMAP tbab;
+
+				tbab.hInst = HINST_COMMCTRL;
+				tbab.nID = IDB_STD_SMALL_COLOR;
+				SendMessage(hWndToolbar, TB_ADDBITMAP, 0, (LPARAM)&tbab);
+
+				ZeroMemory(tbb, sizeof(tbb));
+				tbb[0].iBitmap = STD_FILENEW;
+				tbb[0].fsState = TBSTATE_ENABLED;
+				tbb[0].fsStyle = TBSTYLE_BUTTON;
+				tbb[0].idCommand = ID_FILE_NEW;
+
+				tbb[1].iBitmap = STD_FILEOPEN;
+				tbb[1].fsState = TBSTATE_ENABLED;
+				tbb[1].fsStyle = TBSTYLE_BUTTON;
+				tbb[1].idCommand = ID_FILE_OPEN;
+
+				tbb[2].iBitmap = STD_FILESAVE;
+				tbb[2].fsState = TBSTATE_ENABLED;
+				tbb[2].fsStyle = TBSTYLE_BUTTON;
+				tbb[2].idCommand = ID_FILE_SAVEAS;
+
+				SendMessage(hWndToolbar, TB_ADDBUTTONS, sizeof(tbb)/sizeof(TBBUTTON), (LPARAM)&tbb);
+				return (&hWndToolbar);
+		}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void 
+		MainWind::createWindowsMenu(
+			HWND hWnd
+		) { 
+				HMENU hMenu, hSubMenu;
+				hMenu = CreateMenu();
+				hSubMenu = CreatePopupMenu();
+				AppendMenu(hSubMenu, MF_STRING, ID_FILE_EXIT, (LPCWSTR)L"&Exit");
+				AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, (LPCWSTR)L"&File");
+				AppendMenu(hMenu, MF_STRING, ID_OPEN_FILE, (LPCWSTR)L"&Open");
+				AppendMenu(hMenu, MF_STRING, ID_HELP_ABOUT, (LPCWSTR)L"&Help");
+				SetMenu(hWnd, hMenu);
+
+		}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void 
+		MainWind::setWindowsIcon(
+			HWND hWnd
+		) { 
+				HICON hIcon, hIconSm;
+				hIcon = static_cast<HICON> (LoadImage(NULL, (LPCWSTR)L"C:\\Users\\akathire\\Desktop\\t114_make\\common\\icon\\if_Batman_73346.ico", IMAGE_ICON, 32, 32, LR_LOADFROMFILE));
+				if(hIcon) {
+					SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+				}
+				else {
+					MessageBox(hWnd, (LPCWSTR)L"Could not load large icon!", (LPCWSTR)L"Error", MB_OK | MB_ICONERROR);
+				}
+
+				hIconSm = static_cast<HICON> (LoadImage(NULL, (LPCWSTR)L"C:\\Users\\akathire\\Desktop\\t114_make\\common\\icon\\if_James_Bond_Beamers_73384.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE));
+				if(hIconSm) {
+					SendMessage(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)hIconSm);
+				}
+				else {
+					MessageBox(hWnd, (LPCWSTR)L"Could not load small icon!", (LPCWSTR)L"Error", MB_OK | MB_ICONERROR);
+				}
 		}
 
 } //namespace mainwind

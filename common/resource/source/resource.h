@@ -22,6 +22,13 @@
 #define ID_FILE_EXIT	9001
 #define ID_OPEN_FILE	9002
 #define ID_HELP_ABOUT	9003
+#define IDC_MAIN_TOOL	9004
+
+#define ID_FILE_NEW		9005
+#define ID_FILE_OPEN	9006
+#define ID_FILE_SAVEAS	9007
+
+#define IDC_MAIN_STATUS	9008
 
 #ifdef IDC_STATIC
 #undef IDC_STATIC

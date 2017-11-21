@@ -34,15 +34,21 @@ namespace mainwind
 
 	private:
 		WNDCLASSEX	m_wndClassEx;
-		HWND		m_hwnd;
+		HWND		m_hWnd;
 		HINSTANCE&	m_hInstance;
 		const char*	m_pClassName;
 		int			m_nCmdShow;
+		HWND		*m_hWndToolbar;
 
 		static LRESULT	CALLBACK StaticWndProc(HWND, UINT, WPARAM, LPARAM);
 		LRESULT CALLBACK mainWndProc(UINT	uMsg, WPARAM	wParam, LPARAM	lParam);
+
 		static void ErrorExit(LPTSTR lpszFunction);
+
 		void getFileName(void);
+		static HWND* createToolBar(HWND hWnd);
+		static void createWindowsMenu(HWND hWnd);
+		static void setWindowsIcon(HWND hWnd);
 
 	};
 

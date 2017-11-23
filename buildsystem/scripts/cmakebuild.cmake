@@ -6,11 +6,15 @@ if(MSVC)
     add_definitions(-DUNICODE -D_UNICODE)
 endif()
 
+#set(BINARY_LAYER_LIST CACHE STRING "")
+set_property(GLOBAL APPEND PROPERTY BINARY_LAYER_LIST "")
+
 if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
 	set(BFW_ROOT_DIR TRUE)
 	set(BFW_TARGET_OBJECTS CACHE INTERNAL "")
 else()
 	set(BFW_ROOT_DIR FALSE)
+	set(IS_LIB_FOLDER FALSE CACHE STRING "")
 endif()
 
 #-----------------------------------------------------------------------------------------
@@ -29,6 +33,8 @@ macro(set_project_id id)
 	get_filename_component(PROJECT_ID ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 	string(REPLACE " " "_" PROJECT_ID ${PROJECT_ID})
 	project(${PROJECT_ID})
+	
+	message("set ${PROJECT_ID}")
 	
 	# Turn on the ability to create folders to organize projects (.vcproj)
 	# It creates "CMakePredefinedTargets" folder by default and adds CMake
@@ -113,22 +119,29 @@ endmacro()
 #
 #-----------------------------------------------------------------------------------------
 macro(add_source_layers)
+	message("src layer ${PROJECT_ID}")
 	if(${ARGC})
 		set(src_type FALSE)
 		# _src_layer_list - list to store the source folder names
 		set(_src_layer_list)
+		set(_bin_layer_list)
 		foreach(idx ${ARGN})
 			if (NOT src_type)
 				set(src_type ${idx})
 			else()
 				if (${src_type} STREQUAL "s")
 					list(APPEND _src_layer_list ${idx})
+				elseif (${src_type} STREQUAL "b")
+					list(APPEND _bin_layer_list ${idx})
 				else()
 					message(FATAL_ERROR "invalid argument")
 				endif()
 				set(src_type FALSE)
 			endif()
 		endforeach()
+	endif()
+	if (_bin_layer_list)
+		_add_binary_layers(${_bin_layer_list})
 	endif()
 	if (_src_layer_list)
 		_add_source_layers(${_src_layer_list})
@@ -150,6 +163,7 @@ endmacro()
 #
 #-----------------------------------------------------------------------------------------
 macro(_add_source_layers)
+	message("src layer2 ${PROJECT_ID}")
 	if (${ARGC})
 		foreach(idx ${ARGN})
 			set(folder_source_path ${CMAKE_SOURCE_DIR}/../${idx})
@@ -161,6 +175,41 @@ macro(_add_source_layers)
 			endif()
 		endforeach()
 	endif()
+endmacro()
+
+#-----------------------------------------------------------------------------------------
+# MACRO	_add_source_layers
+#		Adds the source folders from list received via argument to the build as subdirectory
+#
+# INPUT
+#		${ARGN}	: List of the folder names, which will be added as source folders
+#					- First argument will be depicting the type of folder 
+#							("s" as source folder)
+#					- Second argument will be mentioning the name of the folder
+#
+# OUTPUT
+#		none	: 
+#
+#-----------------------------------------------------------------------------------------
+macro(_add_binary_layers)
+	message("bin layer ${PROJECT_ID}")
+	if (${ARGC})
+		set(IS_LIB_FOLDER TRUE CACHE STRING "" FORCE)
+		foreach(idx ${ARGN})
+			set(folder_source_path ${CMAKE_SOURCE_DIR}/../${idx})
+			set(folder_binary_path ${CMAKE_BINARY_DIR}/${idx})
+			if (IS_DIRECTORY ${folder_source_path})
+				message("binlist2: ${idx}")
+				#list(APPEND BINARY_LAYER_LIST ${idx})
+				set_property(GLOBAL APPEND PROPERTY BINARY_LAYER_LIST ${idx})
+				add_subdirectory(${folder_source_path} ${folder_binary_path})
+			else()
+				message(FATAL_ERROR "Could not find the directory of folder: ${idx}")
+			endif()
+		endforeach()
+		set(IS_LIB_FOLDER FALSE CACHE STRING "" FORCE)
+	endif()
+	message("binlist3: ${BINARY_LAYER_LIST} ${IS_LIB_FOLDER}")
 endmacro()
 
 #-----------------------------------------------------------------------------------------
@@ -180,6 +229,7 @@ endmacro()
 #-----------------------------------------------------------------------------------------
 macro(add_subfolder_dependency)
 	set(subfolder ${CMAKE_CURRENT_SOURCE_DIR}/subfolder.cmake)
+	message("subdep ${PROJECT_ID} ${IS_LIB_FOLDER}")
 	if (EXISTS ${subfolder})
 		include(${subfolder})
 		set(subfolder_list ${${PROJECT_ID}_SUB_FOLDER_LIST})
@@ -206,8 +256,15 @@ endmacro()
 #
 #-----------------------------------------------------------------------------------------
 macro(add_subfolder)
+	message("subdep2 ${PROJECT_ID} ${IS_LIB_FOLDER}")
 	if (${ARGC})
 		foreach(idx ${ARGN})
+			if (IS_LIB_FOLDER)
+				message("subdep3 ${BINARY_LAYER_LIST}")
+				#list(APPEND BINARY_LAYER_LIST ${idx})
+				set_property(GLOBAL APPEND PROPERTY BINARY_LAYER_LIST ${idx})
+				message("subdep3 ${BINARY_LAYER_LIST}")
+			endif()
 			list(APPEND ${PROJECT_ID}_SUB_FOLDER_LIST ${idx})
 		endforeach()
 	endif()
@@ -227,20 +284,26 @@ endmacro()
 #
 #-----------------------------------------------------------------------------------------
 macro(add_folder_dependencies)
+	message("foldep ${PROJECT_ID}")
 	if (${ARGC})
 		foreach(foldername ${ARGN})
-			set(COMPONENT_PATH "NOT_FOUND")
-			if (${COMPONENT_PATH} STREQUAL "NOT_FOUND")
-				set(_layer_dir ${PROJECT_INSTALL_DIRECTORY})
-				# Try to find an external component in the install directory
-				if (IS_DIRECTORY ${_layer_dir})
-					get_filename_component(COMPONENT_PATH ${_layer_dir}/${foldername} ABSOLUTE)
+			message("binlist ${BINARY_LAYER_LIST}")
+			if (${foldername} STREQUAL ${BINARY_LAYER_LIST})
+				message("binfolder ${foldername}")
+			else()
+				set(COMPONENT_PATH "NOT_FOUND")
+				if (${COMPONENT_PATH} STREQUAL "NOT_FOUND")
+					set(_layer_dir ${PROJECT_INSTALL_DIRECTORY})
+					# Try to find an external component in the install directory
+					if (IS_DIRECTORY ${_layer_dir})
+						get_filename_component(COMPONENT_PATH ${_layer_dir}/${foldername} ABSOLUTE)
+					endif()
 				endif()
-			endif()
-			if (NOT ${COMPONENT_PATH} STREQUAL "NOT_FOUND")
-				# We've found the dependency, so include its public headers folder
-				include_directories(${COMPONENT_PATH})
-				list(APPEND ${PROJECT_ID}_DEPENDS ${foldername})
+				if (NOT ${COMPONENT_PATH} STREQUAL "NOT_FOUND")
+					# We've found the dependency, so include its public headers folder
+					include_directories(${COMPONENT_PATH})
+					list(APPEND ${PROJECT_ID}_DEPENDS ${foldername})
+				endif()
 			endif()
 		endforeach()
 		

@@ -20,6 +20,7 @@
 #include <windows.h>
 #include <strsafe.h>
 #include <commctrl.h> // included in order to use tool bar related functionalities
+#include <sqlite3.h>
 #include "resource.h"
 #include "mainwind.h"
 

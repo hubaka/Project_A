@@ -9,6 +9,9 @@ set_project_id("_PROJECT_NAME_")
 add_folder_dependencies(
 	"resource"
 	"mainwind"
+)
+
+add_lib_dependencies(
 	"sqlite"
 )
 
@@ -21,6 +24,10 @@ add_public_header_files()
 #
 add_source_files(
 	"t114.cpp"
+)
+
+add_libs_to_exe(
+	${DEP_LIBS}
 )
 
 #

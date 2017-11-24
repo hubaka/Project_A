@@ -7,6 +7,9 @@ add_folder_dependencies(
 	"resource"
 )
 
+add_lib_dependencies(
+	"sqlite"
+)
 #
 # List of public module header files, relative to the module source folder
 #

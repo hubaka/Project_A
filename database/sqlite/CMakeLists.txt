@@ -14,7 +14,7 @@ add_public_header_files(
 #
 # List of source files, relative to the module source folder
 #
-add_source_files()
+add_lib_header_files()
 #
 # Build and install library
 #

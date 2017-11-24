@@ -6,7 +6,7 @@ set_project_id("_PROJECT_NAME_")
 add_source_layers(
 	"s" "windows"
 	"s" "common"
-	"b" "database"
+	"s" "database"
 )
 
 add_subfolder_dependency()

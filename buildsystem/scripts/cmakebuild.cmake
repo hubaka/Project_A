@@ -4,10 +4,8 @@ cmake_minimum_required(VERSION 2.8)
 # building the project as unicode instead of multi-byte project
 if(MSVC)
     add_definitions(-DUNICODE -D_UNICODE)
+	include(libpath)
 endif()
-
-#set(BINARY_LAYER_LIST CACHE STRING "")
-set_property(GLOBAL APPEND PROPERTY BINARY_LAYER_LIST "")
 
 if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
 	set(BFW_ROOT_DIR TRUE)
@@ -33,8 +31,6 @@ macro(set_project_id id)
 	get_filename_component(PROJECT_ID ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 	string(REPLACE " " "_" PROJECT_ID ${PROJECT_ID})
 	project(${PROJECT_ID})
-	
-	message("set ${PROJECT_ID}")
 	
 	# Turn on the ability to create folders to organize projects (.vcproj)
 	# It creates "CMakePredefinedTargets" folder by default and adds CMake
@@ -119,7 +115,6 @@ endmacro()
 #
 #-----------------------------------------------------------------------------------------
 macro(add_source_layers)
-	message("src layer ${PROJECT_ID}")
 	if(${ARGC})
 		set(src_type FALSE)
 		# _src_layer_list - list to store the source folder names
@@ -131,8 +126,6 @@ macro(add_source_layers)
 			else()
 				if (${src_type} STREQUAL "s")
 					list(APPEND _src_layer_list ${idx})
-				elseif (${src_type} STREQUAL "b")
-					list(APPEND _bin_layer_list ${idx})
 				else()
 					message(FATAL_ERROR "invalid argument")
 				endif()
@@ -163,7 +156,6 @@ endmacro()
 #
 #-----------------------------------------------------------------------------------------
 macro(_add_source_layers)
-	message("src layer2 ${PROJECT_ID}")
 	if (${ARGC})
 		foreach(idx ${ARGN})
 			set(folder_source_path ${CMAKE_SOURCE_DIR}/../${idx})
@@ -175,41 +167,6 @@ macro(_add_source_layers)
 			endif()
 		endforeach()
 	endif()
-endmacro()
-
-#-----------------------------------------------------------------------------------------
-# MACRO	_add_source_layers
-#		Adds the source folders from list received via argument to the build as subdirectory
-#
-# INPUT
-#		${ARGN}	: List of the folder names, which will be added as source folders
-#					- First argument will be depicting the type of folder 
-#							("s" as source folder)
-#					- Second argument will be mentioning the name of the folder
-#
-# OUTPUT
-#		none	: 
-#
-#-----------------------------------------------------------------------------------------
-macro(_add_binary_layers)
-	message("bin layer ${PROJECT_ID}")
-	if (${ARGC})
-		set(IS_LIB_FOLDER TRUE CACHE STRING "" FORCE)
-		foreach(idx ${ARGN})
-			set(folder_source_path ${CMAKE_SOURCE_DIR}/../${idx})
-			set(folder_binary_path ${CMAKE_BINARY_DIR}/${idx})
-			if (IS_DIRECTORY ${folder_source_path})
-				message("binlist2: ${idx}")
-				#list(APPEND BINARY_LAYER_LIST ${idx})
-				set_property(GLOBAL APPEND PROPERTY BINARY_LAYER_LIST ${idx})
-				add_subdirectory(${folder_source_path} ${folder_binary_path})
-			else()
-				message(FATAL_ERROR "Could not find the directory of folder: ${idx}")
-			endif()
-		endforeach()
-		set(IS_LIB_FOLDER FALSE CACHE STRING "" FORCE)
-	endif()
-	message("binlist3: ${BINARY_LAYER_LIST} ${IS_LIB_FOLDER}")
 endmacro()
 
 #-----------------------------------------------------------------------------------------
@@ -229,7 +186,6 @@ endmacro()
 #-----------------------------------------------------------------------------------------
 macro(add_subfolder_dependency)
 	set(subfolder ${CMAKE_CURRENT_SOURCE_DIR}/subfolder.cmake)
-	message("subdep ${PROJECT_ID} ${IS_LIB_FOLDER}")
 	if (EXISTS ${subfolder})
 		include(${subfolder})
 		set(subfolder_list ${${PROJECT_ID}_SUB_FOLDER_LIST})
@@ -256,15 +212,9 @@ endmacro()
 #
 #-----------------------------------------------------------------------------------------
 macro(add_subfolder)
-	message("subdep2 ${PROJECT_ID} ${IS_LIB_FOLDER}")
 	if (${ARGC})
+		set(_binary_layer_list ${BINARY_LAYER_LIST})
 		foreach(idx ${ARGN})
-			if (IS_LIB_FOLDER)
-				message("subdep3 ${BINARY_LAYER_LIST}")
-				#list(APPEND BINARY_LAYER_LIST ${idx})
-				set_property(GLOBAL APPEND PROPERTY BINARY_LAYER_LIST ${idx})
-				message("subdep3 ${BINARY_LAYER_LIST}")
-			endif()
 			list(APPEND ${PROJECT_ID}_SUB_FOLDER_LIST ${idx})
 		endforeach()
 	endif()
@@ -284,32 +234,58 @@ endmacro()
 #
 #-----------------------------------------------------------------------------------------
 macro(add_folder_dependencies)
-	message("foldep ${PROJECT_ID}")
 	if (${ARGC})
 		foreach(foldername ${ARGN})
-			message("binlist ${BINARY_LAYER_LIST}")
-			if (${foldername} STREQUAL ${BINARY_LAYER_LIST})
-				message("binfolder ${foldername}")
-			else()
-				set(COMPONENT_PATH "NOT_FOUND")
-				if (${COMPONENT_PATH} STREQUAL "NOT_FOUND")
-					set(_layer_dir ${PROJECT_INSTALL_DIRECTORY})
-					# Try to find an external component in the install directory
-					if (IS_DIRECTORY ${_layer_dir})
-						get_filename_component(COMPONENT_PATH ${_layer_dir}/${foldername} ABSOLUTE)
-					endif()
+			set(COMPONENT_PATH "NOT_FOUND")
+			if (${COMPONENT_PATH} STREQUAL "NOT_FOUND")
+				set(_layer_dir ${PROJECT_INSTALL_DIRECTORY})
+				# Try to find an external component in the install directory
+				if (IS_DIRECTORY ${_layer_dir})
+					get_filename_component(COMPONENT_PATH ${_layer_dir}/${foldername} ABSOLUTE)
 				endif()
-				if (NOT ${COMPONENT_PATH} STREQUAL "NOT_FOUND")
-					# We've found the dependency, so include its public headers folder
-					include_directories(${COMPONENT_PATH})
-					list(APPEND ${PROJECT_ID}_DEPENDS ${foldername})
-				endif()
+			endif()
+			if (NOT ${COMPONENT_PATH} STREQUAL "NOT_FOUND")
+				# We've found the dependency, so include its public headers folder
+				include_directories(${COMPONENT_PATH})
+				list(APPEND ${PROJECT_ID}_DEPENDS ${foldername})
 			endif()
 		endforeach()
 		
 		if(${PROJECT_ID}_DEPENDS)
 			list(REMOVE_DUPLICATES ${PROJECT_ID}_DEPENDS)
 		endif()
+	endif()
+endmacro()
+
+#-----------------------------------------------------------------------------------------
+# MACRO	add_lib_dependencies
+#		Folder mentioned will be included as directory dependencies while 
+#		building the corresponding library/executable
+#
+# INPUT
+#		${ARGC}	-	List of the folder names, which should be included with the 
+#					library/executable build
+#
+# OUTPUT
+#		${PROJECT_ID}_DEPENDS - This shall be updated with the folder names.
+#
+#-----------------------------------------------------------------------------------------
+macro(add_lib_dependencies)
+	if (${ARGC})
+		foreach(foldername ${ARGN})
+			set(COMPONENT_PATH "NOT_FOUND")
+			if (${COMPONENT_PATH} STREQUAL "NOT_FOUND")
+				set(_layer_dir ${PROJECT_INSTALL_DIRECTORY})
+				# Try to find an external component in the install directory
+				if (IS_DIRECTORY ${_layer_dir})
+					get_filename_component(COMPONENT_PATH ${_layer_dir}/${foldername} ABSOLUTE)
+				endif()
+			endif()
+			if (NOT ${COMPONENT_PATH} STREQUAL "NOT_FOUND")
+				# We've found the dependency, so include its public headers folder
+				include_directories(${COMPONENT_PATH})
+			endif()
+		endforeach()
 	endif()
 endmacro()
 
@@ -497,6 +473,63 @@ macro(install_module_lib)
 endmacro()
 
 #-----------------------------------------------------------------------------------------
+# MACRO	add_lib_files
+#		Library of the module is built in this function
+#
+# INPUT
+#		none
+#
+# OUTPUT
+#		module library
+#
+#-----------------------------------------------------------------------------------------
+macro(add_lib_header_files)
+	
+	if(${PROJECT_ID}_PUBLIC_HEADER)
+		list(REMOVE_DUPLICATES ${PROJECT_ID}_PUBLIC_HEADER)
+	endif()
+	
+	
+	get_filename_component(_LIB_INSTALL_DIR ${PROJECT_INSTALL_DIRECTORY}/${PROJECT_ID} ABSOLUTE)
+	
+	#
+	# Purge any headers that are no longer part of the public ones.
+	#
+	file(GLOB _fullfoundhdrs "${_LIB_INSTALL_DIR}/*.h*")
+	set(_install_hdrs)
+	foreach(_header ${_fullfoundhdrs})
+		get_filename_component(_name ${_header} NAME)
+		list(APPEND _install_hdrs ${_name})
+	endforeach()
+	if(_install_hdrs)
+		set(_hdrs)
+		foreach(_header ${${PROJECT_ID}_PUBLIC_HEADER})
+			get_filename_component(_name ${_header} NAME)
+			list(APPEND _hdrs ${_name})
+		endforeach()
+		
+		foreach(_header ${_hdrs})
+			list(REMOVE_ITEM _install_hdrs ${_hdrs})
+		endforeach()
+		
+		foreach(_header ${_install_hdrs})
+			message("Purging dead header file: ${_LIB_INSTALL_DIR}/${_header}")
+			execute_process(COMMAND ${CMAKE_COMMAND} -E remove ${_LIB_INSTALL_DIR}/${_header})
+		endforeach()
+	endif()
+	
+	#
+	# Copy public header files to install dir
+	#
+	set(_clean_headers)
+	foreach(_header ${${PROJECT_ID}_PUBLIC_HEADER})
+		configure_file(${_header} ${_LIB_INSTALL_DIR} COPYONLY)
+	endforeach()
+	set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${_clean_headers}")
+
+endmacro()
+
+#-----------------------------------------------------------------------------------------
 # MACRO	_add_module_lib
 #		
 #
@@ -509,6 +542,25 @@ endmacro()
 #-----------------------------------------------------------------------------------------
 macro(_add_module_lib)
 		add_library(${LIBRARYNAME} OBJECT ${${PROJECT_ID}_SRC})
+endmacro()
+
+#-----------------------------------------------------------------------------------------
+# MACRO	add_libs_to_exe
+#		This macro adds external libraries to the project
+#
+# INPUT
+#		${ARGN}	: list with the libraries to the added, with full path
+#
+# OUTPUT
+#		none	: 
+#
+#		NOTE:
+#-----------------------------------------------------------------------------------------
+macro(add_libs_to_exe)
+	foreach(lib ${ARGN})
+		list(APPEND ${PROJECT_NAME}_LIBS ${lib})
+	endforeach()
+	list(REMOVE_DUPLICATES ${PROJECT_NAME}_LIBS)
 endmacro()
 
 #-----------------------------------------------------------------------------------------
@@ -554,7 +606,7 @@ macro(_add_module_exe)
 	endforeach()
 
 	add_executable(${LIBRARYNAME} ${${PROJECT_ID}_SRC} ${_obj_libs})
-#	target_link_libraries(${LIBRARYNAME} ${${PROJECT_ID}_LIBS})
+	target_link_libraries(${LIBRARYNAME} ${${PROJECT_ID}_LIBS})
 	
 	if(MSVC)
 		# 	/SUBSYSTEM:WINDOWS --> 	this flag creates the project as "windows project" 

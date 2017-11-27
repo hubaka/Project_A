@@ -36,5 +36,16 @@ set CMAKE_BUILD_FLAG=--build %CMAKE_BUILD_DIRECTORY%
 rem calling the python sript which shall be used to start the build
 rem %PYTHON% %PYTHON_BUILD%build_python.py
 
-%CMAKE_EXECUTABLE_PATH%cmake.exe %CMAKE_COMPILE_FLAG%
-%CMAKE_EXECUTABLE_PATH%cmake.exe %CMAKE_BUILD_FLAG%
+FOR %%A IN (%*) DO (
+    REM Now your batch file handles %%A instead of %1
+    REM No need to use SHIFT anymore.
+	
+	IF "%%A" == "all" (
+		%CMAKE_EXECUTABLE_PATH%cmake.exe %CMAKE_COMPILE_FLAG%
+		%CMAKE_EXECUTABLE_PATH%cmake.exe %CMAKE_BUILD_FLAG%
+	)
+	IF "%%A" == "c" (
+		RD /S /Q %CMAKE_BUILD_DIRECTORY%
+	)
+	
+)

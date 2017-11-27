@@ -20,7 +20,7 @@
 #include <windows.h>
 #include <strsafe.h>
 #include <commctrl.h> // included in order to use tool bar related functionalities
-#include <sqlite3.h>
+#include <sqlite3.h>  // included for database
 #include "resource.h"
 #include "mainwind.h"
 
@@ -40,10 +40,10 @@ namespace mainwind
 	//! \return		
 	//!
 	MainWind::MainWind(
-		HINSTANCE&	hInstance,
+		HINSTANCE&	hParentInstance,
 		const char*	p_className,
 		int			nCmdShow
-		) : m_hInstance(hInstance),
+		) : m_hParentInstance(hParentInstance),
 			m_pClassName(p_className),
 			m_nCmdShow(nCmdShow) {
 			;
@@ -79,7 +79,7 @@ namespace mainwind
 			m_wndClassEx.lpfnWndProc   = (WNDPROC)StaticWndProc;
 			m_wndClassEx.cbClsExtra    = 0;
 			m_wndClassEx.cbWndExtra    = 0;
-			m_wndClassEx.hInstance     = m_hInstance;
+			m_wndClassEx.hInstance     = m_hParentInstance;
 			m_wndClassEx.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
 			m_wndClassEx.hCursor       = LoadCursor(NULL, IDC_ARROW);
 			m_wndClassEx.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
@@ -117,7 +117,7 @@ namespace mainwind
 							CW_USEDEFAULT ,								// Window height
 							NULL,								// No Parent Window
 							NULL,								// No Menu
-							m_hInstance,						// Instance
+							m_hParentInstance,						// Instance
 							this);								//  Pass this class To WM_CREATE
 
 			if(m_hWnd == NULL)
@@ -241,8 +241,8 @@ namespace mainwind
 					//MAX_PATH is a handy macro included via <windows.h> that 
 					//is defined to the maximum length of a buffer needed to store a filename under Win32
 					char szFileName[MAX_PATH];
-					HINSTANCE hInstance = GetModuleHandle(NULL);
-					GetModuleFileName(hInstance, (LPWCH)szFileName, MAX_PATH);
+					HINSTANCE hCurWindInstance = GetModuleHandle(NULL);
+					GetModuleFileName(hCurWindInstance, (LPWCH)szFileName, MAX_PATH);
 					MessageBox(m_hWnd, (LPCWSTR)szFileName, (LPCWSTR)L"This program is:", MB_OK | MB_ICONINFORMATION);
 					break;
 				}

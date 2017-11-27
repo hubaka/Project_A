@@ -26,7 +26,7 @@ namespace mainwind
 {
 	class MainWind {
 	public:
-		MainWind(HINSTANCE& hInstance, const char* p_className, int nCmdShow);
+		MainWind(HINSTANCE& hParentInstance, const char* p_className, int nCmdShow);
 		~MainWind(void);
 		void regClass(void);
 		void createWind(void);
@@ -35,7 +35,7 @@ namespace mainwind
 	private:
 		WNDCLASSEX	m_wndClassEx;
 		HWND		m_hWnd;
-		HINSTANCE&	m_hInstance;
+		HINSTANCE&	m_hParentInstance;
 		const char*	m_pClassName;
 		int			m_nCmdShow;
 		HWND		*m_hWndToolbar;

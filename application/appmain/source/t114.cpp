@@ -1,6 +1,6 @@
 #include <windows.h>
-#include <sqlite3.h>
 #include "mainwind.h"
+#include "babygrid.h"
 
 extern HWND g_hToolbar;
 //---------------------------------------------------------------------------------------------------
@@ -16,9 +16,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     MSG Msg;
 	const char className[] = "myWindowClass";
 
-	sqlite3 *db;
-	unsigned int rc = sqlite3_open("MyDb.db", &db);
-
+	grid::BabyGrid	babygrid();
 	mainwind::MainWind mainWindow(hInstance, &className[0], nCmdShow);
 	mainWindow.regClass();
 	mainWindow.createWind();

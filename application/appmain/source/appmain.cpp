@@ -1,8 +1,13 @@
 #include <windows.h>
+#include <Commctrl.h>
 #include "mainwind.h"
 #include "babygrid.h"
+#include "appmain.h"
+
+#pragma comment(lib,"COMCTL32.LIB")
 
 extern HWND g_hToolbar;
+
 //---------------------------------------------------------------------------------------------------
 //! \brief		
 //!
@@ -14,13 +19,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     LPSTR lpCmdLine, int nCmdShow)
 {
     MSG Msg;
-	const char className[] = "myWindowClass";
+	const char winclassName[] = "MainWindowClass";
+	const char babyGridName[] = "BabyGridClass";
 
-	grid::BabyGrid	babygrid();
-	mainwind::MainWind mainWindow(hInstance, &className[0], nCmdShow);
+	InitializeMyCommonControls();
+
+	grid::BabyGrid	babygrid(hInstance, &babyGridName[0]);
+	mainwind::MainWind mainWindow(hInstance, &winclassName[0], nCmdShow);
 	mainWindow.regClass();
 	mainWindow.createWind();
 	mainWindow.showWind();
+	babygrid.regClass();
 
 	//IMPORTANT: 
 	//GetMessage() will return -1 if it encounters an error. 
@@ -45,4 +54,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		}
     }
     return Msg.wParam;
+}
+
+// Initialization of Common Controls Procedure
+void InitializeMyCommonControls()
+{
+    //LPINITCOMMONCONTROLSEX lpInitCtrls;
+	INITCOMMONCONTROLSEX lpInitCtrls;
+ 
+    //lpInitCtrls->dwSize = (LPINITCOMMONCONTROLSEX);
+	lpInitCtrls.dwSize = sizeof(INITCOMMONCONTROLSEX);
+    lpInitCtrls.dwICC = ICC_BAR_CLASSES; //	to Load toolbar, status bar, trackbar, and tooltip control classes.
+ 
+    InitCommonControlsEx(&lpInitCtrls);
 }

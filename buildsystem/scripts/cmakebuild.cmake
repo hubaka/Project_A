@@ -541,7 +541,7 @@ endmacro()
 #
 #-----------------------------------------------------------------------------------------
 macro(_add_module_lib)
-		add_library(${LIBRARYNAME} OBJECT ${${PROJECT_ID}_SRC})
+		add_library(${LIBRARYNAME} OBJECT ${${PROJECT_ID}_SRC} ${${PROJECT_ID}_PUBLIC_HEADER})
 endmacro()
 
 #-----------------------------------------------------------------------------------------
@@ -598,14 +598,13 @@ endmacro()
 #
 #-----------------------------------------------------------------------------------------
 macro(_add_module_exe)
-	
 	set(_obj_libs)
 	foreach(_lib ${${PROJECT_ID}_DEPENDS})
 		getLibraryName(_libname ${_lib})
 		list(APPEND _obj_libs "$<TARGET_OBJECTS:${_libname}>")
 	endforeach()
 
-	add_executable(${LIBRARYNAME} ${${PROJECT_ID}_SRC} ${_obj_libs})
+	add_executable(${LIBRARYNAME} ${${PROJECT_ID}_SRC} ${_obj_libs} ${${PROJECT_ID}_PUBLIC_HEADER})
 	target_link_libraries(${LIBRARYNAME} ${${PROJECT_ID}_LIBS})
 	
 	if(MSVC)

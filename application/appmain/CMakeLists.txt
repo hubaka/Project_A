@@ -19,12 +19,14 @@ add_lib_dependencies(
 #
 # List of public module header files, relative to the module source folder
 #
-add_public_header_files()
+add_public_header_files(
+	"appmain.h"
+)
 #
 # List of source files, relative to the module source folder
 #
 add_source_files(
-	"t114.cpp"
+	"appmain.cpp"
 )
 
 add_libs_to_exe(

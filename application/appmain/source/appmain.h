@@ -18,26 +18,10 @@
 ////////////////////////////////////////////////////////////////////////////
 
 //---------------------------------------------------------------------------
-#ifndef baby_grid_h
-#define baby_grid_h
+#ifndef application_h
+#define application_h
 //---------------------------------------------------------------------------
 
-namespace grid
-{
-	class BabyGrid {
-	public:
-		BabyGrid(HINSTANCE&	hParentInstance, const char* p_className);
-		~BabyGrid(void);
-		void regClass(void);
+void InitializeMyCommonControls();
 
-	private:
-		HINSTANCE&	m_hParentInstance;
-		const char* m_pClassName;
-		WNDCLASSEX	m_gridClassEx;
-
-		static LRESULT CALLBACK Grid_Proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	};
-
-} //namespace grid
-
-#endif //baby_grid_h
+#endif //application_h

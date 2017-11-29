@@ -16,22 +16,35 @@
 // This program is the confidential and proprietary product of			  //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
-#ifndef RESOURCE_H
-#define RESOURCE_H
 
-#define ID_FILE_EXIT	9001
-#define ID_OPEN_FILE	9002
-#define ID_HELP_ABOUT	9003
-#define IDC_MAIN_TOOL	9004
-#define ID_FILE_NEW		9005
-#define ID_FILE_OPEN	9006
-#define ID_FILE_SAVEAS	9007
-#define IDC_MAIN_STATUS	9008
-#define ID_BABY_GRID	9009
+//---------------------------------------------------------------------------
+#ifndef i_grid_h
+#define i_grid_h
+//---------------------------------------------------------------------------
 
-#ifdef IDC_STATIC
-#undef IDC_STATIC
-#endif
-#define IDC_STATIC              (-1)     // all static controls
+#define SG_SETCOLAUTOWIDTH WM_USER + 0x01       ///<SimpleGrid_SetColAutoWidth()
 
-#endif //RESOURCE_H
+namespace grid
+{
+
+	class IGrid {
+	public:
+		virtual 
+			~IGrid(
+			void
+			);
+
+		virtual void 
+			regClass(
+			void
+			) = 0;
+
+		virtual void 
+			createBabyGrid(
+			HWND hWnd
+			) = 0;
+	};
+
+} //namespace grid
+
+#endif //i_grid_h

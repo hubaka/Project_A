@@ -18,19 +18,28 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include <windows.h>
+#include <windowsx.h>
 #include <strsafe.h>
 #include <commctrl.h> // included in order to use tool bar related functionalities
 #include <sqlite3.h>  // included for database
+#include "errhandle.h"
+#include "igrid.h"
 #include "resource.h"
 #include "mainwind.h"
 
 HWND g_hToolbar = NULL;
+static grid::IGrid*	m_pIGrid;
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
 
 namespace mainwind
 {
+//---------------------------------------------------------------------------
+// Defines and Macros
+//---------------------------------------------------------------------------
+#define HANDLE_DLGMSG(hWnd,message,fn)  case (message): return SetDlgMsgResult((hWnd),(message),HANDLE_##message((hWnd),(wParam),(lParam),(fn)))  /* added 05-01-29 */
+static errhandle::ErrHandle *errHandle;
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -169,7 +178,10 @@ namespace mainwind
 
 			int statwidths[] = {100, -1};
 			SendMessage(hStatus, SB_SETPARTS, sizeof(statwidths)/sizeof(int), (LPARAM)statwidths);
-			SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)"Hi there :)");
+			SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)L"Hi there :)");
+			m_pIGrid->createBabyGrid(hWnd);
+			HWND hgrid1 = GetDlgItem(hWnd, ID_BABY_GRID);
+			(BOOL)SNDMSG((hgrid1),SG_SETCOLAUTOWIDTH,(BOOL)(TRUE),0L);
 	   }
 	   else
 	   {
@@ -236,16 +248,16 @@ namespace mainwind
 					PostQuitMessage(0);
 					break;
 				}
-			case WM_LBUTTONDOWN:
-				{
-					//MAX_PATH is a handy macro included via <windows.h> that 
-					//is defined to the maximum length of a buffer needed to store a filename under Win32
-					char szFileName[MAX_PATH];
-					HINSTANCE hCurWindInstance = GetModuleHandle(NULL);
-					GetModuleFileName(hCurWindInstance, (LPWCH)szFileName, MAX_PATH);
-					MessageBox(m_hWnd, (LPCWSTR)szFileName, (LPCWSTR)L"This program is:", MB_OK | MB_ICONINFORMATION);
-					break;
-				}
+			//case WM_LBUTTONDOWN:
+			//	{
+			//		//MAX_PATH is a handy macro included via <windows.h> that 
+			//		//is defined to the maximum length of a buffer needed to store a filename under Win32
+			//		char szFileName[MAX_PATH];
+			//		HINSTANCE hCurWindInstance = GetModuleHandle(NULL);
+			//		GetModuleFileName(hCurWindInstance, (LPWCH)szFileName, MAX_PATH);
+			//		MessageBox(m_hWnd, (LPCWSTR)szFileName, (LPCWSTR)L"This program is:", MB_OK | MB_ICONINFORMATION);
+			//		break;
+			//	}
 			case WM_SIZE :
 				{
 					HWND hTool;
@@ -269,53 +281,18 @@ namespace mainwind
 					iStatusHeight = rcStatus.bottom - rcStatus.top;
 					break;
 				}
+			//HANDLE_DLGMSG(m_hWnd, WM_INITDIALOG, mainWindInitDialog);
+			case WM_INITDIALOG: {
+				//return SetDlgMsgResult((m_hWnd),(WM_INITDIALOG),HANDLE_WM_INITDIALOG((m_hWnd),(wParam),(lParam), mainWindInitDialog));  /* added 05-01-29 */
+				mainWindInitDialog(m_hWnd, wParam, lParam);
+				break;
+			}
 			default:
 				return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 		}
 		return 0;
 	}
 
-	//---------------------------------------------------------------------------------------------------
-	//! \brief		
-	//!
-	//! \param[in]	
-	//!
-	//! \return		
-	//!
-	void 
-		MainWind::ErrorExit(
-			LPTSTR lpszFunction
-		) { 
-			// Retrieve the system error message for the last-error code
-
-			LPVOID lpMsgBuf;
-			LPVOID lpDisplayBuf;
-			DWORD dw = GetLastError(); 
-
-			FormatMessage(
-				FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-				FORMAT_MESSAGE_FROM_SYSTEM |
-				FORMAT_MESSAGE_IGNORE_INSERTS,
-				NULL,
-				dw,
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-				(LPTSTR) &lpMsgBuf,
-				0, NULL );
-
-			// Display the error message and exit the process
-
-			lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT, 
-				(lstrlen((LPCTSTR)lpMsgBuf) + lstrlen((LPCTSTR)lpszFunction) + 40) * sizeof(TCHAR)); 
-			StringCchPrintf((LPTSTR)lpDisplayBuf, 
-				LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-				TEXT("%s failed with error %d: %s"), 
-				lpszFunction, dw, lpMsgBuf); 
-			MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK); 
-
-			LocalFree(lpMsgBuf);
-			LocalFree(lpDisplayBuf);
-			ExitProcess(dw); 
-		}
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -335,11 +312,11 @@ namespace mainwind
 
 			ofn.lStructSize = sizeof(ofn); // SEE NOTE BELOW
 			ofn.hwndOwner = m_hWnd;
-			ofn.lpstrFilter = (LPCWSTR) "Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
+			ofn.lpstrFilter = (LPCWSTR)L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
 			ofn.lpstrFile = (LPWSTR) szFileName;
 			ofn.nMaxFile = MAX_PATH;
 			ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-			ofn.lpstrDefExt = (LPCWSTR) "txt";
+			ofn.lpstrDefExt = (LPCWSTR)L"txt";
 
 			if(GetOpenFileName(&ofn))
 			{
@@ -443,6 +420,45 @@ namespace mainwind
 				else {
 					MessageBox(hWnd, (LPCWSTR)L"Could not load small icon!", (LPCWSTR)L"Error", MB_OK | MB_ICONERROR);
 				}
+		}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void 
+		MainWind::attachGrid(
+			grid::IGrid *p_grid
+		) { 
+			if (p_grid != NULL) {
+				m_pIGrid = p_grid;
+			}
+			else {
+				MessageBox(NULL, (LPCWSTR)L"Unable to attach Grid", (LPCWSTR)L"Error!",
+					MB_ICONEXCLAMATION | MB_OK);
+			}
+		}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	BOOL 
+		MainWind::mainWindInitDialog(
+			HWND hWnd, 
+			WPARAM wParam, 
+			LPARAM lParam
+		) { 
+			MessageBox(NULL, (LPCWSTR)L"initdialog", (LPCWSTR)L"Error!",
+				MB_ICONEXCLAMATION | MB_OK);
+
+			return TRUE;
 		}
 
 } //namespace mainwind

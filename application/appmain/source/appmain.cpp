@@ -1,5 +1,7 @@
 #include <windows.h>
 #include <Commctrl.h>
+#include "resource.h"
+#include "errhandle.h"
 #include "mainwind.h"
 #include "babygrid.h"
 #include "appmain.h"
@@ -22,14 +24,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	const char winclassName[] = "MainWindowClass";
 	const char babyGridName[] = "BabyGridClass";
 
-	InitializeMyCommonControls();
+	errhandle::ErrHandle errh;
 
+	InitializeMyCommonControls();
+	
 	grid::BabyGrid	babygrid(hInstance, &babyGridName[0]);
+	babygrid.regClass();
+
 	mainwind::MainWind mainWindow(hInstance, &winclassName[0], nCmdShow);
+	mainWindow.attachGrid(&babygrid);
 	mainWindow.regClass();
 	mainWindow.createWind();
 	mainWindow.showWind();
-	babygrid.regClass();
 
 	//IMPORTANT: 
 	//GetMessage() will return -1 if it encounters an error. 

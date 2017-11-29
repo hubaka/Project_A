@@ -22,6 +22,10 @@
 #define main_window_h
 //---------------------------------------------------------------------------
 
+namespace grid {
+	class IGrid;
+}
+
 namespace mainwind
 {
 	class MainWind {
@@ -31,24 +35,24 @@ namespace mainwind
 		void regClass(void);
 		void createWind(void);
 		void showWind(void);
+		void attachGrid(grid::IGrid *p_grid);
 
 	private:
-		WNDCLASSEX	m_wndClassEx;
-		HWND		m_hWnd;
-		HINSTANCE&	m_hParentInstance;
-		const char*	m_pClassName;
-		int			m_nCmdShow;
-		HWND		*m_hWndToolbar;
+		WNDCLASSEX		m_wndClassEx;
+		HWND			m_hWnd;
+		HINSTANCE&		m_hParentInstance;
+		const char*		m_pClassName;
+		int				m_nCmdShow;
+		HWND*			m_hWndToolbar;
 
 		static LRESULT	CALLBACK StaticWndProc(HWND, UINT, WPARAM, LPARAM);
-		LRESULT CALLBACK mainWndProc(UINT	uMsg, WPARAM	wParam, LPARAM	lParam);
-
-		static void ErrorExit(LPTSTR lpszFunction);
+		LRESULT CALLBACK mainWndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 		void getFileName(void);
 		static HWND* createToolBar(HWND hWnd);
 		static void createWindowsMenu(HWND hWnd);
 		static void setWindowsIcon(HWND hWnd);
+		BOOL mainWindInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam);
 
 	};
 

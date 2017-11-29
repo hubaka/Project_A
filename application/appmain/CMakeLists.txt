@@ -9,7 +9,9 @@ set_project_id("_PROJECT_NAME_")
 add_folder_dependencies(
 	"resource"
 	"mainwind"
+	"igrid"
 	"babygrid"
+	"errhandle"
 )
 
 add_lib_dependencies(

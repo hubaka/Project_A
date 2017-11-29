@@ -16,22 +16,26 @@
 // This program is the confidential and proprietary product of			  //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
-#ifndef RESOURCE_H
-#define RESOURCE_H
 
-#define ID_FILE_EXIT	9001
-#define ID_OPEN_FILE	9002
-#define ID_HELP_ABOUT	9003
-#define IDC_MAIN_TOOL	9004
-#define ID_FILE_NEW		9005
-#define ID_FILE_OPEN	9006
-#define ID_FILE_SAVEAS	9007
-#define IDC_MAIN_STATUS	9008
-#define ID_BABY_GRID	9009
+//---------------------------------------------------------------------------
+#ifndef errhandle_h
+#define errhandle_h
+//---------------------------------------------------------------------------
 
-#ifdef IDC_STATIC
-#undef IDC_STATIC
-#endif
-#define IDC_STATIC              (-1)     // all static controls
+namespace errhandle
+{
+	class ErrHandle {
+	public:
+		ErrHandle(void);
 
-#endif //RESOURCE_H
+		~ErrHandle(void);
+
+		void 
+		getErrorInfo(
+			LPTSTR lpszFunction
+		);
+	};
+
+} //namespace errhandle
+
+#endif //errhandle_h

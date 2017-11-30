@@ -4,6 +4,7 @@ include(cmakebuild)
 set_project_id("_PROJECT_NAME_")
 
 add_folder_dependencies(
+	"basic"
 	"resource"
 	"igrid"
 	"errhandle"

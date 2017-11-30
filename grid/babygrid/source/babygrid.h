@@ -21,10 +21,46 @@
 #ifndef baby_grid_h
 #define baby_grid_h
 //---------------------------------------------------------------------------
+#include "sys.h"
 #include "igrid.h"
+
+//---------------------------------------------------------------------------
+// Public structures
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//!	\brief An column object
+//!	\var SGCOLUMN
+//!	\brief Pointer to a column
+//!	\var LPSGCOLUMN
+//!	\brief This is the data associated with a grid column
+//!	\struct tagSGCOLUMN
+typedef struct tagSGCOLUMN {
+    DWORD dwType;           ///< Column type
+    LPTSTR lpszHeader;      ///< Column header text
+    LPVOID pOptional;       ///< Optional data (ex: combobox choices)
+} SGCOLUMN, *LPSGCOLUMN;
 
 namespace grid
 {
+
+	//---------------------------------------------------------------------------
+	// Defines and Macros
+	//---------------------------------------------------------------------------
+	//!	\name Grid Text alignments.
+	static const uint32_t GSA_LEFT		= 1;   ///< Item Text alignment: Left justified
+	static const uint32_t GSA_GENERAL	= 2;   ///< Item Text alignment: Auto selected
+	static const uint32_t GSA_RIGHT		= 3;   ///< Item Text alignment: Right justified
+
+	//---------------------------------------------------------------------------
+	//! \name Grid Column types.
+	static const uint32_t GCT_EDIT        = 1;   ///< Grid column type: Edit
+	static const uint32_t GCT_COMBO       = 2;   ///< Grid column type: Combobox
+	static const uint32_t GCT_BUTTON      = 3;   ///< Grid column type: Button
+	static const uint32_t GCT_CHECK       = 4;   ///< Grid column type: Checkbox
+	static const uint32_t GCT_LINK        = 5;   ///< Grid column type: Hyperlink
+	static const uint32_t GCT_IMAGE       = 6;   ///< Grid column type: Image
+
+
 	class BabyGrid : public IGrid {
 	public:
 		BabyGrid(
@@ -37,11 +73,6 @@ namespace grid
 		);
 
 		virtual void 
-			regClass(
-			void
-			);
-
-		virtual void 
 			createBabyGrid(
 			HWND hWnd
 			);
@@ -52,7 +83,6 @@ namespace grid
 		WNDCLASSEX	m_gridClassEx;
 		HWND		m_gridhWnd;
 
-		static LRESULT CALLBACK Grid_Proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	};
 
 } //namespace grid

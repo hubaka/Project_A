@@ -29,13 +29,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	InitializeMyCommonControls();
 	
 	grid::BabyGrid	babygrid(hInstance, &babyGridName[0]);
-	babygrid.regClass();
 
 	mainwind::MainWind mainWindow(hInstance, &winclassName[0], nCmdShow);
 	mainWindow.attachGrid(&babygrid);
-	mainWindow.regClass();
 	mainWindow.createWind();
-	mainWindow.showWind();
 
 	//IMPORTANT: 
 	//GetMessage() will return -1 if it encounters an error. 

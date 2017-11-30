@@ -39,7 +39,7 @@ namespace mainwind
 // Defines and Macros
 //---------------------------------------------------------------------------
 #define HANDLE_DLGMSG(hWnd,message,fn)  case (message): return SetDlgMsgResult((hWnd),(message),HANDLE_##message((hWnd),(wParam),(lParam),(fn)))  /* added 05-01-29 */
-static errhandle::ErrHandle *errHandle;
+static errhandle::ErrHandle g_errHandle;
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -79,10 +79,10 @@ static errhandle::ErrHandle *errHandle;
 	//! \return		
 	//!
 	void
-	MainWind::regClass(
+	MainWind::createWind(
 		void
 		) {
-		    //Step 1: Registering the Window Class
+			//Step 1: Registering the Window Class
 			m_wndClassEx.cbSize        = sizeof(WNDCLASSEX);
 			m_wndClassEx.style         = 0;
 			m_wndClassEx.lpfnWndProc   = (WNDPROC)StaticWndProc;
@@ -98,22 +98,9 @@ static errhandle::ErrHandle *errHandle;
 
 			if(!RegisterClassEx(&m_wndClassEx))
 			{
-				MessageBox(NULL, (LPCWSTR)L"Window Registration Failed!", (LPCWSTR)L"Error!",
-					MB_ICONEXCLAMATION | MB_OK);
+				g_errHandle.getErrorInfo((LPTSTR)L"Window Registration Failed!");
 			}
-	}
 
-	//---------------------------------------------------------------------------------------------------
-	//! \brief		
-	//!
-	//! \param[in]	
-	//!
-	//! \return		
-	//!
-	void
-	MainWind::createWind(
-		void
-		) {
 			// Step 2: Creating the Window
 			m_hWnd = CreateWindowEx(
 							WS_EX_CLIENTEDGE,					// Extended Style For The Window
@@ -131,22 +118,8 @@ static errhandle::ErrHandle *errHandle;
 
 			if(m_hWnd == NULL)
 			{
-				MessageBox(NULL, (LPCWSTR)L"Window Creation Failed!", (LPCWSTR)L"Error!",
-					MB_ICONEXCLAMATION | MB_OK);
+				g_errHandle.getErrorInfo((LPTSTR)L"Window Creation Failed!");
 			}
-	}
-
-	//---------------------------------------------------------------------------------------------------
-	//! \brief		
-	//!
-	//! \param[in]	
-	//!
-	//! \return		
-	//!
-	void
-	MainWind::showWind(
-		void
-		) {
 			ShowWindow(m_hWnd, m_nCmdShow);
 			UpdateWindow(m_hWnd);
 	}

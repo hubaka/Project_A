@@ -32,9 +32,7 @@ namespace mainwind
 	public:
 		MainWind(HINSTANCE& hParentInstance, const char* p_className, int nCmdShow);
 		~MainWind(void);
-		void regClass(void);
 		void createWind(void);
-		void showWind(void);
 		void attachGrid(grid::IGrid *p_grid);
 
 	private:

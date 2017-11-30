@@ -7,6 +7,7 @@ set_project_id("_PROJECT_NAME_")
 # List with modules we depend on
 #
 add_folder_dependencies(
+	"basic"
 	"resource"
 	"mainwind"
 	"igrid"

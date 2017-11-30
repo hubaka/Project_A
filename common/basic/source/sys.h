@@ -16,30 +16,16 @@
 // This program is the confidential and proprietary product of			  //
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
+#ifndef SYS_H
+#define SYS_H
 
-//---------------------------------------------------------------------------
-#ifndef i_grid_h
-#define i_grid_h
-//---------------------------------------------------------------------------
+#include <iostream>
+#include <stdlib.h>
+#include <stddef.h>
+#include "systypes.h"
 
-#define SG_SETCOLAUTOWIDTH WM_USER + 0x01       ///<SimpleGrid_SetColAutoWidth()
+PVOID safeMalloc(size_t memsize);
 
-namespace grid
-{
+#define SMALLOC(memsize) safeMalloc((size_t)memsize)
 
-	class IGrid {
-	public:
-		virtual 
-			~IGrid(
-			void
-			);
-
-		virtual void 
-			createBabyGrid(
-			HWND hWnd
-			) = 0;
-	};
-
-} //namespace grid
-
-#endif //i_grid_h
+#endif //SYS_H

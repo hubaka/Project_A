@@ -28,4 +28,11 @@ PVOID safeMalloc(size_t memsize);
 
 #define SMALLOC(memsize) safeMalloc((size_t)memsize)
 
+/// @def NELEMS(a)
+///
+/// @brief Computes number of elements of an array.
+///
+/// @param a An array.
+#define NELEMS(a) (sizeof(a) / sizeof((a)[0]))
+
 #endif //SYS_H

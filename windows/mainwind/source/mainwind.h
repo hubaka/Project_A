@@ -50,7 +50,6 @@ namespace mainwind
 		static HWND* createToolBar(HWND hWnd);
 		static void createWindowsMenu(HWND hWnd);
 		static void setWindowsIcon(HWND hWnd);
-		BOOL mainWindInitDialog(HWND hWnd, WPARAM wParam, LPARAM lParam);
 
 	};
 

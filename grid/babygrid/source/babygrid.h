@@ -40,6 +40,20 @@ typedef struct tagSGCOLUMN {
     LPVOID pOptional;       ///< Optional data (ex: combobox choices)
 } SGCOLUMN, *LPSGCOLUMN;
 
+/// @var SGITEM
+/// @brief A grid item structure
+
+/// @var LPSGITEM
+/// @brief Pointer to a grid item structure
+
+/// @struct tagSGITEM
+/// @brief This is the address data associated with a grid cell
+typedef struct tagSGITEM{
+    int col;                 ///< Column number
+    int row;                 ///< Row number
+    LPARAM lpCurValue;       ///< Item (cell) value
+} SGITEM, *LPSGITEM;
+
 namespace grid
 {
 
@@ -59,6 +73,14 @@ namespace grid
 	static const uint32_t GCT_CHECK       = 4;   ///< Grid column type: Checkbox
 	static const uint32_t GCT_LINK        = 5;   ///< Grid column type: Hyperlink
 	static const uint32_t GCT_IMAGE       = 6;   ///< Grid column type: Image
+
+	/****************************************************************************/
+	/// @name Grid Selection mode options.
+	/// @{
+
+	static const uint32_t GSO_ROWHEADER   = 1;   ///< Grid selection option: Row Header click
+	static const uint32_t GSO_CELL        = 2;	 ///< Grid selection option: Single cell
+	static const uint32_t GSO_FULLROW     = 3;   ///< Grid selection option: Full row select
 
 
 	class BabyGrid : public IGrid {

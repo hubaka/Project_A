@@ -29,6 +29,82 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 namespace grid
 {
 
+	/****************************************************************************/
+	/// @name Macroes
+	/// @{
+
+	/// @def SimpleGrid_AddColumn(hGrid,lpszHeader)
+	///
+	/// @brief Add a column to the grid.
+	///
+	/// @param hGrid The handle of the grid.
+	/// @param lpColumn Pointer to an SGCOLUMN object.
+	///
+	/// @returns The index of the added column if successful, otherwise SG_ERROR 
+	#define SimpleGrid_AddColumn(hGrid, lpColumn) ((int)(DWORD)SNDMSG((hGrid),SG_ADDCOLUMN, 0,(LPARAM)(LPSGCOLUMN)(lpColumn)))
+
+	/// @def SimpleGrid_AddRow(hGrid,lpszHeader)
+	///
+	/// @brief Add a row to the grid.
+	///
+	/// @param hGrid The handle of the grid.
+	/// @param lpszHeader Row header text string. 
+	///
+	/// @returns The index of the added row if successful, otherwise SG_ERROR  
+	#define SimpleGrid_AddRow(hGrid,lpszHeader) ((int)(DWORD)SNDMSG((hGrid),SG_ADDROW,0,(LPARAM)(lpszHeader)))
+
+	/// @def SimpleGrid_SetColAutoWidth(hGrid,fSet)
+	///
+	/// @brief Configure grid columns to auto adjust to fit contents.
+	///
+	/// @note This should be set before adding data to the grid.
+	///
+	/// @param hGrid The handle of the grid.
+	/// @param fSet fSet TRUE to autosize columns to updated content, otherwise FALSE.
+	///
+	/// @returns The return value is not meaningful.  
+	#define SimpleGrid_SetColAutoWidth(hGrid,fSet) (BOOL)SNDMSG((hGrid),SG_SETCOLAUTOWIDTH,(BOOL)(fSet),0L)
+
+	/// @def SimpleGrid_SetRowHeaderWidth(hGrid,nWidth)
+	///
+	/// @brief Set the width (in pixels) of the row header column.
+	///
+	/// @param hGrid The handle of the grid.
+	/// @param nWidth The desired width (in pixels) of the row headers.
+	///
+	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired column is out of bounds
+	#define SimpleGrid_SetRowHeaderWidth(hGrid,nWidth) (int)SNDMSG((hGrid),SG_SETROWHEADERWIDTH,0,(LPARAM)(nWidth))
+
+	/// @def SimpleGrid_SetHeaderRowHeight(hGrid,iHeight)
+	///
+	/// @brief Set the height (in pixels) of the header row.
+	///
+	/// @param hGrid The handle of the grid.
+	/// @param iHeight The desired height (in pixels) of the header row. 
+	///
+	/// @returns The return value is not meaningful. 
+	#define SimpleGrid_SetHeaderRowHeight(hGrid,iHeight) (BOOL)SNDMSG((hGrid),SG_SETHEADERROWHEIGHT,(WPARAM)(int)(iHeight),0L)
+
+	/// @def SimpleGrid_SetSelectionMode(hGrid,iMode)
+	///
+	/// @brief Set whether and how the selected row will be hilighted.
+	///
+	/// @param hGrid The handle of the grid.
+	/// @param iMode One of the following selection mode options: GSO_ROWHEADER, GSO_CELL, or GSO_FULLROW. 
+	///
+	/// @returns The return value is not meaningful.
+	#define SimpleGrid_SetSelectionMode(hGrid,iMode) (BOOL)SNDMSG((hGrid),SG_SETSELECTIONMODE,(WPARAM)(INT)(iMode),0L)
+
+	/// @def SimpleGrid_SetItemData(hGrid, pItem)
+	///
+	/// @brief Set the content of an individual cell.
+	///
+	/// @param hGrid The handle of the grid.
+	/// @param pItem A pointer to a SGIETEM struct
+	///
+	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	#define SimpleGrid_SetItemData(hGrid, pItem) (int)SNDMSG((hGrid),SG_SETITEMDATA, 0, (LPARAM)(pItem))
+
 	//---------------------------------------------------------------------------
 	// Data
 	//---------------------------------------------------------------------------
@@ -161,6 +237,8 @@ namespace grid
 	static LPTSTR createNewString(LPTSTR str);
 	static LPGRIDCOLUMN addNewColumn(LPSGCOLUMN lpColumn, uint32_t iWidth, LPVECTOR lpVector);
 	static BOOL addWindowPropList(HWND hControl, LPINSTANCEDATA pInstanceData);
+	static BOOL initGridDialog(HWND hwnd);
+	static void LoadGrid1(HWND hGrid);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -259,6 +337,11 @@ namespace grid
 	
 		switch (uMsg) {
 			HANDLE_MSG(hWnd, WM_CREATE, createGrid);
+			case WM_INITDIALOG:
+			{
+				initGridDialog(hWnd);
+				break;
+			}
 			default: 
 				{
 					return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -336,6 +419,7 @@ namespace grid
 
 			retVal = addWindowPropList(hWnd, &instance);
 		}
+		initGridDialog(hWnd);
 		return retVal;
 	}
 
@@ -500,6 +584,171 @@ namespace grid
 		LPINSTANCEDATA pInst = (LPINSTANCEDATA)SMALLOC(sizeof(INSTANCEDATA));
 		memmove(pInst, pInstanceData, sizeof(INSTANCEDATA));
 		return SetProp(hControl, (LPCTSTR)_T("lpInsData"), pInst);
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	 
+	//!
+	//! \return	
+	//!
+	static BOOL 
+	initGridDialog(HWND hwnd)
+	{
+		//Get window handles
+		HWND hgrid1 = GetDlgItem(hwnd, ID_BABY_GRID);
+		//HWND hgrid1 = GetDlgItem(hwnd, IDC_SIMPLEGRID1);
+		//hgrid2 = GetDlgItem(hwnd, IDC_SIMPLEGRID2);
+		//hgrid3 = GetDlgItem(hwnd, IDC_SIMPLEGRID3);
+		//hgrid4 = GetDlgItem(hwnd, IDC_SIMPLEGRID4);
+		//hgrid5 = GetDlgItem(hwnd, IDC_SIMPLEGRID5);
+		//htab =  GetDlgItem(hwnd, IDC_TAB);
+
+		//
+		//Configure tab
+		//
+
+		//TCITEM tie;
+		//tie.mask = TCIF_TEXT;
+		//tie.pszText = _T("Original Baby Grid Demo");
+		//TabCtrl_InsertItem(htab, 0, &tie);
+		//tie.pszText = _T("Big Data");
+		//TabCtrl_InsertItem(htab, 1, &tie);
+		//tie.pszText = _T("Column Types");
+		//TabCtrl_InsertItem(htab, 2, &tie);
+		//tie.pszText = _T("Insert/Delete Rows");
+		//TabCtrl_InsertItem(htab, 3, &tie);
+
+		//
+		//Configure grids
+		//
+
+		//set grid1 (the properties grid) to automatically size columns 
+		//based on the length of the text entered into the cells
+		SimpleGrid_SetColAutoWidth(hgrid1, TRUE);
+		//I don't want a row header, so make it 0 pixels wide
+		SimpleGrid_SetRowHeaderWidth(hgrid1,0);
+		//this grid won't use column headings, set header row height = 0
+		SimpleGrid_SetHeaderRowHeight(hgrid1, 0);
+		//on selection hilight full row
+		SimpleGrid_SetSelectionMode(hgrid1, GSO_FULLROW);
+		//populate grid1 with data
+		LoadGrid1(hgrid1);
+
+		////Set the heading font for Grid 2
+		//HFONT hFont = CreateFont(20, 0, 0, 0, FW_EXTRABOLD, FALSE, FALSE, FALSE,
+		//	ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+		//	PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("ARIEL"));
+
+		//SimpleGrid_SetHeadingFont(hgrid2,hFont);
+
+		////make grid2 header row to initial height of 21 pixels
+		//SimpleGrid_SetHeaderRowHeight(hgrid2, 21);
+		////on row header selection hilight full row, otherwise individual cell
+		//SimpleGrid_SetSelectionMode(hgrid2, GSO_ROWHEADER);
+		////do not allow in cell editing of all grid items initially
+		//SimpleGrid_EnableEdit(hgrid2,FALSE);
+
+		////populate grid2 with initial demo data
+		//LoadGrid2(hgrid2);
+
+		////make grid3 header row to initial height of 21 pixels
+		//SimpleGrid_SetHeaderRowHeight(hgrid3, 21);
+		////use column header text
+		//SimpleGrid_SetColsNumbered(hgrid3,FALSE);
+		////use row header text
+		//SimpleGrid_SetRowsNumbered(hgrid3,FALSE);
+		////last column standard width
+		//SimpleGrid_ExtendLastColumn(hgrid3,FALSE);
+		////vertical scroll set to non integral rows
+		//SimpleGrid_ShowIntegralRows(hgrid3,FALSE);
+		////on row header selection hilight full row, otherwise individual cell
+		//SimpleGrid_SetSelectionMode(hgrid3, GSO_ROWHEADER);
+
+		////Include a title for this grid
+		//SimpleGrid_SetTitleFont(hgrid3,hFont);
+		//SimpleGrid_SetTitleHeight(hgrid3, 21);
+		//SimpleGrid_SetTitle(hgrid3,_T("Grid's window text displayed here."));
+
+		////populate grid3 with big data
+		//LoadGrid3(hgrid3);
+
+		////make grid4 header row to initial height of 21 pixels
+		//SimpleGrid_SetHeaderRowHeight(hgrid4, 21);
+		////allow column resizing
+		//SimpleGrid_SetAllowColResize(hgrid4, TRUE);
+		////use column header text
+		//SimpleGrid_SetColsNumbered(hgrid4,FALSE);
+		////on row header selection hilight full row, otherwise individual cell
+		//SimpleGrid_SetSelectionMode(hgrid4, GSO_CELL);
+
+		////populate grid4 with different column types
+		//LoadGrid4(hgrid4);
+
+		//Force the display of the vertical scroll in grids (if necessary)
+		/*RECT rect;
+		GetClientRect(hwnd, &rect);
+		MoveWindow(hgrid2, rect.right / 3, 0, 
+			rect.right - rect.right / 3, rect.bottom + 1, FALSE);*/
+
+		return TRUE;
+	}
+
+	static void 
+	LoadGrid1(HWND hGrid)
+	{
+		HWND retHandle;
+		// Add some columns
+
+		// Column type
+		// Column header text
+		// Optional data (ex: combobox choices)
+		SGCOLUMN lpColumns[] = {
+			GCT_EDIT, _T(""),  NULL,
+			GCT_CHECK, _T(""),  NULL
+		};
+		for(int i = 0; i < NELEMS(lpColumns); ++i)
+			SimpleGrid_AddColumn(hGrid, &lpColumns[i]);
+
+		// Add some rows
+		for(int i = 0; i < 9; ++i) 
+			SimpleGrid_AddRow(hGrid, _T(""));
+
+		// Column number
+		// Row number
+		// Item (cell) value
+		SGITEM lpItems[] = {
+			0, 0, (LPARAM)_T("User Column Resizing"),
+			1, 0, (LPARAM) FALSE,
+			0, 1, (LPARAM)_T("User Editable"),
+			1, 1, (LPARAM) FALSE,
+			0, 2, (LPARAM)_T("Show Ellipsis"),
+			1, 2, (LPARAM) TRUE,
+			0, 3, (LPARAM)_T("Auto Column Size"),
+			1, 3, (LPARAM) FALSE,
+			0, 4, (LPARAM)_T("Extend Last Column"),
+			1, 4, (LPARAM) TRUE,
+			0, 5, (LPARAM)_T("Numbered Columns"),
+			1, 5, (LPARAM) TRUE,
+			0, 6, (LPARAM)_T("Numbered Rows"),
+			1, 6, (LPARAM) TRUE,
+			0, 7, (LPARAM)_T("Highlight Row"),
+			1, 7, (LPARAM) TRUE,
+			0, 8, (LPARAM)_T("Show Gridlines"),
+			1, 8, (LPARAM) TRUE
+		};
+
+		for(int i = 0; i < NELEMS(lpItems); ++i)
+		{
+			SimpleGrid_SetItemData(hGrid, &lpItems[i]);
+		}
+
+		//make the properties grid have the focus when the application starts
+		retHandle = SetFocus(hGrid);
+		if (NULL == retHandle) {
+			g_errHandle.getErrorInfo((LPTSTR)L"SetFocus Failed!");
+		}
 	}
 
 } //namespace mainwind

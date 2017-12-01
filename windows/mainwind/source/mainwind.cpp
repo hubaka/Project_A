@@ -35,11 +35,12 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 namespace mainwind
 {
-//---------------------------------------------------------------------------
-// Defines and Macros
-//---------------------------------------------------------------------------
-#define HANDLE_DLGMSG(hWnd,message,fn)  case (message): return SetDlgMsgResult((hWnd),(message),HANDLE_##message((hWnd),(wParam),(lParam),(fn)))  /* added 05-01-29 */
-static errhandle::ErrHandle g_errHandle;
+	//---------------------------------------------------------------------------
+	// Defines and Macros
+	//---------------------------------------------------------------------------
+	#define HANDLE_DLGMSG(hWnd,message,fn)  case (message): return SetDlgMsgResult((hWnd),(message),HANDLE_##message((hWnd),(wParam),(lParam),(fn)))  /* added 05-01-29 */
+	static errhandle::ErrHandle g_errHandle;
+	static BOOL Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -153,8 +154,8 @@ static errhandle::ErrHandle g_errHandle;
 			SendMessage(hStatus, SB_SETPARTS, sizeof(statwidths)/sizeof(int), (LPARAM)statwidths);
 			SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)L"Hi there :)");
 			m_pIGrid->createBabyGrid(hWnd);
-			HWND hgrid1 = GetDlgItem(hWnd, ID_BABY_GRID);
-			(BOOL)SNDMSG((hgrid1),SG_SETCOLAUTOWIDTH,(BOOL)(TRUE),0L);
+			/*HWND hgrid1 = GetDlgItem(hWnd, ID_BABY_GRID);
+			(BOOL)SNDMSG((hgrid1),SG_SETCOLAUTOWIDTH,(BOOL)(TRUE),0L);*/
 	   }
 	   else
 	   {
@@ -182,6 +183,7 @@ static errhandle::ErrHandle g_errHandle;
 	{
 		switch(uMsg)
 		{
+			HANDLE_DLGMSG(m_hWnd, WM_NOTIFY, Main_OnNotify);
 			case WM_COMMAND: 
 				{
 					switch(LOWORD(wParam))
@@ -254,12 +256,15 @@ static errhandle::ErrHandle g_errHandle;
 					iStatusHeight = rcStatus.bottom - rcStatus.top;
 					break;
 				}
-			//HANDLE_DLGMSG(m_hWnd, WM_INITDIALOG, mainWindInitDialog);
-			case WM_INITDIALOG: {
-				//return SetDlgMsgResult((m_hWnd),(WM_INITDIALOG),HANDLE_WM_INITDIALOG((m_hWnd),(wParam),(lParam), mainWindInitDialog));  /* added 05-01-29 */
-				mainWindInitDialog(m_hWnd, wParam, lParam);
+			/*case WM_INITDIALOG: 
+			{
 				break;
-			}
+			}*/
+			/*case WM_NOTIFY:
+			{
+
+				break;
+			}*/
 			default:
 				return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 		}
@@ -422,16 +427,263 @@ static errhandle::ErrHandle g_errHandle;
 	//!
 	//! \return		
 	//!
-	BOOL 
-		MainWind::mainWindInitDialog(
-			HWND hWnd, 
-			WPARAM wParam, 
-			LPARAM lParam
-		) { 
-			MessageBox(NULL, (LPCWSTR)L"initdialog", (LPCWSTR)L"Error!",
-				MB_ICONEXCLAMATION | MB_OK);
+	static BOOL 
+	Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm)
+	{
 
-			return TRUE;
-		}
+		HWND hgrid1 = GetDlgItem(hWnd, ID_BABY_GRID);
+		ShowWindow(hgrid1, SW_SHOW);
+		//if (IDC_TAB == id)
+		//{
+		//	if (TCN_SELCHANGE == pnm->code)
+		//	{
+		//		switch(TabCtrl_GetCurSel(pnm->hwndFrom))
+		//		{
+		//			case 0:
+		//				ShowWindow(hgrid5, SW_HIDE);
+		//				ShowWindow(hgrid4, SW_HIDE);
+		//				ShowWindow(hgrid3, SW_HIDE);
+		//				ShowWindow(hgrid2, SW_SHOW);
+		//				ShowWindow(hgrid1, SW_SHOW);
+		//				break;
+		//			case 1:
+		//				ShowWindow(hgrid2, SW_HIDE);
+		//				ShowWindow(hgrid1, SW_HIDE);
+		//				ShowWindow(hgrid5, SW_HIDE);
+		//				ShowWindow(hgrid4, SW_HIDE);
+		//				ShowWindow(hgrid3, SW_SHOW);
+		//				break;
+		//			case 2:
+		//				ShowWindow(hgrid3, SW_HIDE);
+		//				ShowWindow(hgrid2, SW_HIDE);
+		//				ShowWindow(hgrid1, SW_HIDE);
+		//				ShowWindow(hgrid5, SW_HIDE);
+		//				ShowWindow(hgrid4, SW_SHOW);
+		//				break;
+		//			case 3:
+		//				ShowWindow(hgrid4, SW_HIDE);
+		//				ShowWindow(hgrid3, SW_HIDE);
+		//				ShowWindow(hgrid2, SW_HIDE);
+		//				ShowWindow(hgrid1, SW_HIDE);
+		//				InitializeGrid5Demo();
+		//				ShowWindow(hgrid5, SW_SHOW);
+		//				break;
+		//		}
+		//	}
+		//}
+		//if (IDC_SIMPLEGRID1 == id)
+		//{
+		//	if (pnm->code == SGN_ITEMCLICK) //a cell was clicked in the properties grid
+		//	{
+		//		DWORD dwType = ((LPNMGRID)pnm)->dwType;
 
+		//		if(GCT_CHECK == dwType)
+		//		{
+		//			SGITEM sgi;
+		//			sgi.col = ((LPNMGRID)pnm)->col;
+		//			sgi.row = ((LPNMGRID)pnm)->row;
+		//			SimpleGrid_GetItemData(pnm->hwndFrom, &sgi);
+
+		//			if (FALSE == (BOOL) sgi.lpCurValue)
+		//			{
+		//				//send appropriate control message to the grid based
+		//				//on the row of the cell that was toggled
+		//				if (sgi.row == 0)
+		//					SimpleGrid_SetAllowColResize(hgrid2, FALSE);
+		//				if (sgi.row == 1)
+		//					SimpleGrid_EnableEdit(hgrid2, FALSE);
+		//				if (sgi.row == 2)
+		//					SimpleGrid_SetEllipsis(hgrid2, FALSE);
+		//				if (sgi.row == 3)
+		//					SimpleGrid_SetColAutoWidth(hgrid2, FALSE);
+		//				if (sgi.row == 4)
+		//					SimpleGrid_ExtendLastColumn(hgrid2, FALSE);
+		//				if (sgi.row == 5)
+		//				{
+		//					SimpleGrid_SetColsNumbered(hgrid2, FALSE);
+		//					SimpleGrid_SetHeaderRowHeight(hgrid2, 61);
+		//				}
+		//				if (sgi.row == 6)
+		//					SimpleGrid_SetRowsNumbered(hgrid2, FALSE);
+		//				if (sgi.row == 7)
+		//					SimpleGrid_SetSelectionMode(hgrid2, GSO_ROWHEADER);
+		//				if (sgi.row == 8)
+		//					SimpleGrid_SetGridLineColor(hgrid2, RGB(255, 255, 255));
+		//			}
+		//			else //TRUE
+		//			{
+		//				//send appropriate control message to the grid based
+		//				//on the row of the cell that was toggled
+		//				if (sgi.row == 0)
+		//					SimpleGrid_SetAllowColResize(hgrid2, TRUE);
+		//				if (sgi.row == 1)
+		//					SimpleGrid_EnableEdit(hgrid2, TRUE);
+		//				if (sgi.row == 2)
+		//					SimpleGrid_SetEllipsis(hgrid2, TRUE);
+		//				if (sgi.row == 3)
+		//					SimpleGrid_SetColAutoWidth(hgrid2, TRUE);
+		//				if (sgi.row == 4)
+		//					SimpleGrid_ExtendLastColumn(hgrid2, TRUE);
+		//				if (sgi.row == 5)
+		//				{
+		//					SimpleGrid_SetColsNumbered(hgrid2, TRUE);
+		//					SimpleGrid_SetHeaderRowHeight(hgrid2, 21);
+		//				}
+		//				if (sgi.row == 6)
+		//					SimpleGrid_SetRowsNumbered(hgrid2, TRUE);
+		//				if (sgi.row == 7)
+		//					SimpleGrid_SetSelectionMode(hgrid2, GSO_FULLROW);
+		//				if (sgi.row == 8)
+		//					SimpleGrid_SetGridLineColor(hgrid2, RGB(220, 220, 220));
+		//			}
+		//		}
+		//	}   //if(pnm.code==BGN_CELLCLICKED)
+		//	return TRUE;
+		//}
+		//else if (IDC_SIMPLEGRID3 == id)
+		//{
+		//	if(pnm->code == SGN_KEYDOWN)
+		//	{
+		//		LPNMSGKEYDOWN pnmkd = (LPNMSGKEYDOWN)pnm;
+		//		if(VK_F2 == pnmkd->wVKey && pnmkd->dwType == GCT_EDIT)
+		//		{
+		//			SimpleGrid_SelectCell(pnm->hwndFrom, pnmkd->col, pnmkd->row, FALSE);
+		//		}
+		//	}
+		//}
+		//else if (IDC_SIMPLEGRID4 == id)
+		//{
+		//	if(pnm->code == SGN_ITEMCLICK)
+		//	{
+		//		DWORD dwType = ((LPNMGRID)pnm)->dwType;
+
+		//		if(GCT_BUTTON == dwType)
+		//		{
+		//			int col = ((LPNMGRID)pnm)->col;
+		//			int row = ((LPNMGRID)pnm)->row;
+		//			int len = SimpleGrid_GetItemDataLen(pnm->hwndFrom, col, row);
+		//			LPTSTR buf = (LPTSTR) _alloca(sizeof(TCHAR) * (len + 1));
+		//			SimpleGrid_GetItemText(pnm->hwndFrom, col, row, buf);
+
+		//			if(row == 0)
+		//			{
+		//				if(0 == _tcsicmp((LPTSTR) buf, _T("#1 On")))
+		//				{
+		//					// Column number
+		//					// Row number
+		//					// Item (cell) value
+		//					SGITEM lpItems[] = {
+		//						// Button column
+		//						1, 0, (LPARAM)_T("#1 Off"),
+		//						// Image column
+		//						2, 0, (LPARAM) 1 //On light
+		//					};
+
+		//					for(int i = 0; i < NELEMS(lpItems); ++i)
+		//					{
+		//						SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
+		//					}
+		//				}
+		//				else
+		//				{
+		//					// Column number
+		//					// Row number
+		//					// Item (cell) value
+		//					SGITEM lpItems[] = {
+		//						// Button column
+		//						1, 0, (LPARAM)_T("#1 On"),
+		//						// Image column
+		//						2, 0, (LPARAM) 0 //Off light
+		//					};
+
+		//					for(int i = 0; i < NELEMS(lpItems); ++i)
+		//					{
+		//						SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
+		//					}
+
+		//				}
+		//			}
+		//			if(row == 1)
+		//			{
+		//				if(0 == _tcsicmp((LPTSTR) buf, _T("#2 On")))
+		//				{
+		//					// Column number
+		//					// Row number
+		//					// Item (cell) value
+		//					SGITEM lpItems[] = {
+		//						// Button column
+		//						1, 1, (LPARAM)_T("#2 Off"),
+		//						// Image column
+		//						2, 1, (LPARAM) 1 //On light
+		//					};
+
+		//					for(int i = 0; i < NELEMS(lpItems); ++i)
+		//					{
+		//						SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
+		//					}
+		//				}
+		//				else
+		//				{
+		//					// Column number
+		//					// Row number
+		//					// Item (cell) value
+		//					SGITEM lpItems[] = {
+		//						// Button column
+		//						1, 1, (LPARAM)_T("#2 On"),
+		//						// Image column
+		//						2, 1, (LPARAM) 0 //Off light
+		//					};
+
+		//					for(int i = 0; i < NELEMS(lpItems); ++i)
+		//					{
+		//						SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
+		//					}
+
+		//				}
+		//			}
+		//			SimpleGrid_SetCursorPos(pnm->hwndFrom,col,row);
+		//		}
+
+		//	} //if(pnm.code==BGN_CELLCLICKED)
+		//	return TRUE;
+		//}
+		//else if (IDC_SIMPLEGRID5 == id)
+		//{
+		//	if(pnm->code == SGN_ITEMCLICK)
+		//	{
+		//		DWORD dwType = ((LPNMGRID)pnm)->dwType;
+
+		//		if(GCT_BUTTON == dwType)
+		//		{
+		//			if(0 == ((LPNMGRID)pnm)->col)// "-"
+		//				SimpleGrid_DeleteRow(pnm->hwndFrom, ((LPNMGRID)pnm)->row);
+		//			else // "+"
+		//			{
+		//				SGITEM sgi;
+		//				sgi.row = ((LPNMGRID)pnm)->row + 1;
+		//				SimpleGrid_InsertRow(pnm->hwndFrom, sgi.row, "");
+
+		//				sgi.col = 0;
+		//				sgi.lpCurValue = (LPARAM)_T("-"); // Button text
+		//				SimpleGrid_SetItemData(pnm->hwndFrom, &sgi);
+
+		//				sgi.col = 1;
+		//				sgi.lpCurValue = (LPARAM)_T("+"); // Button text
+		//				SimpleGrid_SetItemData(pnm->hwndFrom, &sgi);
+
+		//				sgi.col = 2;
+		//				sgi.lpCurValue = (LPARAM)_T("Inserted Item");
+		//				SimpleGrid_SetItemData(pnm->hwndFrom, &sgi);
+		//			}
+
+		//			SimpleGrid_RefreshGrid(pnm->hwndFrom);
+		//		}
+		//		return TRUE;
+		//	}
+		//}
+		/*else {
+			return FALSE;
+		}*/
+		return true;
+	}
 } //namespace mainwind

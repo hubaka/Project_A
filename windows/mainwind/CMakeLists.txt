@@ -8,7 +8,6 @@ add_folder_dependencies(
 	"resource"
 	"igrid"
 	"errhandle"
-	"toolbar"
 )
 
 add_lib_dependencies(

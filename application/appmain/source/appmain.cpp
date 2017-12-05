@@ -1,10 +1,28 @@
+//!
+//! $URL: $
+//!
+//!
+//! \file       
+//! \author     Anand.Kathiresan
+//! \date       
+//!
+//! \brief      @ Source file for 
+//!
+//! @(#)$Id:    $
+//!
+
+////////////////////////////////////////////////////////////////////////////
+//                                                                        //
+// This program is the confidential and proprietary product of			  //
+//                                                                        //
+////////////////////////////////////////////////////////////////////////////
+
 #include <windows.h>
 #include <Commctrl.h>
 #include "resource.h"
 #include "errhandle.h"
 #include "mainwind.h"
 #include "babygrid.h"
-#include "toolbar.h"
 #include "appmain.h"
 
 #pragma comment(lib,"COMCTL32.LIB")
@@ -22,21 +40,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     LPSTR lpCmdLine, int nCmdShow)
 {
     MSG Msg;
-	const char winclassName[] = "MainWindowClass";
-	const char babyGridName[] = "BabyGridClass";
 
 	errhandle::ErrHandle errh;
 
 	// Initialize common controls. Also needed for MANIFEST's
 	InitializeMyCommonControls();
 	
-	grid::BabyGrid	babygrid(hInstance, &babyGridName[0]);
-	bar::ToolBar toolbar;
-	mainwind::MainWind mainWindow(hInstance, &winclassName[0], nCmdShow);
+	grid::BabyGrid	babygrid(hInstance);
+	mainwind::MainWind mainWindow(hInstance, nCmdShow);
 	mainWindow.attachGrid(&babygrid);
-	mainWindow.attachBar(&toolbar);
 	mainWindow.createWind();
-	HWND ptoolbar = toolbar.getToolBarInstance();
 
 	//IMPORTANT: 
 	//GetMessage() will return -1 if it encounters an error. 

@@ -9,7 +9,6 @@ add_source_layers(
 	"s" "database"
 	"s" "grid"
 	"s" "errorhandle"
-	"s" "bar"
 )
 
 add_subfolder_dependency()

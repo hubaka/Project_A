@@ -18,33 +18,27 @@
 ////////////////////////////////////////////////////////////////////////////
 
 //---------------------------------------------------------------------------
-#ifndef main_window_h
-#define main_window_h
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
 //---------------------------------------------------------------------------
 
 namespace grid {
 	class IGrid;
 }
 
-namespace bar {
-	class ToolBar;
-}
-
 namespace mainwind
 {
 	class MainWind {
 	public:
-		MainWind(HINSTANCE& hParentInstance, const char* p_className, int nCmdShow);
+		MainWind(HINSTANCE& hParentInstance, int nCmdShow);
 		~MainWind(void);
 		void createWind(void);
 		void attachGrid(grid::IGrid *p_grid);
-		void attachBar(bar::ToolBar *p_bar);
 
 	private:
 		WNDCLASSEX		m_wndClassEx;
 		HWND			m_hWnd;
 		HINSTANCE&		m_hParentInstance;
-		const char*		m_pClassName;
 		int				m_nCmdShow;
 		HWND*			m_hWndToolbar;
 
@@ -60,4 +54,4 @@ namespace mainwind
 
 } //namespace mainwind
 
-#endif //main_window_h
+#endif //MAINWINDOW_H

@@ -25,22 +25,26 @@
 #include "errhandle.h"
 #include "igrid.h"
 #include "resource.h"
+#include "toolbar.h"
 #include "mainwind.h"
 
 HWND g_hToolbar = NULL;
 static grid::IGrid*	m_pIGrid;
+static bar::ToolBar*	m_pBar;
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
 
 namespace mainwind
 {
+
 	//---------------------------------------------------------------------------
 	// Defines and Macros
 	//---------------------------------------------------------------------------
 	#define HANDLE_DLGMSG(hWnd,message,fn)  case (message): return SetDlgMsgResult((hWnd),(message),HANDLE_##message((hWnd),(wParam),(lParam),(fn)))  /* added 05-01-29 */
 	static errhandle::ErrHandle g_errHandle;
 	static BOOL Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm);
+	static HWND dialogbar;
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -153,6 +157,7 @@ namespace mainwind
 			int statwidths[] = {100, -1};
 			SendMessage(hStatus, SB_SETPARTS, sizeof(statwidths)/sizeof(int), (LPARAM)statwidths);
 			SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)L"Hi there :)");
+			//dialogbar = m_pBar->createToolBar(hWnd);
 			m_pIGrid->createBabyGrid(hWnd);
 			/*HWND hgrid1 = GetDlgItem(hWnd, ID_BABY_GRID);
 			(BOOL)SNDMSG((hgrid1),SG_SETCOLAUTOWIDTH,(BOOL)(TRUE),0L);*/
@@ -205,6 +210,12 @@ namespace mainwind
 								MB_OK | MB_ICONINFORMATION);
 							break;
 						}
+					case ID_DIALOG_SHOW:
+						ShowWindow(dialogbar, SW_SHOW);
+					break;
+					case ID_DIALOG_HIDE:
+						ShowWindow(dialogbar, SW_HIDE);
+					break;
 					default:
 						{
 							break;
@@ -245,6 +256,7 @@ namespace mainwind
 
 					// Size toolbar and get height
 					hTool = GetDlgItem(m_hWnd, IDC_MAIN_TOOL);
+					HWND hgrid1 = GetDlgItem(m_hWnd, IDC_SIMPLEGRID1);
 					SendMessage(hTool, TB_AUTOSIZE, 0, 0);
 					GetWindowRect(hTool, &rcTool);
 					iToolHeight = rcTool.bottom - rcTool.top;
@@ -256,10 +268,10 @@ namespace mainwind
 					iStatusHeight = rcStatus.bottom - rcStatus.top;
 					break;
 				}
-			/*case WM_INITDIALOG: 
+			case WM_INITDIALOG: 
 			{
 				break;
-			}*/
+			}
 			/*case WM_NOTIFY:
 			{
 
@@ -427,12 +439,33 @@ namespace mainwind
 	//!
 	//! \return		
 	//!
+	void 
+		MainWind::attachBar(
+			bar::ToolBar *p_bar
+		) { 
+			if (p_bar != NULL) {
+				m_pBar = p_bar;
+			}
+			else {
+				MessageBox(NULL, (LPCWSTR)L"Unable to attach bar", (LPCWSTR)L"Error!",
+					MB_ICONEXCLAMATION | MB_OK);
+			}
+		}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
 	static BOOL 
 	Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm)
 	{
 
-		HWND hgrid1 = GetDlgItem(hWnd, ID_BABY_GRID);
+		HWND hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
 		ShowWindow(hgrid1, SW_SHOW);
+
 		//if (IDC_TAB == id)
 		//{
 		//	if (TCN_SELCHANGE == pnm->code)

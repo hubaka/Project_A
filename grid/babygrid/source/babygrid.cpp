@@ -29,6 +29,7 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 namespace grid
 {
 
+	static HWND parentWind;
 	/****************************************************************************/
 	/// @name Macroes
 	/// @{
@@ -232,13 +233,19 @@ namespace grid
 	static BOOL createGrid(HWND hWnd, LPCREATESTRUCT lpCreateStruct);
 	static LPVECTOR createVector(void);
 	static BOOL addVector(const LPVECTOR pVector, PVOID object);
-	static int32_t getVectorSize(const LPVECTOR pVector);
+	static int32_t Vector_Size(const LPVECTOR pVector);
 	static LPGRIDITEM createNewItem(LPTSTR szCurValue);
 	static LPTSTR createNewString(LPTSTR str);
 	static LPGRIDCOLUMN addNewColumn(LPSGCOLUMN lpColumn, uint32_t iWidth, LPVECTOR lpVector);
 	static BOOL addWindowPropList(HWND hControl, LPINSTANCEDATA pInstanceData);
+	static BOOL Control_GetInstanceData(HWND hControl, LPINSTANCEDATA *ppInstanceData);
 	static BOOL initGridDialog(HWND hwnd);
 	static void LoadGrid1(HWND hGrid);
+	static LRESULT Grid_OnSetColWidth(HWND, WPARAM, LPARAM);
+	static int ColCount(VOID);
+	static PVOID Vector_Get(const LPVECTOR pVector, const int index);
+	static void SetVisibleColumns(HWND hwnd);
+	static int GetColWidth(INT col);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -282,7 +289,9 @@ namespace grid
 		HWND hWnd
 	)
 	{
-		//m_gridhWnd = CreateDialog(GetModuleHandle(NULL), MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)Grid_Proc);
+
+		//m_gridhWnd = CreateDialog(m_hParentInstance, MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)Grid_Proc);
+		//g_errHandle.getErrorInfo((LPTSTR)L"createbabygrid!");
 		//ShowWindow(m_gridhWnd, SW_SHOW);
 		//DialogBox(HINST_THISCOMPONENT, MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)Grid_Proc);
 		static HWND hControl;
@@ -307,6 +316,8 @@ namespace grid
 			g_errHandle.getErrorInfo((LPTSTR)L"Grid Class Registration Failed!");
 		}
 
+
+
 		//Get hinstance if this code is compiled into and called from a dll 
 		// as well as if it were compiled into the executable.  (XP and later)
 		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
@@ -315,13 +326,14 @@ namespace grid
 		//Only need to register the property grid once
 		/*if (!aControl)
 			aControl = InitSimpleGrid(hinst);*/
-
+		parentWind = hWnd;
 		hControl = CreateWindowEx(0, (LPCWSTR)m_pClassName, NULL, WS_CHILD | 
-		  WS_TABSTOP, 0, 0, 0, 0, hWnd, (HMENU)ID_BABY_GRID, GetModuleHandle(NULL), NULL);
+		  WS_TABSTOP, 0, 0, 0, 0, hWnd, (HMENU)IDC_SIMPLEGRID1, hinst, NULL);
 
 		if (hControl == NULL) {
 			g_errHandle.getErrorInfo((LPTSTR)L"createBabyGrid");
 		}
+		initGridDialog(hWnd);
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -334,14 +346,35 @@ namespace grid
 	LRESULT	CALLBACK 
 	Grid_Proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
-	
+
+		RECT rect = {0,0,0,0};
+
+		Control_GetInstanceData(hWnd, &g_lpInst);   //Update the instance pointer
+		//update the grid width and height variable
+		if (NULL != g_lpInst)
+		{
+			GetClientRect(hWnd, &rect);
+			g_lpInst->gridwidth = rect.right - rect.left;
+			g_lpInst->gridheight = rect.bottom - rect.top;
+		}
 		switch (uMsg) {
 			HANDLE_MSG(hWnd, WM_CREATE, createGrid);
 			case WM_INITDIALOG:
-			{
-				initGridDialog(hWnd);
-				break;
-			}
+				{
+					initGridDialog(hWnd);
+					break;
+				}
+			case SG_SETCOLAUTOWIDTH:
+				{
+					g_lpInst->COLAUTOWIDTH = (BOOL)wParam;
+					break;
+				}
+			case SG_SETROWHEADERWIDTH:
+				{
+					DWORD dwRtn = 0;
+					dwRtn = Grid_OnSetColWidth(hWnd, 0, lParam);
+					return dwRtn;
+				}
 			default: 
 				{
 					return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -419,7 +452,6 @@ namespace grid
 
 			retVal = addWindowPropList(hWnd, &instance);
 		}
-		initGridDialog(hWnd);
 		return retVal;
 	}
 
@@ -454,7 +486,7 @@ namespace grid
 	addVector(const LPVECTOR pVector, PVOID object)
 	{
 		bool retVal = true;
-		int old_size = getVectorSize(pVector);
+		int old_size = Vector_Size(pVector);
 		int new_capacity;
 		PVOID *new_data;//DWM 1.9: Added more explicit pointer
 
@@ -481,7 +513,7 @@ namespace grid
 	//! \return		The number of objects
 	//!
 	static int32_t 
-	getVectorSize(const LPVECTOR pVector)
+	Vector_Size(const LPVECTOR pVector)
 	{
 		return (NULL == pVector) ? 0 : pVector->_size;
 	}
@@ -586,6 +618,25 @@ namespace grid
 		return SetProp(hControl, (LPCTSTR)_T("lpInsData"), pInst);
 	}
 
+	/// @brief Get the Instance data associated with this instance.
+	///
+	/// @param hControl Handle to Current instance.
+	/// @param ppInstanceData - Pointer to the address of an INSTANCEDATA struct. 
+	///
+	/// @returns TRUE if successful
+	static BOOL 
+	Control_GetInstanceData(HWND hControl, LPINSTANCEDATA *ppInstanceData)
+	{
+		*ppInstanceData = (LPINSTANCEDATA)GetProp(hControl, (LPCTSTR)_T("lpInsData"));
+		if (NULL != *ppInstanceData)
+		{
+			return TRUE;
+		}
+		else {
+			return FALSE;
+		}
+	}
+
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
 	//!
@@ -597,7 +648,11 @@ namespace grid
 	initGridDialog(HWND hwnd)
 	{
 		//Get window handles
-		HWND hgrid1 = GetDlgItem(hwnd, ID_BABY_GRID);
+		HWND hgrid1 = GetDlgItem(parentWind, IDC_SIMPLEGRID1);
+		if (NULL == hgrid1) {
+			g_errHandle.getErrorInfo((LPTSTR)L"initgriddialog");
+		}
+
 		//HWND hgrid1 = GetDlgItem(hwnd, IDC_SIMPLEGRID1);
 		//hgrid2 = GetDlgItem(hwnd, IDC_SIMPLEGRID2);
 		//hgrid3 = GetDlgItem(hwnd, IDC_SIMPLEGRID3);
@@ -749,6 +804,91 @@ namespace grid
 		if (NULL == retHandle) {
 			g_errHandle.getErrorInfo((LPTSTR)L"SetFocus Failed!");
 		}
+	}
+
+	/// @brief Handles SG_SETCOLWIDTH message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam The index of the column
+	/// @param lParam The desired width (in pixels) of the column
+	///
+	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnSetColWidth(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+		INT iCol = wParam;
+		if (iCol > ColCount())
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+		RECT rect = {0,0,0,0};
+		((LPGRIDCOLUMN)Vector_Get(g_lpInst->data, iCol))->iWidth = (INT)lParam;
+		GetClientRect(hwnd, &rect);
+		InvalidateRect(hwnd, &rect, FALSE);
+		SetVisibleColumns(hwnd);
+		return ERROR_SUCCESS;
+	}
+
+	/// @brief wrapper to access column count (including the row header column 0)
+	///
+	/// @returns The number of columns in the underlying data table
+	static int ColCount(VOID)
+	{
+		return Vector_Size(g_lpInst->data);
+	}
+
+	/// @brief Access an item stored in the VECTOR
+	///
+	/// @param pVector a pointer to a VECTOR instance
+	/// @param index the array index associated with the desired item
+	///
+	/// @returns The desired item if successful, otherwise NULL
+	static PVOID Vector_Get(const LPVECTOR pVector, const int index)
+	{
+		if (index < Vector_Size(pVector))
+		{
+			return pVector->_data[index];
+		}
+		else
+		{
+			return NULL;
+		}
+	}
+
+	/// @brief Sets the visible columns field to the number of visible columns.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static void SetVisibleColumns(HWND hwnd)
+	{
+		int j;
+		int cols = ColCount();
+		int value;
+		value = 0;
+		for (j = 1; j < cols; j++)
+		{
+			if (0 < GetColWidth(j))
+			{
+				value++;
+			}
+		}
+		g_lpInst->visiblecolumns = value;
+		SetScrollRange(hwnd, SB_HORZ, 1, value, TRUE);
+	}
+
+	/// @brief wrapper to access column width
+	///
+	/// @param col The column number
+	///
+	/// @returns The width of the column
+	static int GetColWidth(INT col)
+	{
+		LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col);
+		if(NULL == lpgc)
+			return 0;
+
+		return lpgc->iWidth;
 	}
 
 } //namespace mainwind

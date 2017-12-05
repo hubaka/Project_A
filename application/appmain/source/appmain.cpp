@@ -4,6 +4,7 @@
 #include "errhandle.h"
 #include "mainwind.h"
 #include "babygrid.h"
+#include "toolbar.h"
 #include "appmain.h"
 
 #pragma comment(lib,"COMCTL32.LIB")
@@ -26,13 +27,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 	errhandle::ErrHandle errh;
 
+	// Initialize common controls. Also needed for MANIFEST's
 	InitializeMyCommonControls();
 	
 	grid::BabyGrid	babygrid(hInstance, &babyGridName[0]);
-
+	bar::ToolBar toolbar;
 	mainwind::MainWind mainWindow(hInstance, &winclassName[0], nCmdShow);
 	mainWindow.attachGrid(&babygrid);
+	mainWindow.attachBar(&toolbar);
 	mainWindow.createWind();
+	HWND ptoolbar = toolbar.getToolBarInstance();
 
 	//IMPORTANT: 
 	//GetMessage() will return -1 if it encounters an error. 
@@ -50,7 +54,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	//and GetMessage() will fail at some point :) I've gone through and corrected this, but forgive me if I've missed a few spots.
     while(GetMessage(&Msg, NULL, 0, 0) > 0)
     {
-		if(!IsDialogMessage(g_hToolbar, &Msg))
+		//if(!IsDialogMessage(ptoolbar, &Msg))
 		{
 			TranslateMessage(&Msg);
 			DispatchMessage(&Msg);

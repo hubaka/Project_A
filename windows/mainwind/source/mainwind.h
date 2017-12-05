@@ -26,6 +26,10 @@ namespace grid {
 	class IGrid;
 }
 
+namespace bar {
+	class ToolBar;
+}
+
 namespace mainwind
 {
 	class MainWind {
@@ -34,6 +38,7 @@ namespace mainwind
 		~MainWind(void);
 		void createWind(void);
 		void attachGrid(grid::IGrid *p_grid);
+		void attachBar(bar::ToolBar *p_bar);
 
 	private:
 		WNDCLASSEX		m_wndClassEx;

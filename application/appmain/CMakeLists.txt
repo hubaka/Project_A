@@ -13,6 +13,7 @@ add_folder_dependencies(
 	"igrid"
 	"babygrid"
 	"errhandle"
+	"toolbar"
 )
 
 add_lib_dependencies(

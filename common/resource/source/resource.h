@@ -27,7 +27,16 @@
 #define ID_FILE_OPEN	9006
 #define ID_FILE_SAVEAS	9007
 #define IDC_MAIN_STATUS	9008
+
 #define ID_BABY_GRID	9009
+#define IDC_SIMPLEGRID1 9010
+
+//Testing purpose
+#define IDD_TOOLBAR		9011
+#define IDC_PRESS		9012
+#define IDC_OTHER		9013
+#define ID_DIALOG_SHOW	9014
+#define ID_DIALOG_HIDE	9015
 
 #ifdef IDC_STATIC
 #undef IDC_STATIC

@@ -23,6 +23,7 @@
 #include <strsafe.h>
 #include <commctrl.h> // included in order to use tool bar related functionalities
 #include <sqlite3.h>  // included for database
+#include "babygrid.h"
 #include "errhandle.h"
 #include "igrid.h"
 #include "resource.h"
@@ -43,6 +44,10 @@ namespace mainwind
 	#define HANDLE_DLGMSG(hWnd,message,fn)  case (message): return SetDlgMsgResult((hWnd),(message),HANDLE_##message((hWnd),(wParam),(lParam),(fn)))  /* added 05-01-29 */
 	static errhandle::ErrHandle g_errHandle;
 	static LRESULT CALLBACK mainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	static BOOL CALLBACK dlgWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	static BOOL Main_OnInitDialog(HWND hWnd, HWND hwndFocus, LPARAM lParam);
+	static BOOL Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm);
+	static void LoadGrid1(HWND hGrid);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -151,7 +156,7 @@ namespace mainwind
 						hWnd, (HMENU)IDC_MAIN_STATUS, GetModuleHandle(NULL), NULL);
 
 			m_pIGrid->createBabyGrid(hWnd);
-			g_hToolbar = CreateDialog(GetModuleHandle(NULL), MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)mainWndProc);
+			g_hToolbar = CreateDialog(GetModuleHandle(NULL), MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)dlgWndProc);
 			if(g_hToolbar != NULL)
 			{
 				ShowWindow(g_hToolbar, SW_SHOW);
@@ -191,7 +196,6 @@ namespace mainwind
 	{
 		switch(uMsg)
 		{
-			//HANDLE_DLGMSG(m_hWnd, WM_NOTIFY, Main_OnNotify);
 			case WM_COMMAND: 
 				{
 					switch(LOWORD(wParam))
@@ -231,16 +235,6 @@ namespace mainwind
 					PostQuitMessage(0);
 					break;
 				}
-			//case WM_LBUTTONDOWN:
-			//	{
-			//		//MAX_PATH is a handy macro included via <windows.h> that 
-			//		//is defined to the maximum length of a buffer needed to store a filename under Win32
-			//		char szFileName[MAX_PATH];
-			//		HINSTANCE hCurWindInstance = GetModuleHandle(NULL);
-			//		GetModuleFileName(hCurWindInstance, (LPWCH)szFileName, MAX_PATH);
-			//		MessageBox(m_hWnd, (LPCWSTR)szFileName, (LPCWSTR)L"This program is:", MB_OK | MB_ICONINFORMATION);
-			//		break;
-			//	}
 			case WM_SIZE :
 				{
 					HWND hTool;
@@ -264,15 +258,7 @@ namespace mainwind
 					iStatusHeight = rcStatus.bottom - rcStatus.top;
 					break;
 				}
-			//case WM_INITDIALOG: 
-			//{
-			//	break;
-			//}
-			//case WM_NOTIFY:
-			//{
-
-			//	break;
-			//}
+			HANDLE_DLGMSG(hWnd, WM_NOTIFY, Main_OnNotify);
 			default:
 				return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		}
@@ -694,5 +680,198 @@ namespace mainwind
 			return FALSE;
 		}*/
 		return true;
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	BOOL CALLBACK 
+	dlgWndProc(
+		HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam
+	) {
+		switch (msg)
+		{
+			//		HANDLE_DLGMSG(hwndDlg, WM_CLOSE, Main_OnClose);
+			//		HANDLE_DLGMSG(hwndDlg, WM_COMMAND, Main_OnCommand);
+					HANDLE_DLGMSG(hwndDlg, WM_INITDIALOG, Main_OnInitDialog);
+					//HANDLE_DLGMSG(hwndDlg, WM_NOTIFY, Main_OnNotify);
+			//		HANDLE_DLGMSG(hwndDlg, WM_SIZE, Main_OnSize);
+
+			//		case WM_NOTIFYFORMAT:
+			//#ifdef UNICODE
+			//			return SetDlgMsgResult(hwndDlg, WM_NOTIFYFORMAT, NFR_UNICODE);
+			//#else
+			//			return SetDlgMsgResult(hwndDlg, WM_NOTIFYFORMAT, NFR_ANSI);
+			//#endif
+			//		//// TODO: Add dialog message crackers here...
+			default:
+				return FALSE;
+		}
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	BOOL 
+	Main_OnInitDialog(
+		HWND hWnd, HWND hwndFocus, LPARAM lParam
+	) {
+		//Get window handles
+		HWND hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
+		//hgrid2 = GetDlgItem(hWnd, IDC_SIMPLEGRID2);
+		//hgrid3 = GetDlgItem(hWnd, IDC_SIMPLEGRID3);
+		//hgrid4 = GetDlgItem(hWnd, IDC_SIMPLEGRID4);
+		//hgrid5 = GetDlgItem(hWnd, IDC_SIMPLEGRID5);
+		//htab =  GetDlgItem(hWnd, IDC_TAB);
+
+		//
+		//Configure tab
+		//
+
+		//TCITEM tie;
+		//tie.mask = TCIF_TEXT;
+		//tie.pszText = _T("Original Baby Grid Demo");
+		//TabCtrl_InsertItem(htab, 0, &tie);
+		//tie.pszText = _T("Big Data");
+		//TabCtrl_InsertItem(htab, 1, &tie);
+		//tie.pszText = _T("Column Types");
+		//TabCtrl_InsertItem(htab, 2, &tie);
+		//tie.pszText = _T("Insert/Delete Rows");
+		//TabCtrl_InsertItem(htab, 3, &tie);
+
+		//
+		//Configure grids
+		//
+
+		//set grid1 (the properties grid) to automatically size columns 
+		//based on the length of the text entered into the cells
+		SimpleGrid_SetColAutoWidth(hgrid1, TRUE);
+		//I don't want a row header, so make it 0 pixels wide
+		SimpleGrid_SetRowHeaderWidth(hgrid1,0);
+		//this grid won't use column headings, set header row height = 0
+		SimpleGrid_SetHeaderRowHeight(hgrid1, 0);
+		//on selection hilight full row
+		SimpleGrid_SetSelectionMode(hgrid1, GSO_FULLROW);
+		//populate grid1 with data
+		LoadGrid1(hgrid1);
+
+		////Set the heading font for Grid 2
+		//HFONT hFont = CreateFont(20, 0, 0, 0, FW_EXTRABOLD, FALSE, FALSE, FALSE,
+		//	ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+		//	PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("ARIEL"));
+
+		//SimpleGrid_SetHeadingFont(hgrid2,hFont);
+
+		////make grid2 header row to initial height of 21 pixels
+		//SimpleGrid_SetHeaderRowHeight(hgrid2, 21);
+		////on row header selection hilight full row, otherwise individual cell
+		//SimpleGrid_SetSelectionMode(hgrid2, GSO_ROWHEADER);
+		////do not allow in cell editing of all grid items initially
+		//SimpleGrid_EnableEdit(hgrid2,FALSE);
+
+		////populate grid2 with initial demo data
+		//LoadGrid2(hgrid2);
+
+		////make grid3 header row to initial height of 21 pixels
+		//SimpleGrid_SetHeaderRowHeight(hgrid3, 21);
+		////use column header text
+		//SimpleGrid_SetColsNumbered(hgrid3,FALSE);
+		////use row header text
+		//SimpleGrid_SetRowsNumbered(hgrid3,FALSE);
+		////last column standard width
+		//SimpleGrid_ExtendLastColumn(hgrid3,FALSE);
+		////vertical scroll set to non integral rows
+		//SimpleGrid_ShowIntegralRows(hgrid3,FALSE);
+		////on row header selection hilight full row, otherwise individual cell
+		//SimpleGrid_SetSelectionMode(hgrid3, GSO_ROWHEADER);
+
+		////Include a title for this grid
+		//SimpleGrid_SetTitleFont(hgrid3,hFont);
+		//SimpleGrid_SetTitleHeight(hgrid3, 21);
+		//SimpleGrid_SetTitle(hgrid3,_T("Grid's window text displayed here."));
+
+		////populate grid3 with big data
+		//LoadGrid3(hgrid3);
+
+		////make grid4 header row to initial height of 21 pixels
+		//SimpleGrid_SetHeaderRowHeight(hgrid4, 21);
+		////allow column resizing
+		//SimpleGrid_SetAllowColResize(hgrid4, TRUE);
+		////use column header text
+		//SimpleGrid_SetColsNumbered(hgrid4,FALSE);
+		////on row header selection hilight full row, otherwise individual cell
+		//SimpleGrid_SetSelectionMode(hgrid4, GSO_CELL);
+
+		////populate grid4 with different column types
+		//LoadGrid4(hgrid4);
+
+		////Force the display of the vertical scroll in grids (if necessary)
+		//RECT rect;
+		//GetClientRect(hWnd, &rect);
+		//MoveWindow(hgrid2, rect.right / 3, 0, 
+		//	rect.right - rect.right / 3, rect.bottom + 1, FALSE);
+
+		return TRUE;
+	}
+
+	void 
+	LoadGrid1(
+		HWND hGrid
+	) {
+		// Add some columns
+
+		// Column type
+		// Column header text
+		// Optional data (ex: combobox choices)
+		SGCOLUMN lpColumns[] = {
+			GCT_EDIT, _T(""),  NULL,
+			GCT_CHECK, _T(""),  NULL
+		};
+		for(int i = 0; i < NELEMS(lpColumns); ++i)
+			SimpleGrid_AddColumn(hGrid, &lpColumns[i]);
+
+		// Add some rows
+		for(int i = 0; i < 9; ++i) 
+			SimpleGrid_AddRow(hGrid, _T(""));
+
+		// Column number
+		// Row number
+		// Item (cell) value
+		SGITEM lpItems[] = {
+			0, 0, (LPARAM)_T("User Column Resizing"),
+			1, 0, (LPARAM) FALSE,
+			0, 1, (LPARAM)_T("User Editable"),
+			1, 1, (LPARAM) FALSE,
+			0, 2, (LPARAM)_T("Show Ellipsis"),
+			1, 2, (LPARAM) TRUE,
+			0, 3, (LPARAM)_T("Auto Column Size"),
+			1, 3, (LPARAM) FALSE,
+			0, 4, (LPARAM)_T("Extend Last Column"),
+			1, 4, (LPARAM) TRUE,
+			0, 5, (LPARAM)_T("Numbered Columns"),
+			1, 5, (LPARAM) TRUE,
+			0, 6, (LPARAM)_T("Numbered Rows"),
+			1, 6, (LPARAM) TRUE,
+			0, 7, (LPARAM)_T("Highlight Row"),
+			1, 7, (LPARAM) TRUE,
+			0, 8, (LPARAM)_T("Show Gridlines"),
+			1, 8, (LPARAM) TRUE
+		};
+
+		for(int i = 0; i < NELEMS(lpItems); ++i)
+		{
+			SimpleGrid_SetItemData(hGrid, &lpItems[i]);
+		}
+
+		//make the properties grid have the focus when the application starts
+		SetFocus(hGrid);
 	}
 } //namespace mainwind

@@ -8,6 +8,7 @@ add_folder_dependencies(
 	"resource"
 	"igrid"
 	"errhandle"
+	"babygrid"
 )
 
 add_lib_dependencies(

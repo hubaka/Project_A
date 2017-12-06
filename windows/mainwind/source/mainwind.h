@@ -43,7 +43,6 @@ namespace mainwind
 		HWND*			m_hWndToolbar;
 
 		static LRESULT	CALLBACK StaticWndProc(HWND, UINT, WPARAM, LPARAM);
-		LRESULT CALLBACK mainWndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 		void getFileName(void);
 		static HWND* createToolBar(HWND hWnd);

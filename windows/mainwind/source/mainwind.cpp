@@ -42,6 +42,7 @@ namespace mainwind
 	//---------------------------------------------------------------------------
 	#define HANDLE_DLGMSG(hWnd,message,fn)  case (message): return SetDlgMsgResult((hWnd),(message),HANDLE_##message((hWnd),(wParam),(lParam),(fn)))  /* added 05-01-29 */
 	static errhandle::ErrHandle g_errHandle;
+	static LRESULT CALLBACK mainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -142,18 +143,26 @@ namespace mainwind
 			pParent = (MainWind*)((LPCREATESTRUCT)lParam)->lpCreateParams;
 			SetWindowLongPtr(hWnd,GWL_USERDATA,(LONG_PTR)pParent);
 			
-			//createWindowsMenu(hWnd);
-			//pParent->m_hWndToolbar = createToolBar(hWnd);
-			//setWindowsIcon(hWnd);
+			createWindowsMenu(hWnd);
+			pParent->m_hWndToolbar = createToolBar(hWnd);
+			setWindowsIcon(hWnd);
 
 			HWND hStatus = CreateWindowEx(0, STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0,
 						hWnd, (HMENU)IDC_MAIN_STATUS, GetModuleHandle(NULL), NULL);
 
+			m_pIGrid->createBabyGrid(hWnd);
+			g_hToolbar = CreateDialog(GetModuleHandle(NULL), MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)mainWndProc);
+			if(g_hToolbar != NULL)
+			{
+				ShowWindow(g_hToolbar, SW_SHOW);
+			}
+			else {
+				g_errHandle.getErrorInfo((LPTSTR)L"dialog Failed!");
+			}
+
 			//int statwidths[] = {100, -1};
 			//SendMessage(hStatus, SB_SETPARTS, sizeof(statwidths)/sizeof(int), (LPARAM)statwidths);
 			//SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)L"Hi there :)");
-			//m_pIGrid->createBabyGrid(hWnd);
-
 	   }
 	   else
 	   {
@@ -162,7 +171,7 @@ namespace mainwind
 	   }
 
 	   pParent->m_hWnd = hWnd;
-	   return pParent->mainWndProc(uMsg,wParam,lParam);
+	   return mainWndProc(hWnd, uMsg,wParam,lParam);
 	}
 
 	
@@ -174,7 +183,8 @@ namespace mainwind
 	//! \return		
 	//!
 	LRESULT CALLBACK 
-		MainWind::mainWndProc(				// Handle For This Window
+		mainWndProc(
+							HWND	hWnd,// Handle For This Window
 							UINT	uMsg,			// Message For This Window
 							WPARAM	wParam,			// Additional Message Information
 							LPARAM	lParam)			// Additional Message Information
@@ -188,18 +198,18 @@ namespace mainwind
 					{
 					case ID_FILE_EXIT:
 						{
-							PostMessage(m_hWnd, WM_CLOSE, 0, 0);
+							PostMessage(hWnd, WM_CLOSE, 0, 0);
 							break;
 						}
 					case ID_FILE_OPEN:
 					case ID_OPEN_FILE:
 						{
-							getFileName();
+							//getFileName();
 							break;
 						}
 					case ID_HELP_ABOUT:
 						{
-							MessageBox(m_hWnd, (LPCWSTR)L"No help document", (LPCWSTR)L"Message",
+							MessageBox(hWnd, (LPCWSTR)L"No help document", (LPCWSTR)L"Message",
 								MB_OK | MB_ICONINFORMATION);
 							break;
 						}
@@ -212,7 +222,7 @@ namespace mainwind
 				}
 			case WM_CLOSE:
 				{
-					DestroyWindow(m_hWnd);
+					DestroyWindow(hWnd);
 					break;
 				}
 			case WM_DESTROY:
@@ -231,29 +241,29 @@ namespace mainwind
 			//		MessageBox(m_hWnd, (LPCWSTR)szFileName, (LPCWSTR)L"This program is:", MB_OK | MB_ICONINFORMATION);
 			//		break;
 			//	}
-			//case WM_SIZE :
-			//	{
-			//		HWND hTool;
-			//		RECT rcTool;
-			//		int iToolHeight;
+			case WM_SIZE :
+				{
+					HWND hTool;
+					RECT rcTool;
+					int iToolHeight;
 
-			//	    HWND hStatus;
-			//		RECT rcStatus;
-			//		int iStatusHeight;
+				    HWND hStatus;
+					RECT rcStatus;
+					int iStatusHeight;
 
-			//		// Size toolbar and get height
-			//		hTool = GetDlgItem(m_hWnd, IDC_MAIN_TOOL);
-			//		SendMessage(hTool, TB_AUTOSIZE, 0, 0);
-			//		GetWindowRect(hTool, &rcTool);
-			//		iToolHeight = rcTool.bottom - rcTool.top;
+					// Size toolbar and get height
+					hTool = GetDlgItem(hWnd, IDC_MAIN_TOOL);
+					SendMessage(hTool, TB_AUTOSIZE, 0, 0);
+					GetWindowRect(hTool, &rcTool);
+					iToolHeight = rcTool.bottom - rcTool.top;
 
-			//		// Size status bar and get height
-			//		hStatus = GetDlgItem(m_hWnd, IDC_MAIN_STATUS);
-			//		SendMessage(hStatus, WM_SIZE, 0, 0);
-			//		GetWindowRect(hStatus, &rcStatus);
-			//		iStatusHeight = rcStatus.bottom - rcStatus.top;
-			//		break;
-			//	}
+					// Size status bar and get height
+					hStatus = GetDlgItem(hWnd, IDC_MAIN_STATUS);
+					SendMessage(hStatus, WM_SIZE, 0, 0);
+					GetWindowRect(hStatus, &rcStatus);
+					iStatusHeight = rcStatus.bottom - rcStatus.top;
+					break;
+				}
 			//case WM_INITDIALOG: 
 			//{
 			//	break;
@@ -264,7 +274,7 @@ namespace mainwind
 			//	break;
 			//}
 			default:
-				return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+				return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		}
 		return 0;
 	}

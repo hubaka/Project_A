@@ -19,6 +19,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <tchar.h>
+#include <commctrl.h>
 #include "sys.h"
 #include "resource.h"
 #include "errhandle.h"
@@ -30,6 +31,19 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 namespace grid
 {
 
+	/// @def HEIGHT(rect)
+	///
+	/// @brief Given a RECT, Computes height.
+	///
+	/// @param rect A RECT struct.
+	#define HEIGHT(rect) ((LONG)(rect.bottom - rect.top))
+
+	/// @def WIDTH(rect)
+	///
+	/// @brief Given a RECT, Computes width.
+	///
+	/// @param rect A RECT struct.
+	#define WIDTH(rect) ((LONG)(rect.right - rect.left))
 	//---------------------------------------------------------------------------
 	// Data
 	//---------------------------------------------------------------------------
@@ -186,6 +200,17 @@ namespace grid
 	static VOID AdjustParentColWidth(HWND hwnd, INT col, INT row, LPTSTR lpszValue);
 	static int FindLongestLine(HDC hdc, LPTSTR text, PSIZE size);
 	static BOOL Control_GetInstanceData(HWND hControl, LPINSTANCEDATA *ppInstanceData);
+	static void Grid_OnSetFont(HWND hwnd, HFONT hfont, BOOL fRedraw);
+	static VOID Grid_OnPaint(HWND hwnd);
+	static VOID CalcVisibleCellBoundaries(VOID);
+	static VOID DisplayTitle(HWND hwnd, HFONT hfont, HDC hdc, RECT rc);
+	static VOID DisplayColumn(HWND hwnd, int col, int offset, HFONT hfont, HFONT hcolumnheadingfont, HDC hdc);
+	static VOID ShowVscroll(HWND hwnd);
+	static VOID ShowHscroll(HWND hwnd);
+	static BOOL Alphabetize(INT num, LPTSTR buf, INT iSize);
+	static LPVOID GetColOptional(INT col);
+	static HFONT Font_SetUnderline(HWND hwnd, BOOL fUnderline);
+	static BOOL IsNumeric(LPTSTR data);
 
 	/// @def StringArray_Replace(lpszTarget, lpszReplace)
 	///
@@ -273,12 +298,12 @@ namespace grid
 		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
 		 (LPCTSTR)L"New_SimpleGrid", &hinst);
 
-		hControl = CreateWindowEx(0, _T("BabyGridClass"), NULL, WS_CHILD | 
+		/*hControl = CreateWindowEx(0, _T("BabyGridClass"), NULL, WS_CHILD | 
 		  WS_TABSTOP, 0, 0, 0, 0, hWnd, (HMENU)IDC_SIMPLEGRID1, hinst, NULL);
 
 		if (hControl == NULL) {
 			g_errHandle.getErrorInfo((LPTSTR)L"createBabyGrid");
-		}
+		}*/
 		//initGridDialog(hWnd);
 	}
 
@@ -303,8 +328,11 @@ namespace grid
 			g_lpInst->gridwidth = rect.right - rect.left;
 			g_lpInst->gridheight = rect.bottom - rect.top;
 		}
-		switch (uMsg) {
+		switch (uMsg) 
+		{
 			HANDLE_MSG(hWnd, WM_CREATE, createGrid);
+			HANDLE_MSG(hWnd, WM_SETFONT, Grid_OnSetFont);
+			HANDLE_MSG(hWnd, WM_PAINT, Grid_OnPaint);
 			case SG_ADDCOLUMN:
 				{
 				return Grid_OnAddColumn(hWnd, wParam, lParam) - 1; // don't include row header column
@@ -346,12 +374,12 @@ namespace grid
 					((LPSGITEM)lParam)->row--; // restore initial index
 					return dwRtn;
 				}
-			default: 
+			case WM_GETDLGCODE: // If this control is in a dialog
 				{
-					return DefWindowProc(hWnd, uMsg, wParam, lParam);
-					break;
+					return DLGC_WANTALLKEYS; // Send all key presses to this proc
 				}
 		}
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -1232,5 +1260,679 @@ namespace grid
 			p = _tcstok(_T('\0'), _T("\n"));
 		}
 		return longest;
+	}
+
+	/// @brief Handle WM_SETFONT message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param hfont A handle to the font. If this parameter is NULL,
+	///               the control uses the default system font to draw text.
+	/// @param fRedraw If TRUE this control should be redrawn immediately. 
+	///
+	/// @returns VOID.
+	static void 
+	Grid_OnSetFont(
+		HWND hwnd, HFONT hfont, BOOL fRedraw
+	){
+		g_lpInst->hfont = hfont;
+		if (!g_lpInst->hcolumnheadingfont)
+		{
+			g_lpInst->hcolumnheadingfont = hfont;
+		}
+		if (!g_lpInst->htitlefont)
+		{
+			g_lpInst->htitlefont = hfont;
+		}
+		if (fRedraw)
+			RefreshGrid(hwnd);
+	}
+
+	/// @brief Handles WM_PAINT message.
+	///
+	/// @param hwnd Handle of grid.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnPaint(HWND hwnd)
+	{
+		PAINTSTRUCT ps;
+		HDC hdc, hdcOrig = NULL;
+		HBITMAP hbmp = NULL;
+
+		CalcVisibleCellBoundaries();
+
+		hdc = BeginPaint(hwnd, &ps);
+
+		if (g_lpInst->DOUBLEBUFFER)
+		{
+			hdcOrig = hdc;
+
+			hdc = CreateCompatibleDC(hdcOrig);
+			if (!hdc)
+				return;
+
+			hbmp = CreateCompatibleBitmap(hdcOrig, ps.rcPaint.right, ps.rcPaint.bottom);
+			if (!hbmp)
+			{
+				DeleteDC(hdc);
+				return;
+			}
+		}
+		SelectObject(hdc, hbmp);
+
+		//display title
+		DisplayTitle(hwnd, g_lpInst->htitlefont, hdc, ps.rcPaint);
+
+		//display Row headers (column 0);
+		DisplayColumn(hwnd, 0, 0, g_lpInst->hfont, g_lpInst->hcolumnheadingfont, hdc);
+		{
+			int c, j, k, offset;
+			offset = GetColWidth(0);
+			j = g_lpInst->leftvisiblecol;
+			k = g_lpInst->rightvisiblecol;
+			for (c = j; c <= k; c++)
+			{
+				DisplayColumn(hwnd, c, offset, g_lpInst->hfont, g_lpInst->hcolumnheadingfont, hdc);
+				offset += GetColWidth(c);
+			}
+		}
+		if (hbmp)
+		{
+			BitBlt(hdcOrig, ps.rcPaint.left, ps.rcPaint.top, WIDTH(ps.rcPaint), 
+				HEIGHT(ps.rcPaint), hdc, ps.rcPaint.left, ps.rcPaint.top, SRCCOPY);
+
+			DeleteObject(hbmp);
+			DeleteDC(hdc);
+		}
+
+		EndPaint(hwnd, &ps);
+	}
+
+	/// @brief Wrapper for setting cell coordinates.
+	///
+	/// @returns VOID
+	static VOID CalcVisibleCellBoundaries(VOID)
+	{
+		int gridx, gridy;
+		int j;
+		int cols = ColCount() - 1;  //Exclude header
+		int rows = RowCount() - 1;  //Exclude header
+		gridx = g_lpInst->gridwidth;
+		gridy = g_lpInst->gridheight;
+
+		j = g_lpInst->homecol;
+		g_lpInst->leftvisiblecol = g_lpInst->homecol;
+		g_lpInst->topvisiblerow = g_lpInst->homerow;
+		//calc columns visible
+		//first subtract the width of col 0;
+		gridx = gridx - GetColWidth(0);
+		do
+		{
+			gridx = gridx - GetColWidth(j);
+			j++;
+		}
+		while ((j < cols) && (gridx >= 0));
+
+		if (j > cols)
+		{
+			j = cols;
+		}
+		g_lpInst->rightvisiblecol = j;
+
+		//calc rows visible;
+		gridy = gridy - g_lpInst->headerrowheight;
+		j = g_lpInst->homerow;
+		do
+		{
+			gridy = gridy - g_lpInst->rowheight;
+			j++;
+		}
+		while ((gridy > 0) && (j < rows));
+
+		if (j > rows)
+		{
+			j = rows;
+		}
+		g_lpInst->bottomvisiblerow = j;
+	}
+
+	/// @brief Draw the grid Title with the specified font.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param hfont Handle of the desired font
+	/// @param hdc Handle of the current device context
+	/// @param rc A rectangle of the bounds of the client area
+	///
+	/// @returns VOID
+	static VOID DisplayTitle(HWND hwnd, HFONT hfont, HDC hdc, RECT rc)
+	{
+		HFONT hOldfont;
+
+		SetBkMode(hdc, TRANSPARENT);
+		hOldfont = (HFONT)SelectObject(hdc, hfont);
+		rc.bottom = g_lpInst->titleheight;
+		DrawEdge(hdc, &rc, EDGE_ETCHED, BF_MIDDLE | BF_RECT | BF_ADJUST);
+		DrawTextEx(hdc, g_lpInst->title, -1, &rc, DT_END_ELLIPSIS | DT_CENTER | DT_WORDBREAK | DT_NOPREFIX, NULL);
+		SelectObject(hdc, hOldfont);
+	}
+
+	/// @brief Draw a column of cells in the grid.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param col The index of the column to draw
+	/// @param offset number of pixles from the left to begin drawing
+	/// @param hfont The handle of the desired cell font
+	/// @param hcolumnheadingfont The handle of the font used for the headers
+	/// @param hdc Handle of the current device context
+	///
+	/// @returns VOID
+	static VOID DisplayColumn(HWND hwnd, int col, int offset, HFONT hfont, HFONT hcolumnheadingfont, HDC hdc)
+	{
+		RECT rect = {0,0,0,0};
+		RECT rectsave = {0,0,0,0};
+		HFONT holdfont;
+		HBRUSH hbrush, holdbrush;
+		HPEN hpen, holdpen;
+		LPGRIDITEM lpgi;
+		BOOL isProtected;
+		BOOL isNumeric = FALSE;
+		int row, iColumnType;
+
+		//max 1024 chars display in an excel worksheet cell so
+		// I'll use that for a max buffer size
+		static TCHAR buffer[1025]; 
+		memset(&buffer, 0, sizeof(buffer));
+
+		if (0 == GetColWidth(col))
+		{
+			return;
+		}
+		iColumnType = GetColType(col);
+
+		SetBkMode(hdc, TRANSPARENT);
+		ShowHscroll(hwnd);
+		ShowVscroll(hwnd);
+
+		rect.left = offset;
+		rect.top = g_lpInst->titleheight;
+		rect.right = GetColWidth(col) + offset;
+		rect.bottom = g_lpInst->headerrowheight + g_lpInst->titleheight;
+
+		if (g_lpInst->EXTENDLASTCOLUMN)
+		{
+			//see if this is the last column
+			if (!GetAdjacentCol(col, TRUE))
+			{
+				//extend this column
+				RECT trect = {0,0,0,0};
+
+				GetClientRect(hwnd, &trect);
+
+				rect.right = offset + (trect.right - rect.left);
+			}
+		}
+		else //Not extended column
+		{
+			if (!GetAdjacentCol(col, TRUE))
+			{
+				//repaint right side of grid
+				RECT trect = {0,0,0,0};
+				GetClientRect(hwnd, &trect);
+				trect.left = offset + (rect.right - rect.left);
+				holdbrush = (HBRUSH)SelectObject(hdc, GetStockObject(GRAY_BRUSH));
+				holdpen = (HPEN)SelectObject(hdc, GetStockObject(NULL_PEN));
+				Rectangle(hdc, trect.left, trect.top + g_lpInst->titleheight, trect.right + 1, trect.bottom + 1);
+				//Don't attempt to delete stock objects
+				SelectObject(hdc, holdbrush);
+				SelectObject(hdc, holdpen);
+			}
+		}
+
+		//
+		//display column header cell (Row 0)
+		//
+		row = 0;
+
+		if (col > 0)
+		{
+			if (g_lpInst->COLUMNSNUMBERED)  //Print hexavigesimal digits
+			{
+				Alphabetize(col, buffer, 4); //Max 4 place column number EX: ABCD
+			}
+			else //Print column header text (if any)
+			{
+				lpgi = GetCellData(col, row);
+				_tcscpy(buffer, NULL == lpgi ? _T("") : lpgi->lpszCurValue);
+			}
+		}
+		rectsave = rect;
+
+		SetTextColor(hdc, IsWindowEnabled(hwnd) ? 
+			GetSysColor(COLOR_WINDOWTEXT) : GetSysColor(COLOR_GRAYTEXT));
+
+		DrawEdge(hdc, &rect, EDGE_ETCHED, BF_MIDDLE | BF_RECT | BF_ADJUST);
+
+		holdfont = (HFONT)SelectObject(hdc, hcolumnheadingfont);
+		DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_CENTER | DT_WORDBREAK | DT_NOPREFIX, NULL);
+		SelectObject(hdc, holdfont);//Don't delete 
+
+		rect = rectsave;
+
+		//
+		// Display visible cells
+		//
+		row = g_lpInst->topvisiblerow;
+		//set font for grid body
+		SelectObject(hdc, hfont);
+
+		while (row <= g_lpInst->bottomvisiblerow)
+		{
+			rect.top = rect.bottom;
+			rect.bottom = rect.top + g_lpInst->rowheight;
+			rectsave = rect;
+			lpgi = GetCellData(col, row);
+			isProtected = NULL == lpgi ? 0 : lpgi->fProtected;
+			_tcscpy(buffer, NULL == lpgi ? _T("") : lpgi->lpszCurValue);
+
+			// Draw Cell if not row header
+			if(GCT_ROWHEADER != iColumnType)// no need to draw row header twice
+			{
+				//set cursor (or entire cursor row) to different display color
+				if (((g_lpInst->HIGHLIGHTFULLROW && row == g_lpInst->cursorrow) ||
+					(! g_lpInst->HIGHLIGHTFULLROW && row == g_lpInst->cursorrow && col == g_lpInst->cursorcol))
+					&& g_lpInst->GRIDHASFOCUS)
+				{
+					switch(iColumnType)
+					{
+						case GCT_ROWHEADER:
+						case GCT_BUTTON:
+							SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+							break;
+						default:
+							SetTextColor(hdc, g_lpInst->clrHighlightText);
+							break;
+					}
+					hbrush = CreateSolidBrush(g_lpInst->clrHighlight);
+				}
+				else //Non hilight colors
+				{
+					if (isProtected)
+					{
+						SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+						hbrush = CreateSolidBrush(g_lpInst->clrProtect);
+					}
+					else //Normal in cell text color
+					{
+						if (GCT_LINK == iColumnType)
+							SetTextColor(hdc, g_lpInst->clrLink);
+						else
+							SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+
+						hbrush = CreateSolidBrush(g_lpInst->clrBackground);
+					}
+				}
+				hpen = CreatePen(PS_SOLID, 1, g_lpInst->clrGridline);
+				holdbrush = (HBRUSH)SelectObject(hdc, hbrush);
+				holdpen = (HPEN)SelectObject(hdc, hpen);
+				Rectangle(hdc, rect.left, rect.top, rect.right, rect.bottom);
+				DeleteObject(SelectObject(hdc, holdpen));
+				DeleteObject(SelectObject(hdc, holdbrush));
+			}
+
+			// Draw row header as well as controls and text over other cells
+			switch(iColumnType)
+			{
+				case GCT_ROWHEADER:
+				{
+					if (g_lpInst->ROWSNUMBERED)
+					{
+						isNumeric = TRUE;
+						wsprintf(buffer, _T("%d"), row);
+					}
+					else
+						isNumeric = FALSE;
+
+					SetTextColor(hdc, IsWindowEnabled(hwnd) ? 
+						GetSysColor(COLOR_WINDOWTEXT) : GetSysColor(COLOR_GRAYTEXT));
+
+					DrawEdge(hdc, &rect, EDGE_ETCHED, BF_MIDDLE | BF_RECT | BF_ADJUST);
+
+					UINT uFormat = DT_END_ELLIPSIS | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX;
+					uFormat |= isNumeric ? DT_RIGHT : DT_LEFT;
+
+					DrawTextEx(hdc, buffer, -1, &rect, uFormat, NULL);
+				}
+					break;
+				case GCT_BUTTON:
+				{
+					InflateRect(&rect, -2, -2);
+					DrawFrameControl(hdc, &rect, DFC_BUTTON, DFCS_BUTTONPUSH);
+					if (g_lpInst->ELLIPSIS)
+					{
+						DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX, NULL);
+					}
+					else
+					{
+						DrawTextEx(hdc, buffer, -1, &rect, DT_LEFT | DT_VCENTER | DT_WORDBREAK | DT_EDITCONTROL | DT_NOPREFIX, NULL);
+					}
+				}
+					break;
+				case GCT_COMBO:
+				{
+					//Calculate and draw drop down button
+					RECT rectButton = {0,0,0,0};
+					CopyRect(&rectButton, &rect);
+					InflateRect(&rectButton, -2, -2);
+					rectButton.left = rectButton.right - GetSystemMetrics(SM_CXVSCROLL);
+					rectButton.top += (HEIGHT(rectButton) - GetSystemMetrics(SM_CYVSCROLL)) / 2;
+					rectButton.bottom = rectButton.top + GetSystemMetrics(SM_CYVSCROLL);
+					DrawFrameControl(hdc, &rectButton, DFC_SCROLL, DFCS_SCROLLCOMBOBOX);
+
+					rect.right = rectButton.left - 1;
+					rect.left += 5;
+
+					if (g_lpInst->ELLIPSIS)
+					{
+						DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX, NULL);
+					}
+					else
+					{
+						DrawTextEx(hdc, buffer, -1, &rect, DT_LEFT | DT_VCENTER | DT_WORDBREAK | DT_EDITCONTROL | DT_NOPREFIX, NULL);
+					}
+				}
+					break;
+				case GCT_CHECK:
+				{
+					//Calculate and draw checkbox
+					RECT rectCheck = {0,0,0,0};
+					CopyRect(&rectCheck, &rect);
+
+					rectCheck.left += (WIDTH(rect) - GetSystemMetrics(SM_CXVSCROLL)) /2;
+					rectCheck.top += (HEIGHT(rect) - GetSystemMetrics(SM_CYVSCROLL)) /2;
+					rectCheck.right = rectCheck.left + GetSystemMetrics(SM_CXVSCROLL);
+					rectCheck.bottom = rectCheck.top + GetSystemMetrics(SM_CYVSCROLL);
+
+					DrawFrameControl(hdc, &rectCheck, DFC_BUTTON, DFCS_BUTTONCHECK |
+						(0 == _tcsicmp(buffer, CHECKED) ? DFCS_CHECKED : 0));
+				}
+					break;
+				case GCT_IMAGE:
+				{
+					//Calculate and draw image
+					RECT rectImage = {0,0,0,0};
+					LONG index = 0;
+					LPTSTR end;
+					UINT style = ILD_NORMAL;;
+					CopyRect(&rectImage, &rect);
+					HIMAGELIST hImageList = (HIMAGELIST)GetColOptional(col);
+					int imageWidth, imageHeight;
+					ImageList_GetIconSize(hImageList, &imageWidth, &imageHeight);
+
+					rectImage.left += (WIDTH(rect) - imageWidth) /2;
+					rectImage.top += (HEIGHT(rect) - imageHeight) /2;
+					rectImage.right = rectImage.left + imageWidth;
+					rectImage.bottom = rectImage.top + imageHeight;
+
+					index = _tcstol(buffer, &end, 10);
+					if(0 < _tcslen(end)) // we failed but I don't know how this could have happened
+					{
+						index = 0;
+					}
+
+					if (g_lpInst->GRIDHASFOCUS)
+					{
+						if ((g_lpInst->HIGHLIGHTFULLROW && row == g_lpInst->cursorrow) || 
+							(col == g_lpInst->cursorcol && row == g_lpInst->cursorrow))
+						{
+							style = ILD_SELECTED;
+						}
+					}
+					ImageList_DrawEx(hImageList, index, hdc, 
+						rectImage.left, rectImage.top, WIDTH(rectImage), HEIGHT(rectImage), 
+						g_lpInst->clrBackground, CLR_DEFAULT, style | ILD_TRANSPARENT);
+				}
+					break;
+				case GCT_LINK:
+				{
+					InflateRect(&rect, -2, -2);
+
+					// Draw the link underlined and in the link color
+					HFONT oldFont;
+					oldFont = (HFONT)SelectObject (hdc, Font_SetUnderline(hwnd, TRUE));
+
+					if (g_lpInst->ELLIPSIS)
+						DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX, NULL);
+					else
+						DrawTextEx(hdc, buffer, -1, &rect, DT_LEFT | DT_VCENTER | DT_WORDBREAK | DT_EDITCONTROL | DT_NOPREFIX, NULL);
+
+					DeleteObject(SelectObject(hdc, oldFont));
+				}
+					break;
+				default: //Text
+				{
+					InflateRect(&rect, -2, -2);
+
+					DWORD dwAllignment =  NULL == lpgi ? GSA_GENERAL : lpgi->dwAllignment;
+					if (g_lpInst->ELLIPSIS)
+					{
+						UINT uFormat =  DT_NOPREFIX | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
+						uFormat |= GSA_LEFT == dwAllignment ? DT_LEFT :
+							GSA_RIGHT == dwAllignment ? DT_RIGHT : // must be GSA_GENERAL
+							 IsNumeric(buffer) ? DT_RIGHT : DT_LEFT;
+						DrawTextEx(hdc, buffer, -1, &rect, uFormat, NULL);
+					}
+					else
+					{
+						UINT uFormat = DT_NOPREFIX | DT_WORDBREAK | DT_EDITCONTROL;
+						uFormat |= GSA_LEFT == dwAllignment ? DT_LEFT :
+							GSA_RIGHT == dwAllignment ? DT_RIGHT : // must be GSA_GENERAL
+							 IsNumeric(buffer) ? DT_RIGHT : DT_LEFT;
+						DrawTextEx(hdc, buffer, -1, &rect, uFormat, NULL);
+					}
+				}
+			}
+			rect = rectsave;
+			row++;
+		}   //end while r<=bottomvisiblerow
+
+		//repaint bottom of grid
+		RECT trect = {0,0,0,0};
+		GetClientRect(hwnd, &trect);
+		trect.top = rect.bottom;
+		trect.left = rect.left;
+		trect.right = rect.right;
+
+		holdbrush = (HBRUSH)SelectObject(hdc, GetStockObject(GRAY_BRUSH));
+		holdpen = (HPEN)SelectObject(hdc, GetStockObject(NULL_PEN));
+		Rectangle(hdc, trect.left, trect.top, trect.right + 1, trect.bottom + 1);
+		SelectObject(hdc, holdbrush);
+		SelectObject(hdc, holdpen);
+	}
+
+
+	/// @brief Determine if it is necessary to show the VScroll and then
+	///         show it if necessary.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static VOID ShowVscroll(HWND hwnd)
+	{
+		//if more rows than can be visible on grid, display vertical scrollbar
+		//otherwise, hide it.
+		RECT gridrect = {0,0,0,0};
+		int totalpixels;
+		int rowsvisibleonscreen;
+		int rows = RowCount();
+		GetClientRect(hwnd, &gridrect);
+		totalpixels = gridrect.bottom;
+		totalpixels -= g_lpInst->titleheight;
+		totalpixels -= g_lpInst->headerrowheight;
+		totalpixels -= (g_lpInst->rowheight * rows);
+		rowsvisibleonscreen = (gridrect.bottom - (g_lpInst->headerrowheight + g_lpInst->titleheight)) / g_lpInst->rowheight;
+		if (totalpixels < 0)
+		{
+			//show vscrollbar
+			ShowScrollBar(hwnd, SB_VERT, TRUE);
+			SetScrollRange(hwnd, SB_VERT, 1, (rows - rowsvisibleonscreen) + 1, TRUE);
+			g_lpInst->VSCROLL = TRUE;
+		}
+		else
+		{
+			//hide vscrollbar
+			ShowScrollBar(hwnd, SB_VERT, FALSE);
+			g_lpInst->VSCROLL = FALSE;
+		}
+
+	}
+
+	/// @brief Determine if it is necessary to show the HScroll and then
+	///         show it if necessary.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static VOID ShowHscroll(HWND hwnd)
+	{
+		//if more rows than can be visible on grid, display vertical scrollbar
+		//otherwise, hide it.
+		RECT gridrect = {0,0,0,0};
+		int totalpixels;
+		int colswithwidth;
+		int cols = ColCount();
+		int j;
+		GetClientRect(hwnd, &gridrect);
+		totalpixels = gridrect.right;
+		totalpixels -= GetColWidth(0);
+		colswithwidth = 0;
+		for (j = 1; j < cols; j++)
+		{
+			totalpixels -= GetColWidth(j);
+			if (0 < GetColWidth(j))
+			{
+				colswithwidth++;
+			}
+		}
+		if (totalpixels < 0)
+		{
+			//show hscrollbar
+			ShowScrollBar(hwnd, SB_HORZ, TRUE);
+			SetScrollRange(hwnd, SB_HORZ, 1, colswithwidth, TRUE);
+			g_lpInst->HSCROLL = TRUE;
+		}
+		else
+		{
+			//hide hscrollbar
+			ShowScrollBar(hwnd, SB_HORZ, FALSE);
+			g_lpInst->HSCROLL = FALSE;
+		}
+
+	}
+
+	/// @brief Convert a number to an alphabetic representation.
+	///
+	/// @par Example:
+	///       The number 728 would be converted to "AAZ"
+	///
+	/// @note Numeric values less than 1 return FALSE without converting
+	///        the numeric value.  Also if the buffer is not big enough 
+	///        to contain the converted value, this function returns FALSE. 
+	///
+	/// @param num The number to convert
+	/// @param buf A buffer to receive text
+	/// @param iSize The size of the buffer
+	///
+	/// @returns TRUE if successful, otherwise false
+	static BOOL Alphabetize(INT num, LPTSTR buf, INT iSize)
+	{
+		//fill buffer with spaces initially
+		for(int i = 0; i < iSize; ++i) buf[i] = ' ';
+
+		//overwrite spaces with characters
+		for(int i = iSize - 1; 0 <= i && 0 < num ; --i)
+		{
+			--num;
+			buf[i] = (char)('A' + num % 26);
+			num /= 26;
+		}
+		return 0 >= num;
+	}
+
+	/// @brief Wrapper to access column optional parameter
+	///
+	/// @param col The column number
+	///
+	/// @returns The column optional parameter
+	static LPVOID GetColOptional(INT col)
+	{
+		LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col);
+		if(NULL == lpgc)
+			return NULL;
+
+		return lpgc->pOptional;
+	}
+
+	/// @brief Draw the grid Title with the specified font.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param fUnderline True to set underlined font
+	///
+	/// @returns a new font with new font weight
+	static HFONT Font_SetUnderline(HWND hwnd, BOOL fUnderline)
+	{
+		HFONT hFont;
+		LOGFONT  lf = {0};
+
+		// Get a handle to the control's font object
+		hFont = (HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0);
+
+		// Pull the handle into a Logical Font UDT type
+		GetObject(hFont , sizeof(LOGFONT), &lf);
+
+		// Set underline
+		lf.lfUnderline = fUnderline;
+
+		// Create a new font based off the logical font UDT
+		return CreateFontIndirect(&lf);
+	}
+
+	/// @brief Determine whether a string of data represents a number.
+	///
+	/// @param data A string to analyze.
+	///
+	/// @returns TRUE if is numeric (decimal or floating point) otherwise FALSE.
+	static BOOL IsNumeric(LPTSTR data)
+	{
+		int j, k, numberofperiods;
+		k = _tcslen(data);
+		//TCHAR tbuffer[k + 1]; //Sorry no VLA
+		LPTSTR tbuffer = (LPTSTR) _alloca(sizeof(TCHAR) * (k + 1)); //use _alloca instead
+		BOOL DIGIT, ALPHA, WHITESPACE;
+		_tcscpy(tbuffer, data);
+		k = _tcslen(tbuffer);
+		_tcsupr(tbuffer);
+		DIGIT = FALSE;
+		ALPHA = FALSE;
+		WHITESPACE = FALSE;
+
+		numberofperiods = 0;
+		for (j = 0; j < k; j++)
+		{
+			if (_istalpha(tbuffer[j])) ALPHA = TRUE;
+
+			if (_istdigit(tbuffer[j])) DIGIT = TRUE;
+
+			if (_istspace(tbuffer[j])) WHITESPACE = TRUE;
+
+			if (tbuffer[j] == '.') numberofperiods++;
+
+			if (tbuffer[j] == '+' && j > 0) ALPHA = TRUE;
+
+			if (tbuffer[j] == '-' && j > 0) ALPHA = TRUE;
+		}
+		if ((ALPHA) || (WHITESPACE)) return FALSE;
+
+		if ((DIGIT) && (!ALPHA) && (!WHITESPACE))
+			return !(numberofperiods > 1);
+		return FALSE;
 	}
 } //namespace mainwind

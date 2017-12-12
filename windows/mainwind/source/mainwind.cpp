@@ -38,6 +38,8 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 namespace mainwind
 {
 
+	HWND hgrid1, htab;
+
 	//---------------------------------------------------------------------------
 	// Defines and Macros
 	//---------------------------------------------------------------------------
@@ -48,6 +50,7 @@ namespace mainwind
 	static BOOL Main_OnInitDialog(HWND hWnd, HWND hwndFocus, LPARAM lParam);
 	static BOOL Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm);
 	static void LoadGrid1(HWND hGrid);
+	static void Main_OnSize(HWND hwnd, UINT state, int cx, int cy);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -156,6 +159,20 @@ namespace mainwind
 						hWnd, (HMENU)IDC_MAIN_STATUS, GetModuleHandle(NULL), NULL);
 
 			m_pIGrid->createBabyGrid(hWnd);
+			WNDCLASSEX wcx;
+			// Get system dialog information.
+			wcx.cbSize = sizeof(wcx);
+			if (!GetClassInfoEx(NULL, MAKEINTRESOURCE(32770), &wcx))
+				return 0;
+
+			// Add our own stuff.
+			wcx.hInstance = GetModuleHandle(NULL);
+			//wcx.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDR_ICO_MAIN));
+			//wcx.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(IDR_ICO_SMALL));
+			wcx.hbrBackground = (HBRUSH) (COLOR_WINDOW + 1);
+			wcx.lpszClassName = _T("DialogClass");
+			if (!RegisterClassEx(&wcx))
+				return 0;
 			g_hToolbar = CreateDialog(GetModuleHandle(NULL), MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)dlgWndProc);
 			if(g_hToolbar != NULL)
 			{
@@ -235,30 +252,30 @@ namespace mainwind
 					PostQuitMessage(0);
 					break;
 				}
-			case WM_SIZE :
-				{
-					HWND hTool;
-					RECT rcTool;
-					int iToolHeight;
+			//case WM_SIZE :
+			//	{
+			//		HWND hTool;
+			//		RECT rcTool;
+			//		int iToolHeight;
 
-				    HWND hStatus;
-					RECT rcStatus;
-					int iStatusHeight;
+			//	    HWND hStatus;
+			//		RECT rcStatus;
+			//		int iStatusHeight;
 
-					// Size toolbar and get height
-					hTool = GetDlgItem(hWnd, IDC_MAIN_TOOL);
-					SendMessage(hTool, TB_AUTOSIZE, 0, 0);
-					GetWindowRect(hTool, &rcTool);
-					iToolHeight = rcTool.bottom - rcTool.top;
+			//		// Size toolbar and get height
+			//		hTool = GetDlgItem(hWnd, IDC_MAIN_TOOL);
+			//		SendMessage(hTool, TB_AUTOSIZE, 0, 0);
+			//		GetWindowRect(hTool, &rcTool);
+			//		iToolHeight = rcTool.bottom - rcTool.top;
 
-					// Size status bar and get height
-					hStatus = GetDlgItem(hWnd, IDC_MAIN_STATUS);
-					SendMessage(hStatus, WM_SIZE, 0, 0);
-					GetWindowRect(hStatus, &rcStatus);
-					iStatusHeight = rcStatus.bottom - rcStatus.top;
-					break;
-				}
-			HANDLE_DLGMSG(hWnd, WM_NOTIFY, Main_OnNotify);
+			//		// Size status bar and get height
+			//		hStatus = GetDlgItem(hWnd, IDC_MAIN_STATUS);
+			//		SendMessage(hStatus, WM_SIZE, 0, 0);
+			//		GetWindowRect(hStatus, &rcStatus);
+			//		iStatusHeight = rcStatus.bottom - rcStatus.top;
+			//		break;
+			//	}
+			//HANDLE_DLGMSG(hWnd, WM_NOTIFY, Main_OnNotify);
 			default:
 				return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		}
@@ -425,7 +442,7 @@ namespace mainwind
 	Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm)
 	{
 
-		HWND hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
+		hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
 		ShowWindow(hgrid1, SW_SHOW);
 
 		//if (IDC_TAB == id)
@@ -698,8 +715,8 @@ namespace mainwind
 			//		HANDLE_DLGMSG(hwndDlg, WM_CLOSE, Main_OnClose);
 			//		HANDLE_DLGMSG(hwndDlg, WM_COMMAND, Main_OnCommand);
 					HANDLE_DLGMSG(hwndDlg, WM_INITDIALOG, Main_OnInitDialog);
-					//HANDLE_DLGMSG(hwndDlg, WM_NOTIFY, Main_OnNotify);
-			//		HANDLE_DLGMSG(hwndDlg, WM_SIZE, Main_OnSize);
+					HANDLE_DLGMSG(hwndDlg, WM_NOTIFY, Main_OnNotify);
+					HANDLE_DLGMSG(hwndDlg, WM_SIZE, Main_OnSize);
 
 			//		case WM_NOTIFYFORMAT:
 			//#ifdef UNICODE
@@ -725,21 +742,21 @@ namespace mainwind
 		HWND hWnd, HWND hwndFocus, LPARAM lParam
 	) {
 		//Get window handles
-		HWND hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
+		hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
 		//hgrid2 = GetDlgItem(hWnd, IDC_SIMPLEGRID2);
 		//hgrid3 = GetDlgItem(hWnd, IDC_SIMPLEGRID3);
 		//hgrid4 = GetDlgItem(hWnd, IDC_SIMPLEGRID4);
 		//hgrid5 = GetDlgItem(hWnd, IDC_SIMPLEGRID5);
-		//htab =  GetDlgItem(hWnd, IDC_TAB);
+		htab =  GetDlgItem(hWnd, IDC_TAB);
 
 		//
 		//Configure tab
 		//
 
-		//TCITEM tie;
-		//tie.mask = TCIF_TEXT;
-		//tie.pszText = _T("Original Baby Grid Demo");
-		//TabCtrl_InsertItem(htab, 0, &tie);
+		TCITEM tie;
+		tie.mask = TCIF_TEXT;
+		tie.pszText = _T("Original Baby Grid Demo");
+		TabCtrl_InsertItem(htab, 0, &tie);
 		//tie.pszText = _T("Big Data");
 		//TabCtrl_InsertItem(htab, 1, &tie);
 		//tie.pszText = _T("Column Types");
@@ -842,36 +859,57 @@ namespace mainwind
 		for(int i = 0; i < 9; ++i) 
 			SimpleGrid_AddRow(hGrid, _T(""));
 
-		// Column number
-		// Row number
-		// Item (cell) value
-		SGITEM lpItems[] = {
-			0, 0, (LPARAM)_T("User Column Resizing"),
-			1, 0, (LPARAM) FALSE,
-			0, 1, (LPARAM)_T("User Editable"),
-			1, 1, (LPARAM) FALSE,
-			0, 2, (LPARAM)_T("Show Ellipsis"),
-			1, 2, (LPARAM) TRUE,
-			0, 3, (LPARAM)_T("Auto Column Size"),
-			1, 3, (LPARAM) FALSE,
-			0, 4, (LPARAM)_T("Extend Last Column"),
-			1, 4, (LPARAM) TRUE,
-			0, 5, (LPARAM)_T("Numbered Columns"),
-			1, 5, (LPARAM) TRUE,
-			0, 6, (LPARAM)_T("Numbered Rows"),
-			1, 6, (LPARAM) TRUE,
-			0, 7, (LPARAM)_T("Highlight Row"),
-			1, 7, (LPARAM) TRUE,
-			0, 8, (LPARAM)_T("Show Gridlines"),
-			1, 8, (LPARAM) TRUE
-		};
+		//// Column number
+		//// Row number
+		//// Item (cell) value
+		//SGITEM lpItems[] = {
+		//	0, 0, (LPARAM)_T("User Column Resizing"),
+		//	1, 0, (LPARAM) FALSE,
+		//	0, 1, (LPARAM)_T("User Editable"),
+		//	1, 1, (LPARAM) FALSE,
+		//	0, 2, (LPARAM)_T("Show Ellipsis"),
+		//	1, 2, (LPARAM) TRUE,
+		//	0, 3, (LPARAM)_T("Auto Column Size"),
+		//	1, 3, (LPARAM) FALSE,
+		//	0, 4, (LPARAM)_T("Extend Last Column"),
+		//	1, 4, (LPARAM) TRUE,
+		//	0, 5, (LPARAM)_T("Numbered Columns"),
+		//	1, 5, (LPARAM) TRUE,
+		//	0, 6, (LPARAM)_T("Numbered Rows"),
+		//	1, 6, (LPARAM) TRUE,
+		//	0, 7, (LPARAM)_T("Highlight Row"),
+		//	1, 7, (LPARAM) TRUE,
+		//	0, 8, (LPARAM)_T("Show Gridlines"),
+		//	1, 8, (LPARAM) TRUE
+		//};
 
-		for(int i = 0; i < NELEMS(lpItems); ++i)
-		{
-			SimpleGrid_SetItemData(hGrid, &lpItems[i]);
-		}
+		//for(int i = 0; i < NELEMS(lpItems); ++i)
+		//{
+		//	SimpleGrid_SetItemData(hGrid, &lpItems[i]);
+		//}
 
 		//make the properties grid have the focus when the application starts
 		SetFocus(hGrid);
+	}
+
+	void 
+	Main_OnSize(
+		HWND hwnd, UINT state, int cx, int cy
+	) {
+		RECT rect;
+		INT iTabHeight = 20;
+
+		GetClientRect(hwnd, &rect);
+		MoveWindow(htab, 0, 0, rect.right + 1, iTabHeight, FALSE);
+		iTabHeight+= 2;
+		MoveWindow(hgrid1, 0, iTabHeight, rect.right / 3, rect.bottom - iTabHeight, TRUE);
+		//MoveWindow(hgrid2, rect.right / 3, iTabHeight, 
+		//	rect.right - rect.right / 3, rect.bottom - iTabHeight, TRUE);
+		//MoveWindow(hgrid3, 0, iTabHeight, 
+		//	rect.right, rect.bottom - iTabHeight, TRUE);
+		//MoveWindow(hgrid4, 0, iTabHeight, 
+		//	rect.right, rect.bottom - iTabHeight, TRUE);
+		//MoveWindow(hgrid5, 0, iTabHeight, 
+		//	rect.right, rect.bottom - iTabHeight, TRUE);
 	}
 } //namespace mainwind

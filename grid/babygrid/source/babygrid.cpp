@@ -295,16 +295,16 @@ namespace grid
 
 		//Get hinstance if this code is compiled into and called from a dll 
 		// as well as if it were compiled into the executable.  (XP and later)
-		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-		 (LPCTSTR)L"New_SimpleGrid", &hinst);
+		//GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+		// (LPCTSTR)L"New_SimpleGrid", &hinst);
 
-		/*hControl = CreateWindowEx(0, _T("BabyGridClass"), NULL, WS_CHILD | 
-		  WS_TABSTOP, 0, 0, 0, 0, hWnd, (HMENU)IDC_SIMPLEGRID1, hinst, NULL);
+		//hControl = CreateWindowEx(0, _T("BabyGridClass"), NULL, WS_CHILD | 
+		//  WS_TABSTOP, 0, 0, 0, 0, hWnd, (HMENU)IDC_SIMPLEGRID1, hinst, NULL);
 
-		if (hControl == NULL) {
-			g_errHandle.getErrorInfo((LPTSTR)L"createBabyGrid");
-		}*/
-		//initGridDialog(hWnd);
+		//if (hControl == NULL) {
+		//	g_errHandle.getErrorInfo((LPTSTR)L"createBabyGrid");
+		//}
+		
 	}
 
 	//---------------------------------------------------------------------------------------------------

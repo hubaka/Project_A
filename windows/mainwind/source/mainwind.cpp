@@ -149,6 +149,8 @@ namespace mainwind
 	   if(uMsg == WM_CREATE)
 	   {
 			pParent = (MainWind*)((LPCREATESTRUCT)lParam)->lpCreateParams;
+			// Sets the user data associated with the window. 
+			// This data is intended for use by the application that created the window. Its value is initially zero.
 			SetWindowLongPtr(hWnd,GWL_USERDATA,(LONG_PTR)pParent);
 			
 			createWindowsMenu(hWnd);
@@ -157,21 +159,24 @@ namespace mainwind
 
 			HWND hStatus = CreateWindowEx(0, STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0,
 						hWnd, (HMENU)IDC_MAIN_STATUS, GetModuleHandle(NULL), NULL);
+			if(hStatus == NULL)
+			{
+				g_errHandle.getErrorInfo((LPTSTR)L"StatusBar creation!");
+			}
 
 			m_pIGrid->createBabyGrid(hWnd);
-			WNDCLASSEX wcx;
+			WNDCLASSEX dialogClass;
 			// Get system dialog information.
-			wcx.cbSize = sizeof(wcx);
-			if (!GetClassInfoEx(NULL, MAKEINTRESOURCE(32770), &wcx))
+			dialogClass.cbSize = sizeof(dialogClass);
+			if (!GetClassInfoEx(NULL, MAKEINTRESOURCE(32770), &dialogClass))
 				return 0;
 
-			// Add our own stuff.
-			wcx.hInstance = GetModuleHandle(NULL);
-			//wcx.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDR_ICO_MAIN));
-			//wcx.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(IDR_ICO_SMALL));
-			wcx.hbrBackground = (HBRUSH) (COLOR_WINDOW + 1);
-			wcx.lpszClassName = _T("DialogClass");
-			if (!RegisterClassEx(&wcx))
+			dialogClass.hInstance = GetModuleHandle(NULL);
+			//dialogClass.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDR_ICO_MAIN));
+			//dialogClass.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(IDR_ICO_SMALL));
+			dialogClass.hbrBackground = (HBRUSH) (COLOR_WINDOW + 1);
+			dialogClass.lpszClassName = _T("DialogClass");
+			if (!RegisterClassEx(&dialogClass))
 				return 0;
 			g_hToolbar = CreateDialog(GetModuleHandle(NULL), MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)dlgWndProc);
 			if(g_hToolbar != NULL)
@@ -182,6 +187,7 @@ namespace mainwind
 				g_errHandle.getErrorInfo((LPTSTR)L"dialog Failed!");
 			}
 
+			// TODO - Need to set the status bar
 			//int statwidths[] = {100, -1};
 			//SendMessage(hStatus, SB_SETPARTS, sizeof(statwidths)/sizeof(int), (LPARAM)statwidths);
 			//SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)L"Hi there :)");
@@ -189,7 +195,9 @@ namespace mainwind
 	   else
 	   {
 		  pParent = (MainWind*)GetWindowLongPtr(hWnd,GWL_USERDATA);
-		  if(!pParent) return DefWindowProc(hWnd,uMsg,wParam,lParam);
+		  if(!pParent) {
+			  return DefWindowProc(hWnd,uMsg,wParam,lParam);
+		  }
 	   }
 
 	   pParent->m_hWnd = hWnd;
@@ -275,7 +283,6 @@ namespace mainwind
 			//		iStatusHeight = rcStatus.bottom - rcStatus.top;
 			//		break;
 			//	}
-			//HANDLE_DLGMSG(hWnd, WM_NOTIFY, Main_OnNotify);
 			default:
 				return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		}
@@ -328,6 +335,10 @@ namespace mainwind
 				
 				static HWND hWndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE, 0, 0, 0, 0,
 									hWnd, (HMENU)IDC_MAIN_TOOL, GetModuleHandle(NULL), NULL);
+				if(hWndToolbar == NULL)
+				{
+					g_errHandle.getErrorInfo((LPTSTR)L"ToolBar creation!");
+				}
 
 				// Send the TB_BUTTONSTRUCTSIZE message, which is required for
 				// backward compatibility.
@@ -859,34 +870,34 @@ namespace mainwind
 		for(int i = 0; i < 9; ++i) 
 			SimpleGrid_AddRow(hGrid, _T(""));
 
-		//// Column number
-		//// Row number
-		//// Item (cell) value
-		//SGITEM lpItems[] = {
-		//	0, 0, (LPARAM)_T("User Column Resizing"),
-		//	1, 0, (LPARAM) FALSE,
-		//	0, 1, (LPARAM)_T("User Editable"),
-		//	1, 1, (LPARAM) FALSE,
-		//	0, 2, (LPARAM)_T("Show Ellipsis"),
-		//	1, 2, (LPARAM) TRUE,
-		//	0, 3, (LPARAM)_T("Auto Column Size"),
-		//	1, 3, (LPARAM) FALSE,
-		//	0, 4, (LPARAM)_T("Extend Last Column"),
-		//	1, 4, (LPARAM) TRUE,
-		//	0, 5, (LPARAM)_T("Numbered Columns"),
-		//	1, 5, (LPARAM) TRUE,
-		//	0, 6, (LPARAM)_T("Numbered Rows"),
-		//	1, 6, (LPARAM) TRUE,
-		//	0, 7, (LPARAM)_T("Highlight Row"),
-		//	1, 7, (LPARAM) TRUE,
-		//	0, 8, (LPARAM)_T("Show Gridlines"),
-		//	1, 8, (LPARAM) TRUE
-		//};
+		// Column number
+		// Row number
+		// Item (cell) value
+		SGITEM lpItems[] = {
+			0, 0, (LPARAM)_T("User Column Resizing"),
+			1, 0, (LPARAM) FALSE,
+			0, 1, (LPARAM)_T("User Editable"),
+			1, 1, (LPARAM) FALSE,
+			0, 2, (LPARAM)_T("Show Ellipsis"),
+			1, 2, (LPARAM) TRUE,
+			0, 3, (LPARAM)_T("Auto Column Size"),
+			1, 3, (LPARAM) FALSE,
+			0, 4, (LPARAM)_T("Extend Last Column"),
+			1, 4, (LPARAM) TRUE,
+			0, 5, (LPARAM)_T("Numbered Columns"),
+			1, 5, (LPARAM) TRUE,
+			0, 6, (LPARAM)_T("Numbered Rows"),
+			1, 6, (LPARAM) TRUE,
+			0, 7, (LPARAM)_T("Highlight Row"),
+			1, 7, (LPARAM) TRUE,
+			0, 8, (LPARAM)_T("Show Gridlines"),
+			1, 8, (LPARAM) TRUE
+		};
 
-		//for(int i = 0; i < NELEMS(lpItems); ++i)
-		//{
-		//	SimpleGrid_SetItemData(hGrid, &lpItems[i]);
-		//}
+		for(int i = 0; i < NELEMS(lpItems); ++i)
+		{
+			SimpleGrid_SetItemData(hGrid, &lpItems[i]);
+		}
 
 		//make the properties grid have the focus when the application starts
 		SetFocus(hGrid);

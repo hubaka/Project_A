@@ -5,6 +5,7 @@
 #include "mainwind.h"
 #include "babygrid.h"
 #include "toolbar.h"
+#include "dbms.h"
 #include "appmain.h"
 
 #pragma comment(lib,"COMCTL32.LIB")
@@ -30,12 +31,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	// Initialize common controls. Also needed for MANIFEST's
 	InitializeMyCommonControls();
 	
+	// creating database instance
+	dbms::Dbms dbmsObj;
+
+	// creating grid instance
 	grid::BabyGrid	babygrid(hInstance, &babyGridName[0]);
+	// creating Toolbar instance
 	bar::ToolBar toolbar;
+	//creating mainwindow instance
 	mainwind::MainWind mainWindow(hInstance, &winclassName[0], nCmdShow);
 	mainWindow.attachGrid(&babygrid);
 	mainWindow.attachBar(&toolbar);
 	mainWindow.createWind();
+	// getting the instance of toolbar
 	HWND ptoolbar = toolbar.getToolBarInstance();
 
 	//IMPORTANT: 

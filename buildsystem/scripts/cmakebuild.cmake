@@ -558,9 +558,9 @@ endmacro()
 #-----------------------------------------------------------------------------------------
 macro(add_libs_to_exe)
 	foreach(lib ${ARGN})
-		list(APPEND ${PROJECT_NAME}_LIBS ${lib})
+		list(APPEND ${PROJECT_ID}_LIBS ${lib})
 	endforeach()
-	list(REMOVE_DUPLICATES ${PROJECT_NAME}_LIBS)
+	list(REMOVE_DUPLICATES ${PROJECT_ID}_LIBS)
 endmacro()
 
 #-----------------------------------------------------------------------------------------
@@ -605,6 +605,7 @@ macro(_add_module_exe)
 	endforeach()
 
 	add_executable(${LIBRARYNAME} ${${PROJECT_ID}_SRC} ${_obj_libs} ${${PROJECT_ID}_PUBLIC_HEADER})
+	message("libraries name ${${PROJECT_ID}_LIBS}")
 	target_link_libraries(${LIBRARYNAME} ${${PROJECT_ID}_LIBS})
 	
 	if(MSVC)

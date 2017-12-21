@@ -31,6 +31,8 @@
 namespace dbms
 {
 
+#define MAXCMDLENGTH (2*MAX_PATH)
+
 	class Dbms {
 	public:
 		Dbms(
@@ -50,14 +52,14 @@ namespace dbms
 		);
 	private:
 		sqlite3*	m_pData;
-		char		filePath[MAX_PATH];
+		char		cmdString[MAXCMDLENGTH];
 
 		void 
 		createDb(
 			void
 		);
 
-		char* quoteString(char* pString);
+		void createCmdString(char* pCmd, char* pTable, char* pColumns, char* pFileName, char* pFilePath, bool writeAccess, bool readAccess);
 
 	};
 

@@ -9,6 +9,7 @@ add_folder_dependencies(
 	"igrid"
 	"errhandle"
 	"toolbar"
+	"dbms"
 )
 
 add_lib_dependencies(

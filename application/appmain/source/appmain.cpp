@@ -58,7 +58,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	// creating Toolbar instance
 	bar::ToolBar toolbar;
 	//creating mainwindow instance
-	mainwind::MainWind mainWindow(hInstance, &winclassName[0], nCmdShow);
+	mainwind::MainWind mainWindow(hInstance, &winclassName[0], nCmdShow, &dbmsObj);
 	mainWindow.attachGrid(&babygrid);
 	mainWindow.attachBar(&toolbar);
 	mainWindow.createWind();

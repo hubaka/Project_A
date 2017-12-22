@@ -59,7 +59,8 @@ namespace dbms
 			void
 		);
 
-		void createCmdString(char* pCmd, char* pTable, char* pColumns, char* pFileName, char* pFilePath, bool writeAccess, bool readAccess);
+		void createCmdString(char* pCmd, char* pTable, char* pColumns, uint32_t rowCount, char* pFileName, char* pFilePath, bool writeAccess, bool readAccess);
+		void getRowCount();
 
 	};
 

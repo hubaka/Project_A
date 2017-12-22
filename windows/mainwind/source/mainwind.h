@@ -30,11 +30,15 @@ namespace bar {
 	class ToolBar;
 }
 
+namespace dbms {
+	class Dbms;
+}
+
 namespace mainwind
 {
 	class MainWind {
 	public:
-		MainWind(HINSTANCE& hParentInstance, const char* p_className, int nCmdShow);
+		MainWind(HINSTANCE& hParentInstance, const char* p_className, int nCmdShow, dbms::Dbms* pDbms);
 		~MainWind(void);
 		void createWind(void);
 		void attachGrid(grid::IGrid *p_grid);
@@ -47,6 +51,9 @@ namespace mainwind
 		const char*		m_pClassName;
 		int				m_nCmdShow;
 		HWND*			m_hWndToolbar;
+		char 			m_filePath[MAX_PATH];
+		char 			m_fileName[MAX_PATH];
+		dbms::Dbms*		m_pDbms;
 
 		static LRESULT	CALLBACK StaticWndProc(HWND, UINT, WPARAM, LPARAM);
 		LRESULT CALLBACK mainWndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -55,6 +62,7 @@ namespace mainwind
 		static HWND* createToolBar(HWND hWnd);
 		static void createWindowsMenu(HWND hWnd);
 		static void setWindowsIcon(HWND hWnd);
+		void stripFileName(LPTSTR filePath);
 
 	};
 

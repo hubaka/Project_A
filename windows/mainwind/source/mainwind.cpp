@@ -22,11 +22,16 @@
 #include <strsafe.h>
 #include <commctrl.h> // included in order to use tool bar related functionalities
 #include <sqlite3.h>  // included for database
+#include <Shlwapi.h>	// for stripping filename for full file path
+#include "sys.h"
 #include "errhandle.h"
 #include "igrid.h"
 #include "resource.h"
 #include "toolbar.h"
+#include "dbms.h"
 #include "mainwind.h"
+
+#pragma comment(lib,"Shlwapi.lib")
 
 HWND g_hToolbar = NULL;
 static grid::IGrid*	m_pIGrid;
@@ -56,10 +61,12 @@ namespace mainwind
 	MainWind::MainWind(
 		HINSTANCE&	hParentInstance,
 		const char*	p_className,
-		int			nCmdShow
+		int			nCmdShow,
+		dbms::Dbms* pDbms
 		) : m_hParentInstance(hParentInstance),
 			m_pClassName(p_className),
-			m_nCmdShow(nCmdShow) {
+			m_nCmdShow(nCmdShow),
+			m_pDbms(pDbms) {
 			;
 	}
 
@@ -296,7 +303,7 @@ namespace mainwind
 			void
 		) { 
 			OPENFILENAME ofn;
-			char szFileName[MAX_PATH] = "";
+			char szFileName[2*MAX_PATH] = "";
 
 			ZeroMemory(&ofn, sizeof(ofn));
 
@@ -310,8 +317,8 @@ namespace mainwind
 
 			if(GetOpenFileName(&ofn))
 			{
-				MessageBox(NULL, (LPWSTR)szFileName, (LPCWSTR)L"FileName!",
-					MB_ICONEXCLAMATION | MB_OK);
+				stripFileName(ofn.lpstrFile);
+				m_pDbms->addTableData(m_fileName, m_filePath, 1, 1);
 			}
 		}
 
@@ -719,4 +726,29 @@ namespace mainwind
 		}*/
 		return true;
 	}
+	
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void 
+	MainWind::stripFileName(LPTSTR filePath)
+	{
+		memset(m_filePath, 0, (sizeof(m_filePath)* sizeof(char)));
+		memset(m_fileName, 0, (sizeof(m_fileName)* sizeof(char)));
+		wcstombs(m_filePath, filePath, MAX_PATH); //copying to local array
+		char* plastSlash = strrchr(m_filePath, '\\'); //finding the last "\" to strip the filename from path
+		plastSlash++; // to move forward from "\" to actual file name
+		uint32_t pathLen = strlen(m_filePath);
+		uint32_t fileLen = strlen(plastSlash);
+		strncpy(m_fileName, plastSlash, fileLen);
+		pathLen = (pathLen - fileLen);
+		for(uint32_t idx=0; idx<fileLen; idx++) {
+			m_filePath[pathLen+idx] = '\0';
+		}
+	}
+
 } //namespace mainwind

@@ -28,6 +28,8 @@ namespace dbms
 	// Defines and Macros
 	//---------------------------------------------------------------------------
 	static errhandle::ErrHandle g_errHandle;
+	static int32_t sqlCallback(void *data, int argc, char **argv, char **azColName);
+	static uint32_t rowCount = 0;
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -47,24 +49,8 @@ namespace dbms
 			  sqlite3_close(m_pData);
 			  g_errHandle.getErrorInfo((LPTSTR)L"Database opening Failed!");
 			}
-
+			// create database
 			createDb();
-
-		   ///* Create SQL statement */
-		   //sql = "INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY) "  \
-				 //"VALUES (1, 'Paul', 32, 'California', 20000.00 ); " \
-				 //"INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY) "  \
-				 //"VALUES (2, 'Allen', 25, 'Texas', 15000.00 ); "     \
-				 //"INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY)" \
-				 //"VALUES (3, 'Teddy', 23, 'Norway', 20000.00 );" \
-				 //"INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY)" \
-				 //"VALUES (4, 'Mark', 25, 'Rich-Mond ', 65000.00 );";
-
-		   ///* Execute SQL statement */
-		   //retVal = sqlite3_exec(m_pData, sql, NULL, 0, &zErrMsg);
-		   //if( retVal != SQLITE_OK ){
-			  // g_errHandle.getErrorInfo((LPTSTR)L"Database creation Failed!");
-		   //}
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -108,15 +94,9 @@ namespace dbms
 
 		   /* Execute SQL statement */
 		   retVal = sqlite3_exec(m_pData, pSql, NULL, 0, &pErrMsg);
-		   
 		   if( retVal != SQLITE_OK ){
 			   g_errHandle.getErrorInfo((LPTSTR)L"Database creation Failed!");
 		   }
-
-		   char* str1 = "file1";
-		   char* path = "path1";
-		   addTableData(str1, path, 1, 1);
-
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -144,16 +124,9 @@ namespace dbms
 			char* pTable = "ENCRYPTTABLE ";
 			char* pColumns = "(ID,FILENAME,PATH,WRACS,RDACS) ";
 
-			createCmdString(pCmd, pTable, pColumns, pFileName, pFilePath, 1, 1);
+			getRowCount();
+			createCmdString(pCmd, pTable, pColumns, (rowCount+1), pFileName, pFilePath, 1, 1);
 			pSql = &cmdString[0];
-		   /*str = "INSERT INTO ENCRYPTTABLE (ID,FILENAME,PATH,WRACS,RDACS) "  \
-				 "VALUES (1, + quoteString(pFileName) , 'path1' , writeAccess, readAccess);";*/
-				 //"INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY) "  \
-				 //"VALUES (2, 'Allen', 25, 'Texas', 15000.00 ); "     \
-				 //"INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY)" \
-				 //"VALUES (3, 'Teddy', 23, 'Norway', 20000.00 );" \
-				 //"INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY)" \
-				 //"VALUES (4, 'Mark', 25, 'Rich-Mond ', 65000.00 );";
 
 		   /* Execute SQL statement */
 		   retVal = sqlite3_exec(m_pData, pSql, NULL, 0, &pErrMsg);
@@ -170,7 +143,7 @@ namespace dbms
 	//! \return		
 	//!
 	void
-	Dbms::createCmdString(char* pCmd, char* pTable, char* pColumns, char* pFileName, char* pFilePath,
+	Dbms::createCmdString(char* pCmd, char* pTable, char* pColumns, uint32_t rowCount, char* pFileName, char* pFilePath,
 							bool writeAccess, bool readAccess)  
 	{
 		char* pStr = &cmdString[0];
@@ -178,7 +151,6 @@ namespace dbms
 		char* pValueEndStr = ");";
 		char* pValueSep = ", ";
 		char* pstrQuote = "'";
-		uint32_t idx = 1;
 		char intString[sizeof(uint32_t)];
 		uint32_t pathLength = strlen(pFilePath);
 		uint32_t cmdLength = strlen(pCmd) + strlen(pTable) + strlen(pColumns) + strlen(pValueStartStr) + + sizeof(uint32_t) \
@@ -188,13 +160,14 @@ namespace dbms
 		{
 			g_errHandle.getErrorInfo((LPTSTR)L"cmd length is invalid!");
 		}
-				   /*str = "INSERT INTO ENCRYPTTABLE (ID,FILENAME,PATH,WRACS,RDACS) "  \
-				 "VALUES (1, 'file1' , 'path1' , writeAccess, readAccess);";*/
+		//sample insert command for coding
+		   /*str = "INSERT INTO ENCRYPTTABLE (ID,FILENAME,PATH,WRACS,RDACS) "  \
+		 "VALUES (1, 'file1' , 'path1' , writeAccess, readAccess);";*/
 		strcpy(pStr, pCmd);
 		strcat(pStr, pTable);
 		strcat(pStr, pColumns);
 		strcat(pStr, pValueStartStr);
-		itoa(idx, &intString[0], 10);
+		itoa(rowCount, &intString[0], 10);
 		strcat(pStr, intString);
 		strcat(pStr, pValueSep);
 		strcat(pStr, pstrQuote);
@@ -211,8 +184,43 @@ namespace dbms
 		itoa(readAccess, &intString[0], 10);
 		strcat(pStr, intString);
 		strcat(pStr, pValueEndStr);
-
-		//return pStr;
 	}
 
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void 
+	Dbms::getRowCount(void)
+	{
+
+		char*	pErrMsg;
+		char* pStr = "SELECT COUNT(ID) FROM ENCRYPTTABLE;";
+		/* Execute SQL statement */
+		int32_t retVal = sqlite3_exec(m_pData, pStr, sqlCallback, 0, &pErrMsg);
+	   if( retVal != SQLITE_OK ){
+		   g_errHandle.getErrorInfo((LPTSTR)L"Database creation Failed!");
+	   }
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	int32_t 
+	sqlCallback(void *data, int argc, char **argv, char **azColName)
+	{
+		uint32_t idx = 0;
+		while(argv[idx] != NULL) {
+			rowCount = atoi(argv[idx]);
+			idx++;
+		}
+	   return 0;
+	}
 } //namespace dbms

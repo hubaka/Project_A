@@ -10,6 +10,7 @@ add_folder_dependencies(
 	"errhandle"
 	"toolbar"
 	"dbms"
+	"babygrid"
 )
 
 add_lib_dependencies(

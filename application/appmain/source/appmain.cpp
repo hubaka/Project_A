@@ -6,7 +6,7 @@
 //! \author     Anand.Kathiresan
 //! \date       
 //!
-//! \brief      @ Header file for 
+//! \brief      @ Source file for 
 //!
 //! @(#)$Id:    $
 //!
@@ -42,8 +42,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     LPSTR lpCmdLine, int nCmdShow)
 {
     MSG Msg;
-	const char winclassName[] = "MainWindowClass";
-	const char babyGridName[] = "BabyGridClass";
 
 	errhandle::ErrHandle errh;
 
@@ -54,11 +52,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	dbms::Dbms dbmsObj;
 
 	// creating grid instance
-	grid::BabyGrid	babygrid(hInstance, &babyGridName[0]);
+	grid::BabyGrid	babygrid(hInstance);
 	// creating Toolbar instance
 	bar::ToolBar toolbar;
 	//creating mainwindow instance
-	mainwind::MainWind mainWindow(hInstance, &winclassName[0], nCmdShow, &dbmsObj);
+	mainwind::MainWind mainWindow(hInstance, nCmdShow, &dbmsObj);
 	mainWindow.attachGrid(&babygrid);
 	mainWindow.attachBar(&toolbar);
 	mainWindow.createWind();
@@ -81,7 +79,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	//and GetMessage() will fail at some point :) I've gone through and corrected this, but forgive me if I've missed a few spots.
     while(GetMessage(&Msg, NULL, 0, 0) > 0)
     {
-		//if(!IsDialogMessage(ptoolbar, &Msg))
+		if(!IsDialogMessage(g_hToolbar, &Msg))
 		{
 			TranslateMessage(&Msg);
 			DispatchMessage(&Msg);

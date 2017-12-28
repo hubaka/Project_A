@@ -19,6 +19,8 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <tchar.h>
+#include <commctrl.h>
+#include "sys.h"
 #include "resource.h"
 #include "errhandle.h"
 #include "babygrid.h"
@@ -29,96 +31,41 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 namespace grid
 {
 
-	static HWND parentWind;
-	/****************************************************************************/
-	/// @name Macroes
-	/// @{
+	/// @def HEIGHT(rect)
+	///
+	/// @brief Given a RECT, Computes height.
+	///
+	/// @param rect A RECT struct.
+	#define HEIGHT(rect) ((LONG)(rect.bottom - rect.top))
 
-	/// @def SimpleGrid_AddColumn(hGrid,lpszHeader)
+	/// @def WIDTH(rect)
 	///
-	/// @brief Add a column to the grid.
+	/// @brief Given a RECT, Computes width.
 	///
-	/// @param hGrid The handle of the grid.
-	/// @param lpColumn Pointer to an SGCOLUMN object.
-	///
-	/// @returns The index of the added column if successful, otherwise SG_ERROR 
-	#define SimpleGrid_AddColumn(hGrid, lpColumn) ((int)(DWORD)SNDMSG((hGrid),SG_ADDCOLUMN, 0,(LPARAM)(LPSGCOLUMN)(lpColumn)))
-
-	/// @def SimpleGrid_AddRow(hGrid,lpszHeader)
-	///
-	/// @brief Add a row to the grid.
-	///
-	/// @param hGrid The handle of the grid.
-	/// @param lpszHeader Row header text string. 
-	///
-	/// @returns The index of the added row if successful, otherwise SG_ERROR  
-	#define SimpleGrid_AddRow(hGrid,lpszHeader) ((int)(DWORD)SNDMSG((hGrid),SG_ADDROW,0,(LPARAM)(lpszHeader)))
-
-	/// @def SimpleGrid_SetColAutoWidth(hGrid,fSet)
-	///
-	/// @brief Configure grid columns to auto adjust to fit contents.
-	///
-	/// @note This should be set before adding data to the grid.
-	///
-	/// @param hGrid The handle of the grid.
-	/// @param fSet fSet TRUE to autosize columns to updated content, otherwise FALSE.
-	///
-	/// @returns The return value is not meaningful.  
-	#define SimpleGrid_SetColAutoWidth(hGrid,fSet) (BOOL)SNDMSG((hGrid),SG_SETCOLAUTOWIDTH,(BOOL)(fSet),0L)
-
-	/// @def SimpleGrid_SetRowHeaderWidth(hGrid,nWidth)
-	///
-	/// @brief Set the width (in pixels) of the row header column.
-	///
-	/// @param hGrid The handle of the grid.
-	/// @param nWidth The desired width (in pixels) of the row headers.
-	///
-	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired column is out of bounds
-	#define SimpleGrid_SetRowHeaderWidth(hGrid,nWidth) (int)SNDMSG((hGrid),SG_SETROWHEADERWIDTH,0,(LPARAM)(nWidth))
-
-	/// @def SimpleGrid_SetHeaderRowHeight(hGrid,iHeight)
-	///
-	/// @brief Set the height (in pixels) of the header row.
-	///
-	/// @param hGrid The handle of the grid.
-	/// @param iHeight The desired height (in pixels) of the header row. 
-	///
-	/// @returns The return value is not meaningful. 
-	#define SimpleGrid_SetHeaderRowHeight(hGrid,iHeight) (BOOL)SNDMSG((hGrid),SG_SETHEADERROWHEIGHT,(WPARAM)(int)(iHeight),0L)
-
-	/// @def SimpleGrid_SetSelectionMode(hGrid,iMode)
-	///
-	/// @brief Set whether and how the selected row will be hilighted.
-	///
-	/// @param hGrid The handle of the grid.
-	/// @param iMode One of the following selection mode options: GSO_ROWHEADER, GSO_CELL, or GSO_FULLROW. 
-	///
-	/// @returns The return value is not meaningful.
-	#define SimpleGrid_SetSelectionMode(hGrid,iMode) (BOOL)SNDMSG((hGrid),SG_SETSELECTIONMODE,(WPARAM)(INT)(iMode),0L)
-
-	/// @def SimpleGrid_SetItemData(hGrid, pItem)
-	///
-	/// @brief Set the content of an individual cell.
-	///
-	/// @param hGrid The handle of the grid.
-	/// @param pItem A pointer to a SGIETEM struct
-	///
-	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
-	#define SimpleGrid_SetItemData(hGrid, pItem) (int)SNDMSG((hGrid),SG_SETITEMDATA, 0, (LPARAM)(pItem))
-
+	/// @param rect A RECT struct.
+	#define WIDTH(rect) ((LONG)(rect.right - rect.left))
 	//---------------------------------------------------------------------------
 	// Data
 	//---------------------------------------------------------------------------
-	#define GCT_ROWHEADER -1            ///< Constant
-	static const uint32_t VECTOR_INITIAL_CAPACITY	= 16;	///< Constant
-	static const uint32_t VECTOR_CAPACITY_DELTA		= 16;	///< Constant
-	static const uint32_t INITIAL_COL_WIDTH			= 50;	///< Constant
+	//---------------------------------------------------------------------------
+	//!	\brief An item object
+	//!	\var GRIDITEM
+	//!	\brief Pointer to an item
+	//!	\var LPGRIDITEM
+	//!	\brief This is the data associated with a grid item
+	//!	\struct tagGRIDITEM	
+	typedef struct tagGRIDITEM {
+		LPTSTR lpszCurValue;    ///< Item (cell) value
+		LPTSTR lpszMisc;        ///< Item (cell) specific data string
+		DWORD dwAllignment;     ///< Item (cell) text allignment
+		BOOL fProtected;        ///< Item (cell) protection status
+	} GRIDITEM   , *LPGRIDITEM;
 
 	//---------------------------------------------------------------------------
 	//!	\brief A flexable array of objects 
 	//!	\var VECTOR
 	//!	\brief Pointer to a VECTOR object
-	//!	\var LPVECTOR
+	//!	\var LPVECTOR	
 	//!	\brief A data structure to hold a flexable array of objects
 	//!	\struct tagVECTOR
 	typedef struct tagVECTOR {
@@ -128,45 +75,31 @@ namespace grid
 	} VECTOR , *LPVECTOR;
 
 	//---------------------------------------------------------------------------
-	//!	\brief An column object
-	//!	\var GRIDCOLUMN
-	//!	\brief Pointer to a column
-	//!	\var LPGRIDCOLUMN
-	//!	\brief This is the data associated with a grid column
-	//!	\struct tagGRIDCOLUMN
+	//! \brief An column object
+	//! \var GRIDCOLUMN
+	//! \brief Pointer to a column
+	//! \var LPGRIDCOLUMN
+	//! \brief This is the data associated with a grid column
+	//! \struct tagGRIDCOLUMN
 	typedef struct tagGRIDCOLUMN {
-		DWORD dwType;		///< Column type
-		uint32_t iWidth;	///< Column width
-		LPVOID pOptional;	///< Optional data (ex: combobox choices)
-		LPVECTOR items;		///< The row cells associated with this column
+		DWORD dwType;           ///< Column type
+		INT iWidth;             ///< Column width
+		LPVOID pOptional;       ///< Optional data (ex: combobox choices)
+		LPVECTOR items;         ///< The row cells associated with this column
 	} GRIDCOLUMN   , *LPGRIDCOLUMN;
 
 	//---------------------------------------------------------------------------
-	//!	\brief An item object
-	//!	\var GRIDITEM
-	//!	\brief Pointer to an item
-	//!	\var LPGRIDITEM
-	//!	\brief This is the data associated with a grid item
-	//!	\struct tagGRIDITEM
-	typedef struct tagGRIDITEM {
-		LPTSTR lpszCurValue;    ///< Item (cell) value
-		LPTSTR lpszMisc;        ///< Item (cell) specific data string
-		DWORD dwAllignment;     ///< Item (cell) text allignment
-		BOOL fProtected;        ///< Item (cell) protection status
-	} GRIDITEM   , *LPGRIDITEM;
-
-	//---------------------------------------------------------------------------
 	//! \brief Data for this instance of the control
-	//!	\var INSTANCEDATA
-	//!	\brief Pointer instance data
-	//!	\var LPINSTANCEDATA
-	//!	\brief This is the data associated with an instance of the grid
-	//!	\struct tagINSTANCEDATA
+	//! \var INSTANCEDATA
+	//! \brief Pointer instance data
+	//! \var LPINSTANCEDATA
+	//! \brief This is the data associated with an instance of the grid
+	//! \struct tagINSTANCEDATA
 	typedef struct tagINSTANCEDATA {
 		HINSTANCE hInstance;            ///< Handle to this instance
 		HWND hWndParent;                ///< Handle of grid's parent
-		//HWND hwndControl;               ///< Handle to the current cell control
-		//HMENU gridmenu;                 ///< The child-window identifier of this grid
+		HWND hwndControl;               ///< Handle to the current cell control
+		HMENU gridmenu;                 ///< The child-window identifier of this grid
 		LPVECTOR data;                  ///< A collection of columns of cells
 		LPTSTR title;                   ///< The grid title string
 		INT gridwidth;                  ///< Grid width
@@ -220,32 +153,82 @@ namespace grid
 		INT cursortype;                 ///< Text, pointer, or column resize cursor
 	} INSTANCEDATA , *LPINSTANCEDATA;
 
+	static LPINSTANCEDATA g_lpInst;     ///< instance data (this) pointer
+
 	//---------------------------------------------------------------------------
 	// Defines and Macros
 	//---------------------------------------------------------------------------
+	static uint32_t VECTOR_INITIAL_CAPACITY		= 16;  ///< Constant
+	static uint32_t VECTOR_CAPACITY_DELTA		= 16;  ///< Constant
+	static uint32_t INITIAL_COL_WIDTH			= 50;  ///< Constant
+	//static uint32_t HEIGHT_DESC					= 80;  ///< Constant
+
+	#define GCT_ROWHEADER -1            ///< Constant
+
 	static errhandle::ErrHandle g_errHandle;
-	static LPINSTANCEDATA g_lpInst;     ///< instance data (this) pointer
 
 	//---------------------------------------------------------------------------
 	// FUNCTION DECLARATIONS
 	//---------------------------------------------------------------------------
 	static LRESULT CALLBACK Grid_Proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	static BOOL createGrid(HWND hWnd, LPCREATESTRUCT lpCreateStruct);
-	static LPVECTOR createVector(void);
-	static BOOL addVector(const LPVECTOR pVector, PVOID object);
+	static BOOL createGrid(HWND hWnd, LPCREATESTRUCT lpCreateStruct); //Grid_OnCreate
+	static LPVECTOR createVector(void); // New_Vector
+	static BOOL addVector(const LPVECTOR pVector, PVOID object); //Vector_Add
+	static LPGRIDITEM createNewItem(LPTSTR szCurValue); //New_Item
+	static BOOL addWindowPropList(HWND hControl, LPINSTANCEDATA pInstanceData); //Control_CreateInstanceData
+	static LPGRIDCOLUMN addNewColumn(LPSGCOLUMN lpColumn, uint32_t iWidth, LPVECTOR lpVector); //New_Column
+	static LPTSTR createNewString(LPTSTR str); //NewString
+	
 	static int32_t Vector_Size(const LPVECTOR pVector);
-	static LPGRIDITEM createNewItem(LPTSTR szCurValue);
-	static LPTSTR createNewString(LPTSTR str);
-	static LPGRIDCOLUMN addNewColumn(LPSGCOLUMN lpColumn, uint32_t iWidth, LPVECTOR lpVector);
-	static BOOL addWindowPropList(HWND hControl, LPINSTANCEDATA pInstanceData);
-	static BOOL Control_GetInstanceData(HWND hControl, LPINSTANCEDATA *ppInstanceData);
-	static BOOL initGridDialog(HWND hwnd);
-	static void LoadGrid1(HWND hGrid);
-	static LRESULT Grid_OnSetColWidth(HWND, WPARAM, LPARAM);
+	static LRESULT Grid_OnSetColWidth(HWND hWnd, WPARAM wParam, LPARAM lParam);
 	static int ColCount(VOID);
 	static PVOID Vector_Get(const LPVECTOR pVector, const int index);
-	static void SetVisibleColumns(HWND hwnd);
+	static void SetVisibleColumns(HWND hWnd);
 	static int GetColWidth(INT col);
+	static void Grid_OnSetHeaderRowHeight(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	static LRESULT Grid_OnAddColumn(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	static LRESULT Grid_OnAddRow(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	static LRESULT Grid_OnSetItemData(HWND hWnd, WPARAM wParam, LPARAM lParam);
+	static LPGRIDITEM GetCellData(int col, int row);
+	static DWORD GetColType(INT col);
+	static VOID RefreshGrid(HWND hWnd);
+	static int RowCount(VOID);
+	static BOOL OutOfRange(LPSGITEM cell);
+	static LPTSTR NewStringArray(LPTSTR szzStr);
+	static VOID GetCellRect(HWND hwnd, int col, int row, PRECT prc);
+	static int GetAdjacentCol(int startcol, BOOL fNextCol);
+	static VOID AdjustParentColWidth(HWND hwnd, INT col, INT row, LPTSTR lpszValue);
+	static int FindLongestLine(HDC hdc, LPTSTR text, PSIZE size);
+	static BOOL Control_GetInstanceData(HWND hControl, LPINSTANCEDATA *ppInstanceData);
+	static void Grid_OnSetFont(HWND hwnd, HFONT hfont, BOOL fRedraw);
+	static VOID Grid_OnPaint(HWND hwnd);
+	static VOID CalcVisibleCellBoundaries(VOID);
+	static VOID DisplayTitle(HWND hwnd, HFONT hfont, HDC hdc, RECT rc);
+	static VOID DisplayColumn(HWND hwnd, int col, int offset, HFONT hfont, HFONT hcolumnheadingfont, HDC hdc);
+	static VOID ShowVscroll(HWND hwnd);
+	static VOID ShowHscroll(HWND hwnd);
+	static BOOL Alphabetize(INT num, LPTSTR buf, INT iSize);
+	static LPVOID GetColOptional(INT col);
+	static HFONT Font_SetUnderline(HWND hwnd, BOOL fUnderline);
+	static BOOL IsNumeric(LPTSTR data);
+
+	/// @def StringArray_Replace(lpszTarget, lpszReplace)
+	///
+	/// @brief Replace an allocated string array.
+	///
+	/// @param lpszTarget The existing allocated string array.
+	/// @param lpszReplace The new string array.
+	#define StringArray_Replace(lpszTarget, lpszReplace) \
+		(free((lpszTarget)), (lpszTarget) = NewStringArray(lpszReplace))
+
+	/// @def String_Replace(lpszTarget, lpszReplace)
+	///
+	/// @brief Replace an allocated string.
+	///
+	/// @param lpszTarget The existing allocated string.
+	/// @param lpszReplace The new string.
+	#define String_Replace(lpszTarget, lpszReplace) \
+		(free((lpszTarget)), (lpszTarget) = createNewString(lpszReplace))
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -255,10 +238,8 @@ namespace grid
 	//! \return		
 	//!
 	BabyGrid::BabyGrid(
-		HINSTANCE&	hParentInstance,
-		const char*	p_className
-		) : m_hParentInstance(hParentInstance),
-			m_pClassName(p_className) {
+		HINSTANCE&	hParentInstance
+		) : m_hParentInstance(hParentInstance) {
 			;
 	}
 
@@ -273,7 +254,7 @@ namespace grid
 		void
 		) {
 
-		m_pClassName = 0U;
+		;
 
 	}
 
@@ -290,10 +271,6 @@ namespace grid
 	)
 	{
 
-		//m_gridhWnd = CreateDialog(m_hParentInstance, MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)Grid_Proc);
-		//g_errHandle.getErrorInfo((LPTSTR)L"createbabygrid!");
-		//ShowWindow(m_gridhWnd, SW_SHOW);
-		//DialogBox(HINST_THISCOMPONENT, MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)Grid_Proc);
 		static HWND hControl;
 		HINSTANCE hinst;
 
@@ -307,7 +284,7 @@ namespace grid
 		m_gridClassEx.hCursor       = NULL;
 		m_gridClassEx.hbrBackground = NULL;
 		m_gridClassEx.lpszMenuName  = NULL;
-		m_gridClassEx.lpszClassName = (LPCWSTR)m_pClassName;
+		m_gridClassEx.lpszClassName = _T("BabyGridClass");
 		m_gridClassEx.hInstance     = m_hParentInstance;
 		m_gridClassEx.lpfnWndProc   = (WNDPROC)Grid_Proc;
 
@@ -316,24 +293,18 @@ namespace grid
 			g_errHandle.getErrorInfo((LPTSTR)L"Grid Class Registration Failed!");
 		}
 
-
-
 		//Get hinstance if this code is compiled into and called from a dll 
 		// as well as if it were compiled into the executable.  (XP and later)
-		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-		 (LPCTSTR)L"New_SimpleGrid", &hinst);
+		//GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+		// (LPCTSTR)L"New_SimpleGrid", &hinst);
 
-		//Only need to register the property grid once
-		/*if (!aControl)
-			aControl = InitSimpleGrid(hinst);*/
-		parentWind = hWnd;
-		hControl = CreateWindowEx(0, (LPCWSTR)m_pClassName, NULL, WS_CHILD | 
-		  WS_TABSTOP, 0, 0, 0, 0, hWnd, (HMENU)IDC_SIMPLEGRID1, hinst, NULL);
+		//hControl = CreateWindowEx(0, _T("BabyGridClass"), NULL, WS_CHILD | 
+		//  WS_TABSTOP, 0, 0, 0, 0, hWnd, (HMENU)IDC_SIMPLEGRID1, hinst, NULL);
 
-		if (hControl == NULL) {
-			g_errHandle.getErrorInfo((LPTSTR)L"createBabyGrid");
-		}
-		initGridDialog(hWnd);
+		//if (hControl == NULL) {
+		//	g_errHandle.getErrorInfo((LPTSTR)L"createBabyGrid");
+		//}
+		
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -357,12 +328,14 @@ namespace grid
 			g_lpInst->gridwidth = rect.right - rect.left;
 			g_lpInst->gridheight = rect.bottom - rect.top;
 		}
-		switch (uMsg) {
+		switch (uMsg) 
+		{
 			HANDLE_MSG(hWnd, WM_CREATE, createGrid);
-			case WM_INITDIALOG:
+			HANDLE_MSG(hWnd, WM_SETFONT, Grid_OnSetFont);
+			HANDLE_MSG(hWnd, WM_PAINT, Grid_OnPaint);
+			case SG_ADDCOLUMN:
 				{
-					initGridDialog(hWnd);
-					break;
+				return Grid_OnAddColumn(hWnd, wParam, lParam) - 1; // don't include row header column
 				}
 			case SG_SETCOLAUTOWIDTH:
 				{
@@ -375,12 +348,38 @@ namespace grid
 					dwRtn = Grid_OnSetColWidth(hWnd, 0, lParam);
 					return dwRtn;
 				}
-			default: 
+			case SG_SETHEADERROWHEIGHT:
 				{
-					return DefWindowProc(hWnd, uMsg, wParam, lParam);
+					Grid_OnSetHeaderRowHeight(hWnd, wParam, lParam);
 					break;
 				}
+			case SG_SETSELECTIONMODE:
+				{
+					g_lpInst->selectionMode = (DWORD) wParam;
+					g_lpInst->HIGHLIGHTFULLROW = (GSO_FULLROW == g_lpInst->selectionMode);
+					RefreshGrid(hWnd);
+					break;
+				}
+			case SG_ADDROW:
+				{
+					return Grid_OnAddRow(hWnd, wParam, lParam) - 1; //don't include the column header row
+				}
+			case SG_SETITEMDATA:
+				{
+					DWORD dwRtn = 0;
+					((LPSGITEM)lParam)->col++; // don't include row header column
+					((LPSGITEM)lParam)->row++; // don't include column header row
+					dwRtn = Grid_OnSetItemData(hWnd, wParam, lParam);
+					((LPSGITEM)lParam)->col--; // restore initial index
+					((LPSGITEM)lParam)->row--; // restore initial index
+					return dwRtn;
+				}
+			case WM_GETDLGCODE: // If this control is in a dialog
+				{
+					return DLGC_WANTALLKEYS; // Send all key presses to this proc
+				}
 		}
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -393,7 +392,7 @@ namespace grid
 	BOOL 
 	createGrid(HWND hWnd, LPCREATESTRUCT lpCreateStruct)
 	{
-		BOOL retVal = false;
+		BOOL retVal = true;
 
 		INSTANCEDATA instance;
 		memset(&instance, 0, sizeof(INSTANCEDATA));
@@ -464,14 +463,15 @@ namespace grid
 	//! \return		
 	//!
 	static LPVECTOR 
-	createVector(void)
-	{
-		LPVECTOR pVector;
-		pVector = (LPVECTOR)SMALLOC(sizeof(VECTOR));
-		pVector->_current_capacity = VECTOR_INITIAL_CAPACITY;
-		pVector->_data = (PVOID*) SMALLOC(sizeof(PVOID) * pVector->_current_capacity);//DWM 1.9 Added cast
-		pVector->_size = 0;
-		return pVector;
+	createVector(
+		void
+	) {
+		LPVECTOR pvector;
+		pvector = (LPVECTOR)SMALLOC(sizeof(VECTOR));
+		pvector->_current_capacity = VECTOR_INITIAL_CAPACITY;
+		pvector->_data = (PVOID*) SMALLOC(sizeof(PVOID) * pvector->_current_capacity);//dwm 1.9 added cast
+		pvector->_size = 0;
+		return pvector;
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -483,8 +483,9 @@ namespace grid
 	//! \return		TRUE if successful
 	//!
 	static BOOL 
-	addVector(const LPVECTOR pVector, PVOID object)
-	{
+	addVector(
+		const LPVECTOR pVector, PVOID object
+	) {
 		bool retVal = true;
 		int old_size = Vector_Size(pVector);
 		int new_capacity;
@@ -513,8 +514,9 @@ namespace grid
 	//! \return		The number of objects
 	//!
 	static int32_t 
-	Vector_Size(const LPVECTOR pVector)
-	{
+	Vector_Size(
+		const LPVECTOR pVector
+	) {
 		return (NULL == pVector) ? 0 : pVector->_size;
 	}
 
@@ -526,8 +528,9 @@ namespace grid
 	//! \return		 a Pointer to the allocated grid item.
 	//!
 	static LPGRIDITEM 
-	createNewItem(LPTSTR szCurValue)
-	{
+	createNewItem(
+		LPTSTR szCurValue
+	) {
 		LPGRIDITEM lpItem = (LPGRIDITEM)calloc(1, sizeof(GRIDITEM));
 
 		lpItem->lpszMisc = NULL; // <- used to store pointer to data allocated
@@ -545,8 +548,9 @@ namespace grid
 	//! \return		 a Pointer to the allocated string.
 	//!
 	static LPTSTR 
-	createNewString(LPTSTR str)
-	{
+	createNewString(
+		LPTSTR str
+	) {
 		if (NULL == str || _T('\0') == *str)
 			str = _T("");
 		LPTSTR tmp = (LPTSTR)calloc(_tcslen(str) + 1, sizeof(TCHAR));
@@ -568,8 +572,8 @@ namespace grid
 	//! \return		 a Pointer to the allocated grid column.
 	//!
 	static LPGRIDCOLUMN 
-		addNewColumn(LPSGCOLUMN lpColumn, uint32_t iWidth, LPVECTOR lpVector)
-	{
+		addNewColumn(LPSGCOLUMN lpColumn, uint32_t iWidth, LPVECTOR lpVector
+	) {
 		LPGRIDCOLUMN lpCol = (LPGRIDCOLUMN)calloc(1, sizeof(GRIDCOLUMN));
 
 		lpCol->dwType = lpColumn->dwType;
@@ -611,8 +615,9 @@ namespace grid
 	//! \return		 TRUE if successful
 	//!
 	static BOOL 
-	addWindowPropList(HWND hControl, LPINSTANCEDATA pInstanceData)
-	{
+	addWindowPropList(
+		HWND hControl, LPINSTANCEDATA pInstanceData
+	) {
 		LPINSTANCEDATA pInst = (LPINSTANCEDATA)SMALLOC(sizeof(INSTANCEDATA));
 		memmove(pInst, pInstanceData, sizeof(INSTANCEDATA));
 		return SetProp(hControl, (LPCTSTR)_T("lpInsData"), pInst);
@@ -637,184 +642,17 @@ namespace grid
 		}
 	}
 
-	//---------------------------------------------------------------------------------------------------
-	//! \brief		
-	//!
-	//! \param[in]	 
-	//!
-	//! \return	
-	//!
-	static BOOL 
-	initGridDialog(HWND hwnd)
-	{
-		//Get window handles
-		HWND hgrid1 = GetDlgItem(parentWind, IDC_SIMPLEGRID1);
-		if (NULL == hgrid1) {
-			g_errHandle.getErrorInfo((LPTSTR)L"initgriddialog");
-		}
-
-		//HWND hgrid1 = GetDlgItem(hwnd, IDC_SIMPLEGRID1);
-		//hgrid2 = GetDlgItem(hwnd, IDC_SIMPLEGRID2);
-		//hgrid3 = GetDlgItem(hwnd, IDC_SIMPLEGRID3);
-		//hgrid4 = GetDlgItem(hwnd, IDC_SIMPLEGRID4);
-		//hgrid5 = GetDlgItem(hwnd, IDC_SIMPLEGRID5);
-		//htab =  GetDlgItem(hwnd, IDC_TAB);
-
-		//
-		//Configure tab
-		//
-
-		//TCITEM tie;
-		//tie.mask = TCIF_TEXT;
-		//tie.pszText = _T("Original Baby Grid Demo");
-		//TabCtrl_InsertItem(htab, 0, &tie);
-		//tie.pszText = _T("Big Data");
-		//TabCtrl_InsertItem(htab, 1, &tie);
-		//tie.pszText = _T("Column Types");
-		//TabCtrl_InsertItem(htab, 2, &tie);
-		//tie.pszText = _T("Insert/Delete Rows");
-		//TabCtrl_InsertItem(htab, 3, &tie);
-
-		//
-		//Configure grids
-		//
-
-		//set grid1 (the properties grid) to automatically size columns 
-		//based on the length of the text entered into the cells
-		SimpleGrid_SetColAutoWidth(hgrid1, TRUE);
-		//I don't want a row header, so make it 0 pixels wide
-		SimpleGrid_SetRowHeaderWidth(hgrid1,0);
-		//this grid won't use column headings, set header row height = 0
-		SimpleGrid_SetHeaderRowHeight(hgrid1, 0);
-		//on selection hilight full row
-		SimpleGrid_SetSelectionMode(hgrid1, GSO_FULLROW);
-		//populate grid1 with data
-		LoadGrid1(hgrid1);
-
-		////Set the heading font for Grid 2
-		//HFONT hFont = CreateFont(20, 0, 0, 0, FW_EXTRABOLD, FALSE, FALSE, FALSE,
-		//	ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-		//	PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("ARIEL"));
-
-		//SimpleGrid_SetHeadingFont(hgrid2,hFont);
-
-		////make grid2 header row to initial height of 21 pixels
-		//SimpleGrid_SetHeaderRowHeight(hgrid2, 21);
-		////on row header selection hilight full row, otherwise individual cell
-		//SimpleGrid_SetSelectionMode(hgrid2, GSO_ROWHEADER);
-		////do not allow in cell editing of all grid items initially
-		//SimpleGrid_EnableEdit(hgrid2,FALSE);
-
-		////populate grid2 with initial demo data
-		//LoadGrid2(hgrid2);
-
-		////make grid3 header row to initial height of 21 pixels
-		//SimpleGrid_SetHeaderRowHeight(hgrid3, 21);
-		////use column header text
-		//SimpleGrid_SetColsNumbered(hgrid3,FALSE);
-		////use row header text
-		//SimpleGrid_SetRowsNumbered(hgrid3,FALSE);
-		////last column standard width
-		//SimpleGrid_ExtendLastColumn(hgrid3,FALSE);
-		////vertical scroll set to non integral rows
-		//SimpleGrid_ShowIntegralRows(hgrid3,FALSE);
-		////on row header selection hilight full row, otherwise individual cell
-		//SimpleGrid_SetSelectionMode(hgrid3, GSO_ROWHEADER);
-
-		////Include a title for this grid
-		//SimpleGrid_SetTitleFont(hgrid3,hFont);
-		//SimpleGrid_SetTitleHeight(hgrid3, 21);
-		//SimpleGrid_SetTitle(hgrid3,_T("Grid's window text displayed here."));
-
-		////populate grid3 with big data
-		//LoadGrid3(hgrid3);
-
-		////make grid4 header row to initial height of 21 pixels
-		//SimpleGrid_SetHeaderRowHeight(hgrid4, 21);
-		////allow column resizing
-		//SimpleGrid_SetAllowColResize(hgrid4, TRUE);
-		////use column header text
-		//SimpleGrid_SetColsNumbered(hgrid4,FALSE);
-		////on row header selection hilight full row, otherwise individual cell
-		//SimpleGrid_SetSelectionMode(hgrid4, GSO_CELL);
-
-		////populate grid4 with different column types
-		//LoadGrid4(hgrid4);
-
-		//Force the display of the vertical scroll in grids (if necessary)
-		/*RECT rect;
-		GetClientRect(hwnd, &rect);
-		MoveWindow(hgrid2, rect.right / 3, 0, 
-			rect.right - rect.right / 3, rect.bottom + 1, FALSE);*/
-
-		return TRUE;
-	}
-
-	static void 
-	LoadGrid1(HWND hGrid)
-	{
-		HWND retHandle;
-		// Add some columns
-
-		// Column type
-		// Column header text
-		// Optional data (ex: combobox choices)
-		SGCOLUMN lpColumns[] = {
-			GCT_EDIT, _T(""),  NULL,
-			GCT_CHECK, _T(""),  NULL
-		};
-		for(int i = 0; i < NELEMS(lpColumns); ++i)
-			SimpleGrid_AddColumn(hGrid, &lpColumns[i]);
-
-		// Add some rows
-		for(int i = 0; i < 9; ++i) 
-			SimpleGrid_AddRow(hGrid, _T(""));
-
-		// Column number
-		// Row number
-		// Item (cell) value
-		SGITEM lpItems[] = {
-			0, 0, (LPARAM)_T("User Column Resizing"),
-			1, 0, (LPARAM) FALSE,
-			0, 1, (LPARAM)_T("User Editable"),
-			1, 1, (LPARAM) FALSE,
-			0, 2, (LPARAM)_T("Show Ellipsis"),
-			1, 2, (LPARAM) TRUE,
-			0, 3, (LPARAM)_T("Auto Column Size"),
-			1, 3, (LPARAM) FALSE,
-			0, 4, (LPARAM)_T("Extend Last Column"),
-			1, 4, (LPARAM) TRUE,
-			0, 5, (LPARAM)_T("Numbered Columns"),
-			1, 5, (LPARAM) TRUE,
-			0, 6, (LPARAM)_T("Numbered Rows"),
-			1, 6, (LPARAM) TRUE,
-			0, 7, (LPARAM)_T("Highlight Row"),
-			1, 7, (LPARAM) TRUE,
-			0, 8, (LPARAM)_T("Show Gridlines"),
-			1, 8, (LPARAM) TRUE
-		};
-
-		for(int i = 0; i < NELEMS(lpItems); ++i)
-		{
-			SimpleGrid_SetItemData(hGrid, &lpItems[i]);
-		}
-
-		//make the properties grid have the focus when the application starts
-		retHandle = SetFocus(hGrid);
-		if (NULL == retHandle) {
-			g_errHandle.getErrorInfo((LPTSTR)L"SetFocus Failed!");
-		}
-	}
-
 	/// @brief Handles SG_SETCOLWIDTH message.
 	///
-	/// @param hwnd The handle of the grid
+	/// @param hWnd The handle of the grid
 	/// @param wParam The index of the column
 	/// @param lParam The desired width (in pixels) of the column
 	///
 	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
-	static LRESULT Grid_OnSetColWidth(HWND hwnd, WPARAM wParam, LPARAM lParam)
-	{
+	static LRESULT 
+	Grid_OnSetColWidth(
+		HWND hWnd, WPARAM wParam, LPARAM lParam
+	) {
 		INT iCol = wParam;
 		if (iCol > ColCount())
 		{
@@ -823,17 +661,19 @@ namespace grid
 		}
 		RECT rect = {0,0,0,0};
 		((LPGRIDCOLUMN)Vector_Get(g_lpInst->data, iCol))->iWidth = (INT)lParam;
-		GetClientRect(hwnd, &rect);
-		InvalidateRect(hwnd, &rect, FALSE);
-		SetVisibleColumns(hwnd);
+		GetClientRect(hWnd, &rect);
+		InvalidateRect(hWnd, &rect, FALSE);
+		SetVisibleColumns(hWnd);
 		return ERROR_SUCCESS;
 	}
 
 	/// @brief wrapper to access column count (including the row header column 0)
 	///
 	/// @returns The number of columns in the underlying data table
-	static int ColCount(VOID)
-	{
+	static int 
+	ColCount(
+		VOID
+	) {
 		return Vector_Size(g_lpInst->data);
 	}
 
@@ -843,8 +683,10 @@ namespace grid
 	/// @param index the array index associated with the desired item
 	///
 	/// @returns The desired item if successful, otherwise NULL
-	static PVOID Vector_Get(const LPVECTOR pVector, const int index)
-	{
+	static PVOID 
+	Vector_Get(
+		const LPVECTOR pVector, const int index
+	) {
 		if (index < Vector_Size(pVector))
 		{
 			return pVector->_data[index];
@@ -857,11 +699,13 @@ namespace grid
 
 	/// @brief Sets the visible columns field to the number of visible columns.
 	///
-	/// @param hwnd Handle of the grid
+	/// @param hWnd Handle of the grid
 	///
 	/// @returns VOID
-	static void SetVisibleColumns(HWND hwnd)
-	{
+	static void 
+	SetVisibleColumns(
+		HWND hWnd
+	) {
 		int j;
 		int cols = ColCount();
 		int value;
@@ -874,7 +718,7 @@ namespace grid
 			}
 		}
 		g_lpInst->visiblecolumns = value;
-		SetScrollRange(hwnd, SB_HORZ, 1, value, TRUE);
+		SetScrollRange(hWnd, SB_HORZ, 1, value, TRUE);
 	}
 
 	/// @brief wrapper to access column width
@@ -882,8 +726,10 @@ namespace grid
 	/// @param col The column number
 	///
 	/// @returns The width of the column
-	static int GetColWidth(INT col)
-	{
+	static int 
+	GetColWidth(
+		INT col
+	) {
 		LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col);
 		if(NULL == lpgc)
 			return 0;
@@ -891,4 +737,1202 @@ namespace grid
 		return lpgc->iWidth;
 	}
 
+	/// @brief Handles SG_SETHEADERROWHEIGHT message.
+	///
+	/// @param hWnd The handle of the grid
+	/// @param wParam The desired height (in pixels) of the header row
+	/// @param lParam This parameter is not used
+	///
+	/// @returns VOID
+	static void 
+	Grid_OnSetHeaderRowHeight(
+		HWND hWnd, WPARAM wParam, LPARAM lParam
+	) {
+		if ((int)wParam >= 0)
+		{
+			RECT rect = {0,0,0,0};
+
+			g_lpInst->headerrowheight = wParam;
+			GetClientRect(hWnd, &rect);
+			InvalidateRect(hWnd, &rect, FALSE);
+		}
+	}
+
+	/// @brief Handles SG_ADDCOLUMN message.
+	///
+	/// @param hWnd The handle of the grid
+	/// @param wParam  The type of column to add
+	/// @param lParam The Column header text string
+	///
+	/// @returns The index of the added column if successful, otherwise SG_ERROR 
+	static LRESULT 
+	Grid_OnAddColumn(
+		HWND hWnd, WPARAM wParam, LPARAM lParam
+	) {
+		BOOL fSuccess = TRUE;
+		LPSGCOLUMN lpColumn;
+		LPVECTOR temp;
+
+		if(MAXCOLUMNS <= ColCount())
+			fSuccess = FALSE;
+
+		if (fSuccess)
+		{
+			//Create column
+			lpColumn = (LPSGCOLUMN)lParam;
+			temp = createVector();
+
+			fSuccess = addVector(temp, createNewItem(lpColumn->lpszHeader));
+			if (fSuccess)
+			{
+				//Add rows (if any)
+				for (int i = RowCount() - 1; 0 < i; --i)
+				{   //Don't include col headers
+					fSuccess = addVector(temp, createNewItem(_T("")));
+					if (!fSuccess)
+						break;
+				}
+			}
+			fSuccess = addVector(g_lpInst->data, addNewColumn(lpColumn, INITIAL_COL_WIDTH, temp));
+		}
+		if(fSuccess)
+		{
+			return ColCount() - 1;
+		}
+		else
+		{
+			SetLastError(ERROR_OUTOFMEMORY);
+			return SG_ERROR;
+		}
+	}
+
+	/// @brief Handles SG_ADDROW message.
+	///
+	/// @param hWnd The handle of the grid
+	/// @param wParam  This parameter is not used
+	/// @param lParam The Column header text string
+	///
+	/// @returns The index of the added column if successful, otherwise SG_ERROR 
+	static LRESULT 
+	Grid_OnAddRow(
+		HWND hWnd, WPARAM wParam, LPARAM lParam
+	) {
+		BOOL fSuccess = FALSE;
+		LPTSTR tempStr;
+		LPVECTOR temp;
+		LPGRIDITEM lpgi;
+		int nCols = ColCount();
+
+		if (0 < nCols)
+		{
+			// Add Row header
+			temp = ((LPGRIDCOLUMN)Vector_Get(g_lpInst->data, 0))->items;
+			tempStr = (LPTSTR)lParam;
+			lpgi = createNewItem(tempStr);
+			fSuccess = addVector(temp, lpgi);
+			if (fSuccess)   //Add an empty row
+			{
+				for (int i = 1; i < nCols; ++i)
+				{
+					temp = ((LPGRIDCOLUMN)Vector_Get(g_lpInst->data, i))->items;
+					lpgi = createNewItem(_T(""));
+					fSuccess = addVector(temp, lpgi);
+					if (!fSuccess)
+					{
+						break;
+					}
+				}
+			}
+		}
+		if(fSuccess)
+		{
+			return RowCount() - 1;
+		}
+		else
+		{
+			SetLastError(ERROR_OUTOFMEMORY);
+			return SG_ERROR;
+		}
+	}
+
+	/// @brief Handles SG_SETITEMDATA message.
+	///
+	/// @param hWnd The handle of the grid
+	/// @param wParam This parameter is not used
+	/// @param lParam A pointer to a SGITEM struct with column and row indexes.
+	///
+	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT 
+	Grid_OnSetItemData(
+		HWND hWnd, WPARAM wParam, LPARAM lParam
+	) {
+		LPTSTR lpszValue = TEXT("");
+		TCHAR buf[5]; //Allow for indexes up to 9999 (more images than an image list likely can hold)
+		LPGRIDITEM lpgi;
+		LPSGITEM lpSGitem = (LPSGITEM)lParam;
+		DWORD dwColType;
+
+		if (OutOfRange(lpSGitem))
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+
+		int col = lpSGitem->col;
+		int row = lpSGitem->row;
+
+		lpgi = GetCellData(col, row);
+		if(NULL == lpgi)
+		{
+			SetLastError(ERROR_INVALID_DATA);
+			return SG_ERROR;
+		}
+
+		dwColType = GetColType(col);
+		switch (dwColType)
+		{
+			case GCT_BUTTON: //Make sure that the button text is the same as the cell if updated
+				if(NULL != g_lpInst->hwndControl)
+					SetWindowText(g_lpInst->hwndControl, (LPTSTR) lpSGitem->lpCurValue);
+				//Fall through
+			case GCT_EDIT:
+			case GCT_COMBO:
+			case GCT_LINK:
+				lpszValue = (LPTSTR) lpSGitem->lpCurValue;
+				break;
+			case GCT_CHECK:
+				lpszValue = ((BOOL) lpSGitem->lpCurValue) ? CHECKED : UNCHECKED;
+				break;
+			case GCT_IMAGE:
+				_sntprintf(buf, NELEMS(buf), _T("%d"), lpSGitem->lpCurValue);//DWM 1.9: was _stprintf
+				lpszValue = buf;
+				//lpszValue = _ltot(lpSGitem->lpCurValue, buf, 10);
+				break;
+		}
+
+		if(GCT_LINK == dwColType)
+		{
+			// The Link display text and hyperlink are allocated in a double null terminated string buf
+			// and so are adjacent.  The pointer lpgi->lpszCurValue points to the first element
+			// and the beginning of the array.
+			StringArray_Replace(lpgi->lpszCurValue, lpszValue);
+
+			//Increment to next string to get pointer to the link
+			lpgi->lpszMisc = lpgi->lpszCurValue + _tcslen(lpgi->lpszCurValue) + 1;
+		}
+		else
+		{
+			String_Replace(lpgi->lpszCurValue, lpszValue);
+		}
+
+		RECT rect = {0,0,0,0};
+
+		GetCellRect(hWnd, col, row, &rect);
+		InvalidateRect(hWnd, &rect, FALSE);
+
+		//adjust the column width if COLAUTOWIDTH==TRUE
+		if ((g_lpInst->COLAUTOWIDTH) || (lpSGitem->row == 0))
+		{
+			AdjustParentColWidth(hWnd, lpSGitem->col, lpSGitem->row, lpszValue);
+		}
+		return ERROR_SUCCESS;
+	}
+
+	/// @brief Gets the contents of a cell.
+	///
+	/// @param col The column that the cell belongs to
+	/// @param row The row index of the cell in the column
+	///
+	/// @returns The item and data associated with the cell
+	static LPGRIDITEM 
+	GetCellData(
+		int col, int row
+	) {
+		if(-1 < col && -1 < row)
+		{
+			LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col);
+	        
+			if(NULL != lpgc)
+			{
+				return (LPGRIDITEM)Vector_Get(lpgc->items, row);
+			}
+		}
+		// If we get here we failed
+		return NULL;
+	}
+
+	/// @brief wrapper to access column type
+	///
+	/// @param col The column number
+	///
+	/// @returns The type of the column
+	static DWORD 
+	GetColType(
+		INT col
+	) {
+		LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col);
+		if(NULL == lpgc)
+			return 0;
+
+		return lpgc->dwType;
+	}
+
+	/// @brief Cause the grid to be repainted.
+	///
+	/// @param hWnd Handle of the grid
+	///
+	/// @returns VOID
+	static VOID 
+	RefreshGrid(
+		HWND hWnd
+	) {
+		RECT rect = {0,0,0,0};
+		GetClientRect(hWnd, &rect);
+		InvalidateRect(hWnd, &rect, FALSE);
+	}
+
+	/// @brief wrapper to access row count (including the column header row 0)
+	///
+	/// @returns The number of rows in the underlying data table
+	static int 
+	RowCount(
+		VOID
+	) {
+		LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, 0);
+		if(NULL == lpgc)
+			return 0;
+
+		LPVECTOR temp = lpgc->items;
+		return NULL == temp ? 0 : Vector_Size(temp);
+	}
+
+	/// @brief Determines if a cells coordinates are out of range.
+	///
+	/// @param cell A cell struct pointer (x and y coordinate)
+	///
+	/// @returns TRUE if the cell is out of range (doesn't exist), otherwise FALSE
+	static BOOL 
+	OutOfRange(
+		LPSGITEM cell
+	) {
+		if ((cell->row > RowCount()) || (cell->col > ColCount()))
+		{
+			return TRUE;
+		}
+		else
+		{
+			return FALSE;
+		}
+	}
+
+	/// @brief Allocate and store a string array (double-null-terminated string).
+	///
+	/// @param szzStr The double-null-terminated string to store.
+	///
+	/// @returns a Pointer to the allocated string array.
+	static LPTSTR NewStringArray(LPTSTR szzStr)
+	{
+		if(NULL == szzStr || _T('\0') == *szzStr) szzStr = _T("");
+
+		//Determine total buffer length
+		INT iLen = 0;
+		//Walk the buffer to find the terminating empty string.
+		for (LPTSTR p = szzStr; *p; (p += _tcslen(p) + 1, iLen = p - szzStr)) ;
+
+		//Allocate for array
+		LPTSTR tmp = (LPTSTR)calloc(iLen + 1, sizeof(TCHAR));
+
+		if(NULL == tmp)
+		{
+			return (LPTSTR)calloc(1, sizeof(TCHAR)); 
+		}
+		return _tmemmove(tmp, szzStr, iLen);
+	}
+
+	/// @brief Calculates the rectangle of a cell location.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param col The column that the cell belongs to
+	/// @param row The row index of the cell in the column
+	/// @param prc A pointer to a RECT to recieve coordinates
+	///
+	/// @returns VOID
+	static VOID 
+	GetCellRect(
+		HWND hwnd, int col, int row, PRECT prc
+	) {
+		int offset;
+		int j;
+		//col and row must be greater than zero
+
+		//get column offset
+		//first get col 0 width
+		offset = GetColWidth(0);
+		for (j = g_lpInst->homecol; j < col; j++)
+		{
+			offset += GetColWidth(j);
+		}
+		prc->left = offset;
+		prc->right = offset + GetColWidth(col);
+
+		if (g_lpInst->EXTENDLASTCOLUMN)
+		{
+			//see if this is the last column
+			if (!GetAdjacentCol(col, TRUE))
+			{
+				//extend this column
+				RECT trect = {0,0,0,0};
+				int temp;
+				GetClientRect(hwnd, &trect);
+				temp = (offset + (trect.right - prc->left)) - prc->left;
+				if (temp > GetColWidth(col))
+				{
+					prc->right = offset + (trect.right - prc->left);
+				}
+			}
+		}
+
+		//now get the top and bottom of the rect
+		offset = g_lpInst->headerrowheight + g_lpInst->titleheight;
+		for (j = g_lpInst->homerow; j < row; j++)
+		{
+			offset += g_lpInst->rowheight;
+		}
+		prc->top = offset;
+		prc->bottom = offset + g_lpInst->rowheight;
+	}
+
+	/// @brief Get the next adjacent column or previous adjacent column.
+	///
+	/// @param startcol The number of the column to begin search.
+	/// @param fNextCol TRUE to get the next column
+	///                  FALSE to get the previous column.
+	///
+	/// @returns The number of the desired adjacent column or
+	///           0 if no more cols in that direction.
+	static int GetAdjacentCol(int startcol, BOOL fNextCol)
+	{
+		//calls with direction == 1 for right, direction == -1 for left
+		//returns 0 if no more cols in that direction, else column number
+		int j = startcol;
+		int ReturnValue;
+		int colCount = ColCount();
+		if (fNextCol)
+		{
+			j++;
+		}
+		else
+		{
+			j--;
+		}
+
+		while ((j < colCount) && (j > 0) && (0 == GetColWidth(j)))
+		{
+			if (fNextCol)
+			{
+				j++;
+			}
+			else
+			{
+				j--;
+			}
+		}
+		if ((j < colCount) && (0 < GetColWidth(j)))
+		{
+			ReturnValue = j;
+		}
+		else
+		{
+			ReturnValue = 0;
+		}
+		return ReturnValue;
+	}
+
+	/// @brief Calculate and increase the parent column width based on the length of
+	///         the item text.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param col The column of the item
+	/// @param row The row of the item
+	/// @param lpszValue The item text
+	///
+	/// @returns VOID
+	static VOID AdjustParentColWidth(HWND hwnd, INT col, INT row, LPTSTR lpszValue)
+	{
+		HDC hdc;
+		SIZE size = {0,0};
+		int required_width;
+		int current_width;
+		int required_height;
+		int current_height;
+		int longestline;
+		HFONT holdfont;
+		hdc = GetDC(hwnd);
+		if (0 == row)
+		{
+			holdfont = (HFONT)SelectObject(hdc, g_lpInst->hcolumnheadingfont);
+		}
+		else
+		{
+			holdfont = (HFONT)SelectObject(hdc, g_lpInst->hfont);
+		}
+		//if there are \n codes in the string, find the longest line
+		longestline = FindLongestLine(hdc, lpszValue, &size);
+
+		required_width = longestline + 5;
+		required_height = size.cy;
+		//count lines
+		{
+			int count = 1;
+			LPTSTR tbuffer = (LPTSTR) _alloca(sizeof(TCHAR) * (_tcslen(lpszValue) + 1));
+			_tcscpy(tbuffer, lpszValue);
+			for (int j = 0; j < NELEMS(tbuffer); j++)
+			{
+				if (tbuffer[j] == _T('\n'))
+				{
+					count++;
+				}
+			}
+			if ((!g_lpInst->ELLIPSIS) || (row == 0))
+			{
+				required_height *= count;
+			}
+			required_height += 5;
+		}
+		SelectObject(hdc, holdfont);
+		ReleaseDC(hwnd, hdc);
+
+		current_width = GetColWidth(col);
+		if (0 == row)
+		{
+			current_height = g_lpInst->headerrowheight;
+			if (required_height > current_height)
+			{
+				SimpleGrid_SetHeaderRowHeight(hwnd, required_height);
+			}
+		}
+		else
+		{
+			current_height = g_lpInst->rowheight;
+			if (required_height > current_height)
+			{
+				SimpleGrid_SetRowHeight(hwnd, required_height);
+			}
+
+		}
+		if (required_width > current_width)
+		{
+			Grid_OnSetColWidth(hwnd, col, required_width);
+		}
+	}
+
+	/// @brief If there are \n codes in the string, find the longest line
+	///
+	/// @param hdc Handle of the device context
+	/// @param text The text to analyze
+	/// @param size Pointer to a SIZE struct to receive text height and width
+	///
+	/// @returns The length of the longest line of multiline text
+	static int FindLongestLine(HDC hdc, LPTSTR text, PSIZE size)
+	{
+		int longest, lines, j, len;
+		len = _tcslen(text);
+		LPTSTR temptext = (LPTSTR) _alloca(sizeof(TCHAR) * (len + 1));
+		LPTSTR p;
+		longest = 0;
+		lines = 1;
+		for (j = 0; j < len; j++)
+		{
+			if (text[j] == _T('\n'))
+			{
+				lines++;
+			}
+		}
+		_tcscpy(temptext, text);
+		p = _tcstok(temptext, _T("\n"));
+		while (p)
+		{
+			GetTextExtentPoint32(hdc, p, _tcslen(p), size);
+			if (size->cx > longest)
+			{
+				longest = size->cx;
+			}
+			p = _tcstok(_T('\0'), _T("\n"));
+		}
+		return longest;
+	}
+
+	/// @brief Handle WM_SETFONT message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param hfont A handle to the font. If this parameter is NULL,
+	///               the control uses the default system font to draw text.
+	/// @param fRedraw If TRUE this control should be redrawn immediately. 
+	///
+	/// @returns VOID.
+	static void 
+	Grid_OnSetFont(
+		HWND hwnd, HFONT hfont, BOOL fRedraw
+	){
+		g_lpInst->hfont = hfont;
+		if (!g_lpInst->hcolumnheadingfont)
+		{
+			g_lpInst->hcolumnheadingfont = hfont;
+		}
+		if (!g_lpInst->htitlefont)
+		{
+			g_lpInst->htitlefont = hfont;
+		}
+		if (fRedraw)
+			RefreshGrid(hwnd);
+	}
+
+	/// @brief Handles WM_PAINT message.
+	///
+	/// @param hwnd Handle of grid.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnPaint(HWND hwnd)
+	{
+		PAINTSTRUCT ps;
+		HDC hdc, hdcOrig = NULL;
+		HBITMAP hbmp = NULL;
+
+		CalcVisibleCellBoundaries();
+
+		hdc = BeginPaint(hwnd, &ps);
+
+		if (g_lpInst->DOUBLEBUFFER)
+		{
+			hdcOrig = hdc;
+
+			hdc = CreateCompatibleDC(hdcOrig);
+			if (!hdc)
+				return;
+
+			hbmp = CreateCompatibleBitmap(hdcOrig, ps.rcPaint.right, ps.rcPaint.bottom);
+			if (!hbmp)
+			{
+				DeleteDC(hdc);
+				return;
+			}
+		}
+		SelectObject(hdc, hbmp);
+
+		//display title
+		DisplayTitle(hwnd, g_lpInst->htitlefont, hdc, ps.rcPaint);
+
+		//display Row headers (column 0);
+		DisplayColumn(hwnd, 0, 0, g_lpInst->hfont, g_lpInst->hcolumnheadingfont, hdc);
+		{
+			int c, j, k, offset;
+			offset = GetColWidth(0);
+			j = g_lpInst->leftvisiblecol;
+			k = g_lpInst->rightvisiblecol;
+			for (c = j; c <= k; c++)
+			{
+				DisplayColumn(hwnd, c, offset, g_lpInst->hfont, g_lpInst->hcolumnheadingfont, hdc);
+				offset += GetColWidth(c);
+			}
+		}
+		if (hbmp)
+		{
+			BitBlt(hdcOrig, ps.rcPaint.left, ps.rcPaint.top, WIDTH(ps.rcPaint), 
+				HEIGHT(ps.rcPaint), hdc, ps.rcPaint.left, ps.rcPaint.top, SRCCOPY);
+
+			DeleteObject(hbmp);
+			DeleteDC(hdc);
+		}
+
+		EndPaint(hwnd, &ps);
+	}
+
+	/// @brief Wrapper for setting cell coordinates.
+	///
+	/// @returns VOID
+	static VOID CalcVisibleCellBoundaries(VOID)
+	{
+		int gridx, gridy;
+		int j;
+		int cols = ColCount() - 1;  //Exclude header
+		int rows = RowCount() - 1;  //Exclude header
+		gridx = g_lpInst->gridwidth;
+		gridy = g_lpInst->gridheight;
+
+		j = g_lpInst->homecol;
+		g_lpInst->leftvisiblecol = g_lpInst->homecol;
+		g_lpInst->topvisiblerow = g_lpInst->homerow;
+		//calc columns visible
+		//first subtract the width of col 0;
+		gridx = gridx - GetColWidth(0);
+		do
+		{
+			gridx = gridx - GetColWidth(j);
+			j++;
+		}
+		while ((j < cols) && (gridx >= 0));
+
+		if (j > cols)
+		{
+			j = cols;
+		}
+		g_lpInst->rightvisiblecol = j;
+
+		//calc rows visible;
+		gridy = gridy - g_lpInst->headerrowheight;
+		j = g_lpInst->homerow;
+		do
+		{
+			gridy = gridy - g_lpInst->rowheight;
+			j++;
+		}
+		while ((gridy > 0) && (j < rows));
+
+		if (j > rows)
+		{
+			j = rows;
+		}
+		g_lpInst->bottomvisiblerow = j;
+	}
+
+	/// @brief Draw the grid Title with the specified font.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param hfont Handle of the desired font
+	/// @param hdc Handle of the current device context
+	/// @param rc A rectangle of the bounds of the client area
+	///
+	/// @returns VOID
+	static VOID DisplayTitle(HWND hwnd, HFONT hfont, HDC hdc, RECT rc)
+	{
+		HFONT hOldfont;
+
+		SetBkMode(hdc, TRANSPARENT);
+		hOldfont = (HFONT)SelectObject(hdc, hfont);
+		rc.bottom = g_lpInst->titleheight;
+		DrawEdge(hdc, &rc, EDGE_ETCHED, BF_MIDDLE | BF_RECT | BF_ADJUST);
+		DrawTextEx(hdc, g_lpInst->title, -1, &rc, DT_END_ELLIPSIS | DT_CENTER | DT_WORDBREAK | DT_NOPREFIX, NULL);
+		SelectObject(hdc, hOldfont);
+	}
+
+	/// @brief Draw a column of cells in the grid.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param col The index of the column to draw
+	/// @param offset number of pixles from the left to begin drawing
+	/// @param hfont The handle of the desired cell font
+	/// @param hcolumnheadingfont The handle of the font used for the headers
+	/// @param hdc Handle of the current device context
+	///
+	/// @returns VOID
+	static VOID DisplayColumn(HWND hwnd, int col, int offset, HFONT hfont, HFONT hcolumnheadingfont, HDC hdc)
+	{
+		RECT rect = {0,0,0,0};
+		RECT rectsave = {0,0,0,0};
+		HFONT holdfont;
+		HBRUSH hbrush, holdbrush;
+		HPEN hpen, holdpen;
+		LPGRIDITEM lpgi;
+		BOOL isProtected;
+		BOOL isNumeric = FALSE;
+		int row, iColumnType;
+
+		//max 1024 chars display in an excel worksheet cell so
+		// I'll use that for a max buffer size
+		static TCHAR buffer[1025]; 
+		memset(&buffer, 0, sizeof(buffer));
+
+		if (0 == GetColWidth(col))
+		{
+			return;
+		}
+		iColumnType = GetColType(col);
+
+		SetBkMode(hdc, TRANSPARENT);
+		ShowHscroll(hwnd);
+		ShowVscroll(hwnd);
+
+		rect.left = offset;
+		rect.top = g_lpInst->titleheight;
+		rect.right = GetColWidth(col) + offset;
+		rect.bottom = g_lpInst->headerrowheight + g_lpInst->titleheight;
+
+		if (g_lpInst->EXTENDLASTCOLUMN)
+		{
+			//see if this is the last column
+			if (!GetAdjacentCol(col, TRUE))
+			{
+				//extend this column
+				RECT trect = {0,0,0,0};
+
+				GetClientRect(hwnd, &trect);
+
+				rect.right = offset + (trect.right - rect.left);
+			}
+		}
+		else //Not extended column
+		{
+			if (!GetAdjacentCol(col, TRUE))
+			{
+				//repaint right side of grid
+				RECT trect = {0,0,0,0};
+				GetClientRect(hwnd, &trect);
+				trect.left = offset + (rect.right - rect.left);
+				holdbrush = (HBRUSH)SelectObject(hdc, GetStockObject(GRAY_BRUSH));
+				holdpen = (HPEN)SelectObject(hdc, GetStockObject(NULL_PEN));
+				Rectangle(hdc, trect.left, trect.top + g_lpInst->titleheight, trect.right + 1, trect.bottom + 1);
+				//Don't attempt to delete stock objects
+				SelectObject(hdc, holdbrush);
+				SelectObject(hdc, holdpen);
+			}
+		}
+
+		//
+		//display column header cell (Row 0)
+		//
+		row = 0;
+
+		if (col > 0)
+		{
+			if (g_lpInst->COLUMNSNUMBERED)  //Print hexavigesimal digits
+			{
+				Alphabetize(col, buffer, 4); //Max 4 place column number EX: ABCD
+			}
+			else //Print column header text (if any)
+			{
+				lpgi = GetCellData(col, row);
+				_tcscpy(buffer, NULL == lpgi ? _T("") : lpgi->lpszCurValue);
+			}
+		}
+		rectsave = rect;
+
+		SetTextColor(hdc, IsWindowEnabled(hwnd) ? 
+			GetSysColor(COLOR_WINDOWTEXT) : GetSysColor(COLOR_GRAYTEXT));
+
+		DrawEdge(hdc, &rect, EDGE_ETCHED, BF_MIDDLE | BF_RECT | BF_ADJUST);
+
+		holdfont = (HFONT)SelectObject(hdc, hcolumnheadingfont);
+		DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_CENTER | DT_WORDBREAK | DT_NOPREFIX, NULL);
+		SelectObject(hdc, holdfont);//Don't delete 
+
+		rect = rectsave;
+
+		//
+		// Display visible cells
+		//
+		row = g_lpInst->topvisiblerow;
+		//set font for grid body
+		SelectObject(hdc, hfont);
+
+		while (row <= g_lpInst->bottomvisiblerow)
+		{
+			rect.top = rect.bottom;
+			rect.bottom = rect.top + g_lpInst->rowheight;
+			rectsave = rect;
+			lpgi = GetCellData(col, row);
+			isProtected = NULL == lpgi ? 0 : lpgi->fProtected;
+			_tcscpy(buffer, NULL == lpgi ? _T("") : lpgi->lpszCurValue);
+
+			// Draw Cell if not row header
+			if(GCT_ROWHEADER != iColumnType)// no need to draw row header twice
+			{
+				//set cursor (or entire cursor row) to different display color
+				if (((g_lpInst->HIGHLIGHTFULLROW && row == g_lpInst->cursorrow) ||
+					(! g_lpInst->HIGHLIGHTFULLROW && row == g_lpInst->cursorrow && col == g_lpInst->cursorcol))
+					&& g_lpInst->GRIDHASFOCUS)
+				{
+					switch(iColumnType)
+					{
+						case GCT_ROWHEADER:
+						case GCT_BUTTON:
+							SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+							break;
+						default:
+							SetTextColor(hdc, g_lpInst->clrHighlightText);
+							break;
+					}
+					hbrush = CreateSolidBrush(g_lpInst->clrHighlight);
+				}
+				else //Non hilight colors
+				{
+					if (isProtected)
+					{
+						SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+						hbrush = CreateSolidBrush(g_lpInst->clrProtect);
+					}
+					else //Normal in cell text color
+					{
+						if (GCT_LINK == iColumnType)
+							SetTextColor(hdc, g_lpInst->clrLink);
+						else
+							SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+
+						hbrush = CreateSolidBrush(g_lpInst->clrBackground);
+					}
+				}
+				hpen = CreatePen(PS_SOLID, 1, g_lpInst->clrGridline);
+				holdbrush = (HBRUSH)SelectObject(hdc, hbrush);
+				holdpen = (HPEN)SelectObject(hdc, hpen);
+				Rectangle(hdc, rect.left, rect.top, rect.right, rect.bottom);
+				DeleteObject(SelectObject(hdc, holdpen));
+				DeleteObject(SelectObject(hdc, holdbrush));
+			}
+
+			// Draw row header as well as controls and text over other cells
+			switch(iColumnType)
+			{
+				case GCT_ROWHEADER:
+				{
+					if (g_lpInst->ROWSNUMBERED)
+					{
+						isNumeric = TRUE;
+						wsprintf(buffer, _T("%d"), row);
+					}
+					else
+						isNumeric = FALSE;
+
+					SetTextColor(hdc, IsWindowEnabled(hwnd) ? 
+						GetSysColor(COLOR_WINDOWTEXT) : GetSysColor(COLOR_GRAYTEXT));
+
+					DrawEdge(hdc, &rect, EDGE_ETCHED, BF_MIDDLE | BF_RECT | BF_ADJUST);
+
+					UINT uFormat = DT_END_ELLIPSIS | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX;
+					uFormat |= isNumeric ? DT_RIGHT : DT_LEFT;
+
+					DrawTextEx(hdc, buffer, -1, &rect, uFormat, NULL);
+				}
+					break;
+				case GCT_BUTTON:
+				{
+					InflateRect(&rect, -2, -2);
+					DrawFrameControl(hdc, &rect, DFC_BUTTON, DFCS_BUTTONPUSH);
+					if (g_lpInst->ELLIPSIS)
+					{
+						DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX, NULL);
+					}
+					else
+					{
+						DrawTextEx(hdc, buffer, -1, &rect, DT_LEFT | DT_VCENTER | DT_WORDBREAK | DT_EDITCONTROL | DT_NOPREFIX, NULL);
+					}
+				}
+					break;
+				case GCT_COMBO:
+				{
+					//Calculate and draw drop down button
+					RECT rectButton = {0,0,0,0};
+					CopyRect(&rectButton, &rect);
+					InflateRect(&rectButton, -2, -2);
+					rectButton.left = rectButton.right - GetSystemMetrics(SM_CXVSCROLL);
+					rectButton.top += (HEIGHT(rectButton) - GetSystemMetrics(SM_CYVSCROLL)) / 2;
+					rectButton.bottom = rectButton.top + GetSystemMetrics(SM_CYVSCROLL);
+					DrawFrameControl(hdc, &rectButton, DFC_SCROLL, DFCS_SCROLLCOMBOBOX);
+
+					rect.right = rectButton.left - 1;
+					rect.left += 5;
+
+					if (g_lpInst->ELLIPSIS)
+					{
+						DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX, NULL);
+					}
+					else
+					{
+						DrawTextEx(hdc, buffer, -1, &rect, DT_LEFT | DT_VCENTER | DT_WORDBREAK | DT_EDITCONTROL | DT_NOPREFIX, NULL);
+					}
+				}
+					break;
+				case GCT_CHECK:
+				{
+					//Calculate and draw checkbox
+					RECT rectCheck = {0,0,0,0};
+					CopyRect(&rectCheck, &rect);
+
+					rectCheck.left += (WIDTH(rect) - GetSystemMetrics(SM_CXVSCROLL)) /2;
+					rectCheck.top += (HEIGHT(rect) - GetSystemMetrics(SM_CYVSCROLL)) /2;
+					rectCheck.right = rectCheck.left + GetSystemMetrics(SM_CXVSCROLL);
+					rectCheck.bottom = rectCheck.top + GetSystemMetrics(SM_CYVSCROLL);
+
+					DrawFrameControl(hdc, &rectCheck, DFC_BUTTON, DFCS_BUTTONCHECK |
+						(0 == _tcsicmp(buffer, CHECKED) ? DFCS_CHECKED : 0));
+				}
+					break;
+				case GCT_IMAGE:
+				{
+					//Calculate and draw image
+					RECT rectImage = {0,0,0,0};
+					LONG index = 0;
+					LPTSTR end;
+					UINT style = ILD_NORMAL;;
+					CopyRect(&rectImage, &rect);
+					HIMAGELIST hImageList = (HIMAGELIST)GetColOptional(col);
+					int imageWidth, imageHeight;
+					ImageList_GetIconSize(hImageList, &imageWidth, &imageHeight);
+
+					rectImage.left += (WIDTH(rect) - imageWidth) /2;
+					rectImage.top += (HEIGHT(rect) - imageHeight) /2;
+					rectImage.right = rectImage.left + imageWidth;
+					rectImage.bottom = rectImage.top + imageHeight;
+
+					index = _tcstol(buffer, &end, 10);
+					if(0 < _tcslen(end)) // we failed but I don't know how this could have happened
+					{
+						index = 0;
+					}
+
+					if (g_lpInst->GRIDHASFOCUS)
+					{
+						if ((g_lpInst->HIGHLIGHTFULLROW && row == g_lpInst->cursorrow) || 
+							(col == g_lpInst->cursorcol && row == g_lpInst->cursorrow))
+						{
+							style = ILD_SELECTED;
+						}
+					}
+					ImageList_DrawEx(hImageList, index, hdc, 
+						rectImage.left, rectImage.top, WIDTH(rectImage), HEIGHT(rectImage), 
+						g_lpInst->clrBackground, CLR_DEFAULT, style | ILD_TRANSPARENT);
+				}
+					break;
+				case GCT_LINK:
+				{
+					InflateRect(&rect, -2, -2);
+
+					// Draw the link underlined and in the link color
+					HFONT oldFont;
+					oldFont = (HFONT)SelectObject (hdc, Font_SetUnderline(hwnd, TRUE));
+
+					if (g_lpInst->ELLIPSIS)
+						DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX, NULL);
+					else
+						DrawTextEx(hdc, buffer, -1, &rect, DT_LEFT | DT_VCENTER | DT_WORDBREAK | DT_EDITCONTROL | DT_NOPREFIX, NULL);
+
+					DeleteObject(SelectObject(hdc, oldFont));
+				}
+					break;
+				default: //Text
+				{
+					InflateRect(&rect, -2, -2);
+
+					DWORD dwAllignment =  NULL == lpgi ? GSA_GENERAL : lpgi->dwAllignment;
+					if (g_lpInst->ELLIPSIS)
+					{
+						UINT uFormat =  DT_NOPREFIX | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
+						uFormat |= GSA_LEFT == dwAllignment ? DT_LEFT :
+							GSA_RIGHT == dwAllignment ? DT_RIGHT : // must be GSA_GENERAL
+							 IsNumeric(buffer) ? DT_RIGHT : DT_LEFT;
+						DrawTextEx(hdc, buffer, -1, &rect, uFormat, NULL);
+					}
+					else
+					{
+						UINT uFormat = DT_NOPREFIX | DT_WORDBREAK | DT_EDITCONTROL;
+						uFormat |= GSA_LEFT == dwAllignment ? DT_LEFT :
+							GSA_RIGHT == dwAllignment ? DT_RIGHT : // must be GSA_GENERAL
+							 IsNumeric(buffer) ? DT_RIGHT : DT_LEFT;
+						DrawTextEx(hdc, buffer, -1, &rect, uFormat, NULL);
+					}
+				}
+			}
+			rect = rectsave;
+			row++;
+		}   //end while r<=bottomvisiblerow
+
+		//repaint bottom of grid
+		RECT trect = {0,0,0,0};
+		GetClientRect(hwnd, &trect);
+		trect.top = rect.bottom;
+		trect.left = rect.left;
+		trect.right = rect.right;
+
+		holdbrush = (HBRUSH)SelectObject(hdc, GetStockObject(GRAY_BRUSH));
+		holdpen = (HPEN)SelectObject(hdc, GetStockObject(NULL_PEN));
+		Rectangle(hdc, trect.left, trect.top, trect.right + 1, trect.bottom + 1);
+		SelectObject(hdc, holdbrush);
+		SelectObject(hdc, holdpen);
+	}
+
+
+	/// @brief Determine if it is necessary to show the VScroll and then
+	///         show it if necessary.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static VOID ShowVscroll(HWND hwnd)
+	{
+		//if more rows than can be visible on grid, display vertical scrollbar
+		//otherwise, hide it.
+		RECT gridrect = {0,0,0,0};
+		int totalpixels;
+		int rowsvisibleonscreen;
+		int rows = RowCount();
+		GetClientRect(hwnd, &gridrect);
+		totalpixels = gridrect.bottom;
+		totalpixels -= g_lpInst->titleheight;
+		totalpixels -= g_lpInst->headerrowheight;
+		totalpixels -= (g_lpInst->rowheight * rows);
+		rowsvisibleonscreen = (gridrect.bottom - (g_lpInst->headerrowheight + g_lpInst->titleheight)) / g_lpInst->rowheight;
+		if (totalpixels < 0)
+		{
+			//show vscrollbar
+			ShowScrollBar(hwnd, SB_VERT, TRUE);
+			SetScrollRange(hwnd, SB_VERT, 1, (rows - rowsvisibleonscreen) + 1, TRUE);
+			g_lpInst->VSCROLL = TRUE;
+		}
+		else
+		{
+			//hide vscrollbar
+			ShowScrollBar(hwnd, SB_VERT, FALSE);
+			g_lpInst->VSCROLL = FALSE;
+		}
+
+	}
+
+	/// @brief Determine if it is necessary to show the HScroll and then
+	///         show it if necessary.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static VOID ShowHscroll(HWND hwnd)
+	{
+		//if more rows than can be visible on grid, display vertical scrollbar
+		//otherwise, hide it.
+		RECT gridrect = {0,0,0,0};
+		int totalpixels;
+		int colswithwidth;
+		int cols = ColCount();
+		int j;
+		GetClientRect(hwnd, &gridrect);
+		totalpixels = gridrect.right;
+		totalpixels -= GetColWidth(0);
+		colswithwidth = 0;
+		for (j = 1; j < cols; j++)
+		{
+			totalpixels -= GetColWidth(j);
+			if (0 < GetColWidth(j))
+			{
+				colswithwidth++;
+			}
+		}
+		if (totalpixels < 0)
+		{
+			//show hscrollbar
+			ShowScrollBar(hwnd, SB_HORZ, TRUE);
+			SetScrollRange(hwnd, SB_HORZ, 1, colswithwidth, TRUE);
+			g_lpInst->HSCROLL = TRUE;
+		}
+		else
+		{
+			//hide hscrollbar
+			ShowScrollBar(hwnd, SB_HORZ, FALSE);
+			g_lpInst->HSCROLL = FALSE;
+		}
+
+	}
+
+	/// @brief Convert a number to an alphabetic representation.
+	///
+	/// @par Example:
+	///       The number 728 would be converted to "AAZ"
+	///
+	/// @note Numeric values less than 1 return FALSE without converting
+	///        the numeric value.  Also if the buffer is not big enough 
+	///        to contain the converted value, this function returns FALSE. 
+	///
+	/// @param num The number to convert
+	/// @param buf A buffer to receive text
+	/// @param iSize The size of the buffer
+	///
+	/// @returns TRUE if successful, otherwise false
+	static BOOL Alphabetize(INT num, LPTSTR buf, INT iSize)
+	{
+		//fill buffer with spaces initially
+		for(int i = 0; i < iSize; ++i) buf[i] = ' ';
+
+		//overwrite spaces with characters
+		for(int i = iSize - 1; 0 <= i && 0 < num ; --i)
+		{
+			--num;
+			buf[i] = (char)('A' + num % 26);
+			num /= 26;
+		}
+		return 0 >= num;
+	}
+
+	/// @brief Wrapper to access column optional parameter
+	///
+	/// @param col The column number
+	///
+	/// @returns The column optional parameter
+	static LPVOID GetColOptional(INT col)
+	{
+		LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col);
+		if(NULL == lpgc)
+			return NULL;
+
+		return lpgc->pOptional;
+	}
+
+	/// @brief Draw the grid Title with the specified font.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param fUnderline True to set underlined font
+	///
+	/// @returns a new font with new font weight
+	static HFONT Font_SetUnderline(HWND hwnd, BOOL fUnderline)
+	{
+		HFONT hFont;
+		LOGFONT  lf = {0};
+
+		// Get a handle to the control's font object
+		hFont = (HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0);
+
+		// Pull the handle into a Logical Font UDT type
+		GetObject(hFont , sizeof(LOGFONT), &lf);
+
+		// Set underline
+		lf.lfUnderline = fUnderline;
+
+		// Create a new font based off the logical font UDT
+		return CreateFontIndirect(&lf);
+	}
+
+	/// @brief Determine whether a string of data represents a number.
+	///
+	/// @param data A string to analyze.
+	///
+	/// @returns TRUE if is numeric (decimal or floating point) otherwise FALSE.
+	static BOOL IsNumeric(LPTSTR data)
+	{
+		int j, k, numberofperiods;
+		k = _tcslen(data);
+		//TCHAR tbuffer[k + 1]; //Sorry no VLA
+		LPTSTR tbuffer = (LPTSTR) _alloca(sizeof(TCHAR) * (k + 1)); //use _alloca instead
+		BOOL DIGIT, ALPHA, WHITESPACE;
+		_tcscpy(tbuffer, data);
+		k = _tcslen(tbuffer);
+		_tcsupr(tbuffer);
+		DIGIT = FALSE;
+		ALPHA = FALSE;
+		WHITESPACE = FALSE;
+
+		numberofperiods = 0;
+		for (j = 0; j < k; j++)
+		{
+			if (_istalpha(tbuffer[j])) ALPHA = TRUE;
+
+			if (_istdigit(tbuffer[j])) DIGIT = TRUE;
+
+			if (_istspace(tbuffer[j])) WHITESPACE = TRUE;
+
+			if (tbuffer[j] == '.') numberofperiods++;
+
+			if (tbuffer[j] == '+' && j > 0) ALPHA = TRUE;
+
+			if (tbuffer[j] == '-' && j > 0) ALPHA = TRUE;
+		}
+		if ((ALPHA) || (WHITESPACE)) return FALSE;
+
+		if ((DIGIT) && (!ALPHA) && (!WHITESPACE))
+			return !(numberofperiods > 1);
+		return FALSE;
+	}
 } //namespace mainwind

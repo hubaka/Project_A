@@ -72,6 +72,9 @@ typedef struct tagSGITEM{
 
 #define GCT_ROWHEADER -1            ///< Constant
 
+#define ID_EDIT 2001                ///<An Id for an editor
+#define ID_BUTTON 2003              ///<An Id for the button
+
 #define CHECKED _T("T")             ///< GCT_CHECK checked 
 #define UNCHECKED _T("F")           ///< GCT_CHECK unchecked
 
@@ -79,12 +82,17 @@ typedef struct tagSGITEM{
 //! \name Simple Grid messages.
 #define SG_ADDCOLUMN WM_USER + 0x01             ///<SimpleGrid_AddColumn()
 #define SG_ADDROW WM_USER + 0x02                ///<SimpleGrid_AddRow()
+#define SG_ENABLEEDIT WM_USER + 0x03            ///<SimpleGrid_EnableEdit()
 #define SG_SETCOLAUTOWIDTH WM_USER + 0x19       ///<SimpleGrid_SetColAutoWidth()
 #define SG_SETHEADERROWHEIGHT WM_USER + 0x21    ///<SimpleGrid_SetHeaderRowHeight()
+#define SG_SETHEADINGFONT WM_USER + 0x22        ///<SimpleGrid_SetHeadingFont()
 #define SG_SETITEMDATA WM_USER + 0x26           ///<SimpleGrid_SetItemData()
 #define SG_SETROWHEADERWIDTH WM_USER + 0x2B     ///<SimpleGrid_SetRowHeaderWidth()
 #define SG_SETROWHEIGHT WM_USER + 0x2C          ///<SimpleGrid_SetRowHeight()
 #define SG_SETSELECTIONMODE WM_USER + 0x2E      ///<SimpleGrid_SetSelectionMode()
+#define SG_SETPROTECTCOLOR WM_USER + 0x29       ///<SimpleGrid_SetProtectColor()
+#define SG_SETITEMPROTECTION WM_USER + 0x28     ///<SimpleGrid_SetItemProtection()
+
 
 //---------------------------------------------------------------------------
 //! \name Grid Column types.
@@ -194,6 +202,45 @@ static uint32_t GSA_RIGHT       = 3;   ///< Item Text alignment: Right justified
 ///
 /// @returns The return value is not meaningful. 
 #define SimpleGrid_SetRowHeight(hGrid,iHeight) (BOOL)SNDMSG((hGrid),SG_SETROWHEIGHT,(WPARAM)(int)(iHeight),0L)
+/// @def SimpleGrid_SetHeadingFont(hGrid,hFont)
+///
+/// @brief Set the font used in the grid headers.
+///
+/// @param hGrid The handle of the grid.
+/// @param hFont The handle to a font. 
+///
+/// @returns The return value is not meaningful.
+#define SimpleGrid_SetHeadingFont(hGrid,hFont) (int)SNDMSG((hGrid),SG_SETHEADINGFONT,(WPARAM)(UINT)(hFont),0L)
+/// @def SimpleGrid_EnableEdit(hGrid,fSet)
+///
+/// @brief Enable or disable editing in the grid.
+///
+/// @param hGrid The handle of the grid.
+/// @param fSet TRUE to enable editing in grid, FALSE to disable. 
+///
+/// @returns The return value is not meaningful. 
+#define SimpleGrid_EnableEdit(hGrid,fSet) (BOOL)SNDMSG((hGrid),SG_ENABLEEDIT,(WPARAM)(BOOL)(fSet),0L)
+
+/// @def SimpleGrid_SetProtectColor(hGrid, clrProtect)
+///
+/// @brief Sets the background color of protected cells.
+///
+/// @param hGrid The handle of the grid.
+/// @param clrProtect A COLORREF value. 
+///
+/// @returns The return value is not meaningful. 
+#define SimpleGrid_SetProtectColor(hGrid, clrProtect) (BOOL)SNDMSG((hGrid),SG_SETPROTECTCOLOR,(WPARAM)(UINT)(clrProtect),0L)
+
+/// @def SimpleGrid_SetItemProtection(hGrid, pItem, fSet)
+///
+/// @brief Set protection status of an individual cell.
+///
+/// @param hGrid The handle of the grid.
+/// @param pItem A pointer to a SGIETEM struct
+/// @param fSet TRUE to protect cell FALSE to allow changes. 
+///
+/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+#define SimpleGrid_SetItemProtection(hGrid, pItem, fSet) (int)SNDMSG((hGrid),SG_SETITEMPROTECTION,(WPARAM)(fSet),(LPARAM)(pItem))
 
 namespace grid
 {

@@ -44,6 +44,84 @@ namespace grid
 	///
 	/// @param rect A RECT struct.
 	#define WIDTH(rect) ((LONG)(rect.right - rect.left))
+
+	//DWM 1.6:Added
+	#define CONTEXTCODE_ALT 0x2000      ///< Constant
+
+	/****************************************************************************/
+	/// @name Grid notifications.
+	/// @{
+
+
+	/// @par Notification 
+	///        @b SGN_SELCHANGE code
+	///
+	/// @par
+	///        Notifies a simple grid control's parent window that the selection of 
+	///         an item has changed.  This notification code is sent in the form of 
+	///         a @b WM_NOTIFY message.
+	///
+	/// @par lParam 
+	///       The pointer an @ref NMGRID struct containing notification data.
+	///
+	/// @returns No return value. 
+	#define SGN_SELCHANGE   0x0003
+
+	/// @par Notification 
+	///        @b SGN_EDITBEGIN code
+	///
+	/// @par
+	///        Notifies a simple grid control's parent window that an edit operation 
+	///         was initiated in an editable item.  This notification code is sent in 
+	///         the form of a @b WM_NOTIFY message.
+	///
+	/// @par lParam 
+	///       The pointer an @ref NMGRID struct containing notification data.
+	///
+	/// @returns No return value. 
+	#define SGN_EDITBEGIN   0x0004
+
+	/// @par Notification 
+	///        @b SGN_KEYDOWN code
+	///
+	/// @par
+	///        Notifies a simple grid control's parent window that a key has been pressed.
+	///         This notification code is sent in the form of a @b WM_NOTIFY message.
+	///
+	/// @par lParam 
+	///       The pointer an @ref NMSGKEYDOWN struct containing notification data.
+	///
+	/// @returns No return value. 
+	#define SGN_KEYDOWN     0x0006
+
+	/// @par Notification 
+	///        @b SGN_GOTFOCUS code
+	///
+	/// @par
+	///        Notifies a simple grid control's parent window that the grid now 
+	///         has keyboard and mouse focus.  This notification code is sent in 
+	///         the form of a @b WM_NOTIFY message.
+	///
+	/// @par lParam 
+	///       The pointer an @ref NMSGFOCUS struct containing notification data.
+	///
+	/// @returns No return value.
+	#define SGN_GOTFOCUS    0x0012
+
+	/// @par Notification 
+	///        @b SGN_ITEMCLICK code
+	///
+	/// @par
+	///        Notifies a simple grid control's parent window that an item in the grid
+	///         received a mouse click.  This notification code is sent in 
+	///         the form of a @b WM_NOTIFY message.
+	///
+	/// @par lParam 
+	///       The pointer an @ref NMGRID struct containing notification data.
+	///
+	/// @returns No return value. 
+	#define SGN_ITEMCLICK   0x0015
+
 	//---------------------------------------------------------------------------
 	// Data
 	//---------------------------------------------------------------------------
@@ -87,6 +165,56 @@ namespace grid
 		LPVOID pOptional;       ///< Optional data (ex: combobox choices)
 		LPVECTOR items;         ///< The row cells associated with this column
 	} GRIDCOLUMN   , *LPGRIDCOLUMN;
+
+	/// @var NMSGKEYDOWN
+	/// @brief Contains information used in processing the SGN_KEYDOWN notification.
+
+	/// @var LPNMSGKEYDOWN
+	/// @brief Pointer to SGN_KEYDOWN message data
+
+	/// @struct tagNMSGKEYDOWN
+	/// @brief This is the data associated with the SGN_KEYDOWN notification
+	typedef struct tagNMSGKEYDOWN {
+		NMHDR hdr;               ///< Notification message header
+		int col;                 ///< Column number
+		int row;                 ///< Row number
+		DWORD dwType;            ///< Column type (thus cell type) identifier
+		WORD wVKey;              ///< Virtual key code
+	} NMSGKEYDOWN, *LPNMSGKEYDOWN;
+
+	/// @var NMSGFOCUS
+	/// @brief Contains information used in processing the SGN_GOTFOCUS 
+	///         and SGN_LOSTFOCUS notification.
+
+	/// @var LPNMSGFOCUS
+	/// @brief Pointer to SGN_GOTFOCUS and SGN_LOSTFOCUS message data
+
+	/// @struct tagNMSGFOCUS
+	/// @brief This is the data associated with the SGN_GOTFOCUS and SGN_LOSTFOCUS notification
+	typedef struct tagNMSGFOCUS {
+		NMHDR hdr;               ///< Notification message header
+		int col;                 ///< Column number
+		int row;                 ///< Row number
+		DWORD dwType;            ///< Column type (thus cell type) identifier
+		HWND hFocus;             ///< Handle of window receiving or loosing focus 
+	} NMSGFOCUS, *LPNMSGFOCUS;
+
+	/// @var NMGRID
+	/// @brief Contains information used in processing simple grid notifications
+	///         with the exception of SGN_KEYDOWN.
+
+	/// @var LPNMGRID
+	/// @brief Pointer to simple grid notification message data
+
+	/// @struct tagNMGRID
+	/// @brief This is the data associated with a simple grid notification
+	typedef struct tagNMGRID {
+		NMHDR hdr;               ///< Notification message header
+		int col;                 ///< Column number
+		int row;                 ///< Row number
+		DWORD dwType;            ///< Column type (thus cell type) identifier
+	} NMGRID, *LPNMGRID;
+
 
 	//---------------------------------------------------------------------------
 	//! \brief Data for this instance of the control
@@ -166,6 +294,9 @@ namespace grid
 	#define GCT_ROWHEADER -1            ///< Constant
 
 	static errhandle::ErrHandle g_errHandle;
+	static NMGRID g_nmGrid; ///< Grid notification re-usable instance
+	static NMSGFOCUS g_nmSGFocus; ///< Grid focus notification re-usable instance
+
 
 	//---------------------------------------------------------------------------
 	// FUNCTION DECLARATIONS
@@ -211,6 +342,23 @@ namespace grid
 	static LPVOID GetColOptional(INT col);
 	static HFONT Font_SetUnderline(HWND hwnd, BOOL fUnderline);
 	static BOOL IsNumeric(LPTSTR data);
+	static LRESULT Grid_OnSetItemProtection(HWND hwnd, WPARAM wParam, LPARAM lParam);
+	static void Grid_OnKeyDown(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags);
+	static VOID SetHomeRow(HWND hwnd, int col, int row);
+	static void NotifyKeydown(HWND hwnd, UINT vk);
+	static int HomeColumnNthVisible(VOID);
+	static VOID SetHomeCol(HWND hwnd, int col, int row);
+	static void NotifySelChange(HWND hwnd);
+	static VOID Grid_OnSelectEdit(HWND hwnd, RECT rc, LPTSTR text, BOOL fEditMode); //DWM 1.7: Added fEditMode argument;
+	static VOID Edit_CenterTextVertically(HWND hEdit);
+	static void NotifyEditBegin(HWND hwnd);
+	static void NotifyCellClick(HWND hwnd);
+	static void Grid_OnSetFocus(HWND hwnd, HWND hwndOldFocus);
+	static void NotifyGotFocus(HWND hwnd, HWND hwndOldFocus);
+	static VOID Grid_OnLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags);
+	static int GetColOfMouse(int x);
+	static int GetRowOfMouse(int y);
+	static void Grid_OnSize(HWND hwnd, UINT state, int cx, int cy);
 
 	/// @def StringArray_Replace(lpszTarget, lpszReplace)
 	///
@@ -333,6 +481,10 @@ namespace grid
 			HANDLE_MSG(hWnd, WM_CREATE, createGrid);
 			HANDLE_MSG(hWnd, WM_SETFONT, Grid_OnSetFont);
 			HANDLE_MSG(hWnd, WM_PAINT, Grid_OnPaint);
+			HANDLE_MSG(hWnd, WM_KEYDOWN, Grid_OnKeyDown);
+			HANDLE_MSG(hWnd, WM_SETFOCUS, Grid_OnSetFocus);
+			HANDLE_MSG(hWnd, WM_LBUTTONDOWN, Grid_OnLButtonDown);
+			HANDLE_MSG(hWnd, WM_SIZE, Grid_OnSize);
 			case SG_ADDCOLUMN:
 				{
 				return Grid_OnAddColumn(hWnd, wParam, lParam) - 1; // don't include row header column
@@ -377,6 +529,33 @@ namespace grid
 			case WM_GETDLGCODE: // If this control is in a dialog
 				{
 					return DLGC_WANTALLKEYS; // Send all key presses to this proc
+				}
+			case SG_SETHEADINGFONT:
+				{
+					g_lpInst->hcolumnheadingfont = (HFONT)wParam;
+					RefreshGrid(hWnd);
+					break;
+				}
+			case SG_ENABLEEDIT:
+				{
+					g_lpInst->EDITABLE = (BOOL)wParam;
+					break;
+				}
+			case SG_SETPROTECTCOLOR:
+				{
+					g_lpInst->clrProtect = (COLORREF)wParam;
+					RefreshGrid(hWnd);
+					break;
+				}
+			case SG_SETITEMPROTECTION:
+				{
+					DWORD dwRtn = 0;
+					((LPSGITEM)lParam)->col++; // don't include row header column
+					((LPSGITEM)lParam)->row++; // don't include column header row
+					dwRtn = Grid_OnSetItemProtection(hWnd, wParam, lParam);
+					((LPSGITEM)lParam)->col--; // restore initial index
+					((LPSGITEM)lParam)->row--; // restore initial index
+					return dwRtn;
 				}
 		}
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -1934,5 +2113,807 @@ namespace grid
 		if ((DIGIT) && (!ALPHA) && (!WHITESPACE))
 			return !(numberofperiods > 1);
 		return FALSE;
+	}
+
+	/// @brief Handles SG_SETITEMPROTECTION message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam BOOL TRUE to protect cell FALSE to allow changes
+	/// @param lParam A pointer to a SGITEM struct with column and row indexes
+	///
+	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnSetItemProtection(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+		LPGRIDITEM lpgi;
+
+		LPSGITEM lpSGitem = (LPSGITEM)lParam;
+		if (OutOfRange(lpSGitem))
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+
+		int col = lpSGitem->col;
+		int row = lpSGitem->row;
+
+		lpgi = GetCellData(col, row);
+		if(NULL != lpgi)
+		{
+			lpgi->fProtected = (BOOL)wParam;
+			return ERROR_SUCCESS;
+		}
+		else
+		{
+			SetLastError(ERROR_INVALID_DATA);
+			return SG_ERROR;
+		}
+	}
+
+	/// @brief Handles WM_KEYDOWN message.
+	///
+	/// @param hwnd  Handle of grid.
+	/// @param vk The virtual key code.
+	/// @param fDown TRUE for keydown (always TRUE).
+	/// @param cRepeat The number of times the keystroke is repeated
+	///         as a result of the user holding down the key.
+	/// @param flags Indicate OEM scan codes etc.
+	///
+	/// @returns VOID.
+	static void Grid_OnKeyDown(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags)
+	{
+		int rows = RowCount() - 1;  //Exclude header row
+
+		NotifyKeydown(hwnd, vk);
+
+		switch (vk)
+		{
+			case VK_NEXT:
+			case VK_PRIOR:
+			case VK_DOWN:
+			case VK_UP:
+			{
+				RECT gridrect = {0,0,0,0};
+				int rpp;
+				if (rows == 0)
+					break;
+
+				if (g_lpInst->cursorrow == (VK_NEXT == vk || VK_DOWN == vk ? rows : 1))
+					break;
+
+				//get rows per page
+				GetClientRect(hwnd, &gridrect);
+				rpp = (gridrect.bottom - (g_lpInst->headerrowheight + g_lpInst->titleheight)) / g_lpInst->rowheight;
+
+				if(VK_NEXT == vk || VK_DOWN == vk)
+				{
+					g_lpInst->cursorrow += (VK_NEXT == vk ? rpp : 1);
+					if (g_lpInst->cursorrow > rows)
+						g_lpInst->cursorrow = rows;
+					else
+					{
+						NotifySelChange(hwnd);
+					}
+				}
+				else //VK_PRIOR || VK_UP
+				{
+					g_lpInst->cursorrow -= (VK_PRIOR == vk ? rpp : 1);
+					if (g_lpInst->cursorrow < 1)
+						g_lpInst->cursorrow = 1;
+					else
+					{
+						NotifySelChange(hwnd);
+					}
+				}
+
+				SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+				SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+				RefreshGrid(hwnd);
+			}
+				break;
+			case VK_RIGHT:
+				if(GSO_ROWHEADER == g_lpInst->selectionMode &&
+					g_lpInst->HIGHLIGHTFULLROW)
+				{
+					//We selected off the row header so turn the hilight off
+					g_lpInst->HIGHLIGHTFULLROW = FALSE;
+					SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+					SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+					RefreshGrid(hwnd);
+					break;
+				}
+				// Everything else
+				// FALL THROUGH
+			case VK_LEFT:
+			{
+				int k = GetAdjacentCol(g_lpInst->cursorcol, VK_RIGHT == vk);
+
+				if (!k) break;
+
+				g_lpInst->cursorcol = k;
+
+				NotifySelChange(hwnd);
+
+				SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+				SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+				RefreshGrid(hwnd);
+			}
+				break;
+			default:
+			{
+				//DWM 1.5: Exclude certain keys from triggering edit by default
+				if((VK_F1 <= vk && vk <= VK_F24) ||
+					VK_TAB == vk || //DWM 1.7: Added
+					VK_RETURN == vk ||
+					VK_MENU == vk ||
+					VK_PAUSE == vk ||
+					VK_CAPITAL == vk ||
+					VK_INSERT == vk ||
+					VK_NUMLOCK == vk ||
+					VK_LWIN == vk ||
+					VK_RWIN == vk ||
+					VK_APPS == vk) break;
+
+				if(! g_lpInst->EDITABLE)
+					break; //Grid editing is disabled
+
+				if(GSO_ROWHEADER == g_lpInst->selectionMode && g_lpInst->HIGHLIGHTFULLROW)
+					break; // we are on row headers so ignore
+
+				LPGRIDITEM lpgi = GetCellData(g_lpInst->cursorcol, g_lpInst->cursorrow);
+
+				if(NULL == lpgi) //DWM:2.1 Added
+					break;
+
+				if(TRUE == (NULL == lpgi ? FALSE : lpgi->fProtected))
+					break; // no edit for protected cells
+
+				RECT cellrect = {0,0,0,0};
+				GetCellRect(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow, &cellrect);
+
+				INT iRtn = 0;
+				TCHAR buf[5] = {0};
+				BYTE kbd[256] = {0};
+				GetKeyboardState(kbd);
+
+	#ifdef _UNICODE
+				iRtn = ToUnicode(vk, flags, kbd, buf, NELEMS(buf), 0);
+	#else
+				iRtn = ToAscii(vk, flags, kbd, (LPWORD)buf, 0);
+	#endif
+				if(iRtn < 0) iRtn = 0;
+
+				// buf probably won't be null terminated so make sure it is.
+				if(iRtn < NELEMS(buf)) buf[iRtn] = 0;
+
+				switch(GetColType(g_lpInst->cursorcol))
+				{
+					case GCT_EDIT://DWM 1.6: Added CONTEXTCODE_ALT check
+					{
+						BOOL fEditMode = CONTEXTCODE_ALT & flags;
+						Grid_OnSelectEdit(hwnd, cellrect, //if CONTEXTCODE_ALT then edit mode
+							fEditMode ? lpgi->lpszCurValue : buf, fEditMode);//DWM 1.7: Added fEditMode
+					}
+						break;
+					//case GCT_COMBO:
+					//{
+					//	Grid_OnSelectComboBox(hwnd, cellrect, 
+					//		(LPTSTR) GetColOptional(g_lpInst->cursorcol), 
+					//		lpgi->lpszCurValue);
+					//}
+					//	break;
+					//case GCT_BUTTON:
+					//{
+					//	Grid_OnSelectButton(hwnd, cellrect, 
+					//		lpgi->lpszCurValue);
+					//	FORWARD_WM_KEYDOWN(g_lpInst->hwndControl,vk,cRepeat,flags,SNDMSG);
+
+					//	//Cell click handled by Grid_OnCommand()
+					//}
+						break;
+					case GCT_CHECK:
+					{
+						if(0 == _tcsicmp(lpgi->lpszCurValue, CHECKED))
+							String_Replace(lpgi->lpszCurValue, UNCHECKED);
+						else
+							String_Replace(lpgi->lpszCurValue, CHECKED);
+
+						NotifyCellClick(hwnd);
+					}
+						break;
+					//case GCT_LINK:
+					//{
+					//	if(!IsEmptyString(lpgi->lpszMisc) && (VK_RETURN == vk || VK_SPACE == vk))
+					//		ShellExecute(NULL, _T("open"), lpgi->lpszMisc, NULL,NULL, SW_SHOW);
+
+					//	NotifyCellClick(hwnd);
+					//}
+					//	break;
+					//case GCT_IMAGE:
+					//	NotifyCellClick(hwnd);
+					//	break;
+				}
+			}
+		}
+	}
+
+	/// @brief Notify Parent that a key was pressed.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param vk Virtual key code
+	///
+	/// @returns VOID
+	static void NotifyKeydown(HWND hwnd, UINT vk)
+	{
+		static NMSGKEYDOWN nmSgkd;
+		nmSgkd.col = g_lpInst->cursorcol - 1;
+		nmSgkd.row = g_lpInst->cursorrow - 1;
+		nmSgkd.dwType = GetColType(g_lpInst->cursorcol);
+		nmSgkd.wVKey = vk;
+		nmSgkd.hdr.hwndFrom = hwnd;
+		nmSgkd.hdr.idFrom = GetDlgCtrlID(nmSgkd.hdr.hwndFrom);
+		nmSgkd.hdr.code = SGN_KEYDOWN;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, nmSgkd.hdr.idFrom, &nmSgkd, SNDMSG);
+	}
+
+	/// @brief Sets the home row field of the grid based on current cursor position.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param col The column that the current cell belongs to
+	/// @param row The row index of the current cell in the column 
+	///
+	/// @returns VOID
+	static VOID SetHomeRow(HWND hwnd, int col, int row)
+	{
+		RECT gridrect = {0,0,0,0};
+		RECT cellrect = {0,0,0,0};
+		//get rect of grid window
+		GetClientRect(hwnd, &gridrect);
+		//get rect of current cell
+		GetCellRect(hwnd, col, row, &cellrect);
+		if ((cellrect.bottom > gridrect.bottom) && ((cellrect.bottom - cellrect.top) < (gridrect.bottom - (g_lpInst->headerrowheight + g_lpInst->titleheight))))
+		{
+			while (cellrect.bottom > gridrect.bottom)
+			{
+				g_lpInst->homerow++;
+				if (row == RowCount())
+				{
+					gridrect.top = gridrect.bottom - (g_lpInst->rowheight);
+					InvalidateRect(hwnd, &gridrect, TRUE);
+				}
+				else
+				{
+					InvalidateRect(hwnd, &gridrect, FALSE);
+				}
+				GetCellRect(hwnd, col, row, &cellrect);
+			}
+		}
+		else
+		{
+			if ((cellrect.bottom - cellrect.top) >= (gridrect.bottom - (g_lpInst->headerrowheight + g_lpInst->titleheight)))
+			{
+				g_lpInst->homerow++;
+			}
+		}
+		GetCellRect(hwnd, col, row, &cellrect);
+		{
+			while ((row < g_lpInst->homerow))
+			{
+				g_lpInst->homerow--;
+				InvalidateRect(hwnd, &gridrect, FALSE);
+				GetCellRect(hwnd, col, row, &cellrect);
+			}
+		}
+		//set the vertical scrollbar position
+		SetScrollPos(hwnd, SB_VERT, g_lpInst->homerow, TRUE);
+	}
+
+	/// @brief Sets the home column field of the grid based on current cursor position.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param col The column that the current cell belongs to
+	/// @param row The row index of the current cell in the column 
+	///
+	/// @returns VOID
+	static VOID SetHomeCol(HWND hwnd, int col, int row)
+	{
+		RECT gridrect = {0,0,0,0};
+		RECT cellrect = {0,0,0,0};
+		//get rect of grid window
+		GetClientRect(hwnd, &gridrect);
+		//get rect of current cell
+		GetCellRect(hwnd, col, row, &cellrect);
+		//determine if scroll left or right is needed
+		while ((cellrect.right > gridrect.right) && (cellrect.left != GetColWidth(0)))
+		{
+			//scroll right is needed
+			g_lpInst->homecol++;
+
+			GetCellRect(hwnd, col, row, &cellrect);
+			InvalidateRect(hwnd, &gridrect, FALSE);
+		}
+		GetCellRect(hwnd, col, row, &cellrect);
+		while ((g_lpInst->cursorcol < g_lpInst->homecol) && (g_lpInst->homecol > 1))
+
+		{
+			//scroll left is needed
+			g_lpInst->homecol--;
+
+			GetCellRect(hwnd, col, row, &cellrect);
+			InvalidateRect(hwnd, &gridrect, FALSE);
+
+			int k;
+			k = HomeColumnNthVisible();
+			SetScrollPos(hwnd, SB_HORZ, k, TRUE);
+		}
+	}
+
+	/// @brief Calculate the number of visible columns.
+	///
+	/// @note Columns are "hidden" when it's width is 0.
+	///
+	/// @returns The number of visible columns
+	static int HomeColumnNthVisible(VOID)
+	{
+		int j, hc, count;
+		count = 0;
+		hc = g_lpInst->homecol;
+		for (j = 1; j <= hc; j++)
+		{
+			if (0 < GetColWidth(j))
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+
+	/// @brief Notify Parent that the selection has changed.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static void NotifySelChange(HWND hwnd)
+	{
+		//Destroy previous editor
+		if (NULL != g_lpInst->hwndControl)
+		{
+			DestroyWindow(g_lpInst->hwndControl);
+			g_lpInst->hwndControl = NULL;
+		}
+
+		g_nmGrid.col = g_lpInst->cursorcol - 1;
+		g_nmGrid.row = g_lpInst->cursorrow - 1;
+		g_nmGrid.dwType = GetColType(g_lpInst->cursorcol);
+		g_nmGrid.hdr.hwndFrom = hwnd;
+		g_nmGrid.hdr.idFrom = GetDlgCtrlID(g_nmGrid.hdr.hwndFrom);
+		g_nmGrid.hdr.code = SGN_SELCHANGE;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
+	}
+
+	/// @brief Handle the selection of a grid column of type GCT_EDIT.
+	///
+	/// @param hwnd The handle of the grid.
+	/// @param rc RECT containing desired coordinates for the edit control.
+	/// @param text The initial character or text for the editor.
+	/// @param fEditMode TRUE if EDIT control in edit mode FALSE for overwrite.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnSelectEdit(HWND hwnd, RECT rc, LPTSTR text, BOOL fEditMode)//DWM 1.7: Added fEditMode argument
+	{
+		//Adjust rect so text will center better
+		rc.top += 1;
+		InflateRect(&rc, -1,-1);
+
+		//display edit box
+		if (NULL == g_lpInst->hwndControl)
+			//g_lpInst->hwndControl = CreateEdit(g_lpInst->hInstance, hwnd, ID_EDIT, fEditMode);
+
+		MoveWindow(g_lpInst->hwndControl, rc.left, rc.top, WIDTH(rc), HEIGHT(rc), TRUE);
+
+		//Set the text in the edit box to the initial key
+		Edit_SetText(g_lpInst->hwndControl, text);
+		ShowWindow(g_lpInst->hwndControl, SW_SHOW);
+		SetFocus(g_lpInst->hwndControl);
+		Edit_CenterTextVertically(g_lpInst->hwndControl);
+
+		//DWM 1.6: Was Edit_SetSel(g_lpInst->hwndControl, 1, -1);
+		FORWARD_WM_KEYDOWN(g_lpInst->hwndControl,VK_END,0,0,SNDMSG);
+
+		NotifyEditBegin(hwnd);
+	}
+
+	/// @brief Center the text in an edit control.
+	///
+	/// @param hEdit The handle of an edit control.
+	/// @note This only works with mulitline edit controls (ES_MULTILINE).
+	///
+	/// @returns VOID.
+	static VOID Edit_CenterTextVertically(HWND hEdit)
+	{
+		RECT rcTxt = {0,0,0,0};
+		RECT rcEdt = {0,0,0,0};
+		HDC hdc;
+
+		//calculate client area height needed for a font
+		hdc = GetDC(hEdit);
+		DrawText(hdc, TEXT("Ky"), 2, &rcTxt, DT_CALCRECT | DT_LEFT);
+		ReleaseDC(hEdit, hdc);
+
+		// Set top and left margins
+		GetClientRect(hEdit, &rcEdt);
+		rcEdt.left += 4;
+		rcEdt.top = ((rcEdt.bottom - (rcTxt.bottom - rcTxt.top)) / 2);
+
+		Edit_SetRect(hEdit, &rcEdt);
+	}
+
+	/// @brief Notify Parent that a cell edit has begun.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static void NotifyEditBegin(HWND hwnd)
+	{
+		g_nmGrid.col = g_lpInst->cursorcol - 1;
+		g_nmGrid.row = g_lpInst->cursorrow - 1;
+		g_nmGrid.dwType = GetColType(g_lpInst->cursorcol);
+		g_nmGrid.hdr.hwndFrom = hwnd;
+		g_nmGrid.hdr.idFrom = GetDlgCtrlID(g_nmGrid.hdr.hwndFrom);
+		g_nmGrid.hdr.code = SGN_EDITBEGIN;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
+	}
+
+	/// @brief Notify Parent that a grid cell was clicked.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static void NotifyCellClick(HWND hwnd)
+	{
+		memset(&g_nmGrid,0,sizeof( g_nmGrid));
+		g_nmGrid.col = g_lpInst->cursorcol - 1;
+		g_nmGrid.row = g_lpInst->cursorrow - 1;
+		g_nmGrid.dwType = GetColType(g_lpInst->cursorcol);
+		g_nmGrid.hdr.hwndFrom = hwnd;
+		g_nmGrid.hdr.idFrom = GetDlgCtrlID(g_nmGrid.hdr.hwndFrom);
+		g_nmGrid.hdr.code = SGN_ITEMCLICK;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
+	}
+
+	/// @brief Handle WM_SETFOCUS message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param hwndOldFocus Handle if the window that has lost the keyboard focus.
+	///
+	/// @returns VOID.
+	static void Grid_OnSetFocus(HWND hwnd, HWND hwndOldFocus)
+	{
+		g_lpInst->GRIDHASFOCUS = TRUE;
+		SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+		SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+
+		NotifyGotFocus(hwnd, hwndOldFocus);
+		{
+			TEXTMETRIC tm;
+			HDC hdc;
+			hdc = GetDC(hwnd);
+			GetTextMetrics(hdc, &tm);
+			ReleaseDC(hwnd, hdc);
+			g_lpInst->fontascentheight = (int)tm.tmAscent;
+		}
+		RefreshGrid(hwnd);
+	}
+
+	/// @brief Notify Parent that the grid got focus.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param hwndOldFocus Handle of window losing focus
+	///
+	/// @returns VOID
+	static void NotifyGotFocus(HWND hwnd, HWND hwndOldFocus)
+	{
+		g_nmSGFocus.col = g_lpInst->cursorcol - 1;
+		g_nmSGFocus.row = g_lpInst->cursorrow - 1;
+		g_nmSGFocus.dwType = GetColType(g_lpInst->cursorcol);
+		g_nmSGFocus.hFocus = hwndOldFocus;
+		g_nmSGFocus.hdr.hwndFrom = hwnd;
+		g_nmSGFocus.hdr.idFrom = GetDlgCtrlID(g_nmGrid.hdr.hwndFrom);
+		g_nmSGFocus.hdr.code = SGN_GOTFOCUS;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmSGFocus.hdr.idFrom, &g_nmSGFocus, SNDMSG);
+	}
+
+	/// @brief Handles WM_LBUTTONDOWN message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param fDoubleClick TRUE if this is a double click event.
+	/// @param x The xpos of the mouse.
+	/// @param y The ypos of the mouse.
+	/// @param keyFlags Set if certain keys down at time of click.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
+	{
+		int r, c;
+		BOOL fClickSelect = FALSE;
+
+		//check for column sizing
+		if (g_lpInst->cursortype == 2)
+		{
+			int t, z;
+			//start column sizing
+			if (!g_lpInst->COLUMNSIZING)
+			{
+				g_lpInst->REMEMBERINTEGRALROWS = g_lpInst->SHOWINTEGRALROWS;
+			}
+			g_lpInst->COLUMNSIZING = TRUE;
+			g_lpInst->SHOWINTEGRALROWS = FALSE;
+
+			//DWM 1.9: Removed unnecessary call to hide editor
+			//DWM 2.0: Added code to remove button during resize
+			if (NULL != g_lpInst->hwndControl)
+			{
+				if(ID_BUTTON == GetWindowLong(g_lpInst->hwndControl, GWLP_ID))
+				{
+					DestroyWindow(g_lpInst->hwndControl);
+					g_lpInst->hwndControl = NULL;
+				}
+			}
+
+			g_lpInst->columntoresizeinitx = x;
+			t = GetColOfMouse(x + 10);
+			z = GetColOfMouse(x - 10);
+			c = GetColOfMouse(x);
+			if (t != c)
+			{
+				//resizing column c
+				g_lpInst->columntoresize = c;
+			}
+			if (z != c)
+			{
+				//resizing hidden column to the left of cursor
+				if (c == -1)
+				{
+					c = ColCount();
+				}
+				else
+				{
+					c -= 1;
+				}
+				g_lpInst->columntoresize = c;
+			}
+
+			g_lpInst->columntoresizeinitsize = GetColWidth(c);
+		}
+
+		SetFocus(hwnd);
+
+		BOOL NCC = FALSE;
+
+		//DWM 1.5: Finish edit
+		FORWARD_WM_CHAR(g_lpInst->hwndControl, VK_RETURN, 0, SNDMSG);
+
+		if (GetFocus() == hwnd)
+		{
+			r = GetRowOfMouse(y);
+			c = GetColOfMouse(x);
+
+			if(c == 0 && GSO_ROWHEADER == g_lpInst->selectionMode)
+			{
+				g_lpInst->HIGHLIGHTFULLROW = TRUE;
+				g_lpInst->cursorrow = r;
+				RefreshGrid(hwnd);
+				return;
+			}
+
+			if ((r > 0) && (c > 0))
+			{
+				if(GSO_ROWHEADER == g_lpInst->selectionMode &&
+					g_lpInst->HIGHLIGHTFULLROW)
+				{
+					//We selected off the row header so turn the hilight off
+					g_lpInst->HIGHLIGHTFULLROW = FALSE;
+				}
+				if (r != g_lpInst->cursorrow)
+				{
+					g_lpInst->cursorrow = r;
+					NCC = TRUE;
+				}
+				else
+				{
+					g_lpInst->cursorrow = r;
+				}
+				if (c != g_lpInst->cursorcol)
+				{
+					g_lpInst->cursorcol = c;
+					NCC = TRUE;
+				}
+				else
+				{
+					g_lpInst->cursorcol = c;
+				}
+			}
+			if (NCC)
+			{
+				NotifySelChange(hwnd);
+			}
+
+			SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+			SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+			RefreshGrid(hwnd);
+
+			fClickSelect = GCT_BUTTON == GetColType(g_lpInst->cursorcol) ||
+						GCT_COMBO == GetColType(g_lpInst->cursorcol) ||
+						GCT_CHECK == GetColType(g_lpInst->cursorcol);
+
+			// if not resizing or else over a link with hand cursor
+			if((fClickSelect && 1 == g_lpInst->cursortype) ||
+			   ((GCT_LINK == GetColType(g_lpInst->cursorcol) && 3 == g_lpInst->cursortype)))
+			{
+				//Send keydown to select control
+				FORWARD_WM_KEYDOWN(hwnd,VK_SPACE,0,0,SNDMSG);
+
+				//Send click down to control
+				FORWARD_WM_LBUTTONDOWN(g_lpInst->hwndControl,fDoubleClick,x,y,keyFlags,SNDMSG);
+			}
+		}
+		else
+		{
+			SetFocus(hwnd);
+		}
+	}
+
+	/// @brief Gets the column of the mouse pointer.
+	///
+	/// @param x The x coordinate of the mouse pointer
+	///
+	/// @returns The col number of the mouse pointer if successful, otherwise SG_ERROR
+	static int GetColOfMouse(int x)
+	{
+		int ReturnValue;
+		int j;
+		int colCount = ColCount();
+
+		if (x <= GetColWidth(0))
+		{
+			return 0;   //Col 0 row headers
+		}
+
+		x -= GetColWidth(0);
+
+		j = g_lpInst->homecol;
+		while ((j < colCount) && (x > 0))
+		{
+			x -= GetColWidth(j);
+			j++;
+		}
+		j--;
+
+		ReturnValue = j;
+		if (g_lpInst->EXTENDLASTCOLUMN)
+		{
+			if (j > colCount)
+			{
+				ReturnValue = colCount;
+			}
+		}
+		else
+		{
+			if (j > colCount)
+			{
+				SetLastError(ERROR_INVALID_INDEX);
+				ReturnValue = SG_ERROR;
+			}
+		}
+		return ReturnValue;
+	}
+
+	/// @brief Gets the row of the mouse pointer.
+	///
+	/// @param y The y coordinate of the mouse pointer
+	///
+	/// @returns The row number of the mouse pointer if successful, otherwise SG_ERROR
+	static int GetRowOfMouse(int y)
+	{
+		int ReturnValue;
+		if (y <= (g_lpInst->titleheight))
+		{
+			return -1;
+		}
+		if ((y >= g_lpInst->titleheight) && (y <= g_lpInst->headerrowheight + g_lpInst->titleheight))
+		{
+			return 0;   //Row 0
+		}
+
+
+		y = y - (g_lpInst->headerrowheight + g_lpInst->titleheight);
+		y = y / g_lpInst->rowheight;
+		ReturnValue = g_lpInst->homerow + y;
+		if (ReturnValue > RowCount() - 1)
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			ReturnValue = SG_ERROR;
+		}
+		return ReturnValue;
+	}
+
+	/// @brief Handles WM_SIZE message.
+	///
+	/// @param hwnd  Handle of grid.
+	/// @param state Specifies the type of resizing requested.
+	/// @param cx The width of client area.
+	/// @param cy The height of client area.
+	///
+	/// @returns VOID.
+	static void Grid_OnSize(HWND hwnd, UINT state, int cx, int cy)
+	{
+		static int cheight;
+		static int savewidth, saveheight;
+		int intout;
+
+		if (g_lpInst->SIZING)
+		{
+			g_lpInst->SIZING = FALSE;
+			return;
+		}
+		ShowHscroll(hwnd);
+		ShowVscroll(hwnd);
+
+		if ((g_lpInst->SHOWINTEGRALROWS) && (g_lpInst->VSCROLL))
+		{
+			saveheight = cy;
+			savewidth = cx;
+			cheight = cy;
+			cheight -= g_lpInst->titleheight;
+			cheight -= g_lpInst->headerrowheight;
+
+			{
+				int sbheight;
+				sbheight = GetSystemMetrics(SM_CYHSCROLL);
+				if (g_lpInst->HSCROLL)
+				{
+					cheight -= sbheight;
+				}
+				if (g_lpInst->VSCROLL)
+				{
+					RECT grect, prect;
+					GetClientRect(hwnd, &grect);
+					GetClientRect(GetParent(hwnd), &prect);
+					if ((grect.right + sbheight) < prect.right)
+					{
+						savewidth += sbheight;
+					}
+				}
+
+			}
+			if (cheight <= g_lpInst->rowheight)
+			{
+				return;
+			}
+			else
+			{
+				//calculate fractional part of cheight/rowheight
+				int remainder, nrows;
+				nrows = (int)(cheight / g_lpInst->rowheight);
+				remainder = cheight - (nrows * g_lpInst->rowheight);
+				//make the window remainder pixels shorter
+				saveheight -= remainder;
+				saveheight += 4;    //+=4
+				intout = saveheight;
+				WINDOWPLACEMENT wp;
+				RECT crect = {0,0,0,0};
+				wp.length = sizeof(wp);
+				GetWindowPlacement(hwnd, &wp);
+				crect = wp.rcNormalPosition;
+				crect.bottom = intout;
+				crect.right = savewidth;
+				g_lpInst->SIZING = TRUE;
+
+				MoveWindow(hwnd, crect.left, crect.top, crect.right, crect.bottom, TRUE);
+			}
+		}
+		// Make sure the extended column gets redrawn
+		RECT rect = {0,0,0,0};
+		GetClientRect(hwnd, &rect);
+		InvalidateRect(hwnd, &rect, FALSE);
 	}
 } //namespace mainwind

@@ -38,11 +38,21 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 namespace mainwind
 {
 
-	HWND hgrid1, htab;
+	HWND hgrid1, htab, hgrid2;
 
 	//---------------------------------------------------------------------------
 	// Defines and Macros
 	//---------------------------------------------------------------------------
+	/// @def SimpleGrid_SetProtectColor(hGrid, clrProtect)
+	///
+	/// @brief Sets the background color of protected cells.
+	///
+	/// @param hGrid The handle of the grid.
+	/// @param clrProtect A COLORREF value. 
+	///
+	/// @returns The return value is not meaningful. 
+	#define SimpleDialog_ReSize(hDialog, clrProtect) (BOOL)SNDMSG((hDialog),WM_SIZE,(WPARAM)(UINT)(clrProtect),0L)
+
 	#define HANDLE_DLGMSG(hWnd,message,fn)  case (message): return SetDlgMsgResult((hWnd),(message),HANDLE_##message((hWnd),(wParam),(lParam),(fn)))  /* added 05-01-29 */
 	static errhandle::ErrHandle g_errHandle;
 	static LRESULT CALLBACK mainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -50,6 +60,7 @@ namespace mainwind
 	static BOOL Main_OnInitDialog(HWND hWnd, HWND hwndFocus, LPARAM lParam);
 	static BOOL Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm);
 	static void LoadGrid1(HWND hGrid);
+	static void LoadGrid2(HWND hGrid);
 	static void Main_OnSize(HWND hwnd, UINT state, int cx, int cy);
 
 	//---------------------------------------------------------------------------------------------------
@@ -260,29 +271,34 @@ namespace mainwind
 					PostQuitMessage(0);
 					break;
 				}
-			//case WM_SIZE :
-			//	{
-			//		HWND hTool;
-			//		RECT rcTool;
-			//		int iToolHeight;
+			case WM_SIZE :
+				{
+					HWND hTool;
+					RECT rcTool;
+					int iToolHeight;
 
-			//	    HWND hStatus;
-			//		RECT rcStatus;
-			//		int iStatusHeight;
+				    HWND hStatus;
+					RECT rcStatus;
+					int iStatusHeight;
 
-			//		// Size toolbar and get height
-			//		hTool = GetDlgItem(hWnd, IDC_MAIN_TOOL);
-			//		SendMessage(hTool, TB_AUTOSIZE, 0, 0);
-			//		GetWindowRect(hTool, &rcTool);
-			//		iToolHeight = rcTool.bottom - rcTool.top;
+					// Size toolbar and get height
+					hTool = GetDlgItem(hWnd, IDC_MAIN_TOOL);
+					SendMessage(hTool, TB_AUTOSIZE, 0, 0);
+					GetWindowRect(hTool, &rcTool);
+					iToolHeight = rcTool.bottom - rcTool.top;
 
-			//		// Size status bar and get height
-			//		hStatus = GetDlgItem(hWnd, IDC_MAIN_STATUS);
-			//		SendMessage(hStatus, WM_SIZE, 0, 0);
-			//		GetWindowRect(hStatus, &rcStatus);
-			//		iStatusHeight = rcStatus.bottom - rcStatus.top;
-			//		break;
-			//	}
+					// Size status bar and get height
+					hStatus = GetDlgItem(hWnd, IDC_MAIN_STATUS);
+					SendMessage(hStatus, WM_SIZE, 0, 0);
+					GetWindowRect(hStatus, &rcStatus);
+					iStatusHeight = rcStatus.bottom - rcStatus.top;
+					SimpleDialog_ReSize(g_hToolbar, 0);
+					break;
+				}
+			case WM_NOTIFY:
+				{
+					break;
+				}
 			default:
 				return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		}
@@ -453,8 +469,8 @@ namespace mainwind
 	Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm)
 	{
 
-		hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
-		ShowWindow(hgrid1, SW_SHOW);
+		//hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
+		//ShowWindow(hgrid1, SW_SHOW);
 
 		//if (IDC_TAB == id)
 		//{
@@ -707,7 +723,7 @@ namespace mainwind
 		/*else {
 			return FALSE;
 		}*/
-		return true;
+		return FALSE;
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -754,7 +770,7 @@ namespace mainwind
 	) {
 		//Get window handles
 		hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
-		//hgrid2 = GetDlgItem(hWnd, IDC_SIMPLEGRID2);
+		hgrid2 = GetDlgItem(hWnd, IDC_SIMPLEGRID2);
 		//hgrid3 = GetDlgItem(hWnd, IDC_SIMPLEGRID3);
 		//hgrid4 = GetDlgItem(hWnd, IDC_SIMPLEGRID4);
 		//hgrid5 = GetDlgItem(hWnd, IDC_SIMPLEGRID5);
@@ -791,22 +807,22 @@ namespace mainwind
 		//populate grid1 with data
 		LoadGrid1(hgrid1);
 
-		////Set the heading font for Grid 2
-		//HFONT hFont = CreateFont(20, 0, 0, 0, FW_EXTRABOLD, FALSE, FALSE, FALSE,
-		//	ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-		//	PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("ARIEL"));
+		//Set the heading font for Grid 2
+		HFONT hFont = CreateFont(20, 0, 0, 0, FW_EXTRABOLD, FALSE, FALSE, FALSE,
+			ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+			PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("ARIEL"));
 
-		//SimpleGrid_SetHeadingFont(hgrid2,hFont);
+		SimpleGrid_SetHeadingFont(hgrid2,hFont);
 
-		////make grid2 header row to initial height of 21 pixels
-		//SimpleGrid_SetHeaderRowHeight(hgrid2, 21);
-		////on row header selection hilight full row, otherwise individual cell
-		//SimpleGrid_SetSelectionMode(hgrid2, GSO_ROWHEADER);
-		////do not allow in cell editing of all grid items initially
-		//SimpleGrid_EnableEdit(hgrid2,FALSE);
+		//make grid2 header row to initial height of 21 pixels
+		SimpleGrid_SetHeaderRowHeight(hgrid2, 21);
+		//on row header selection hilight full row, otherwise individual cell
+		SimpleGrid_SetSelectionMode(hgrid2, GSO_ROWHEADER);
+		//do not allow in cell editing of all grid items initially
+		SimpleGrid_EnableEdit(hgrid2,FALSE);
 
-		////populate grid2 with initial demo data
-		//LoadGrid2(hgrid2);
+		//populate grid2 with initial demo data
+		LoadGrid2(hgrid2);
 
 		////make grid3 header row to initial height of 21 pixels
 		//SimpleGrid_SetHeaderRowHeight(hgrid3, 21);
@@ -841,11 +857,11 @@ namespace mainwind
 		////populate grid4 with different column types
 		//LoadGrid4(hgrid4);
 
-		////Force the display of the vertical scroll in grids (if necessary)
-		//RECT rect;
-		//GetClientRect(hWnd, &rect);
-		//MoveWindow(hgrid2, rect.right / 3, 0, 
-		//	rect.right - rect.right / 3, rect.bottom + 1, FALSE);
+		//Force the display of the vertical scroll in grids (if necessary)
+		RECT rect;
+		GetClientRect(hWnd, &rect);
+		MoveWindow(hgrid2, rect.right / 3, 0, 
+			rect.right - rect.right / 3, rect.bottom + 1, FALSE);
 
 		return TRUE;
 	}
@@ -904,6 +920,58 @@ namespace mainwind
 	}
 
 	void 
+	LoadGrid2(
+		HWND hGrid
+	) {
+		// Add some text columns
+
+		// Column type
+		// Column header text
+		// Optional data (ex: combobox choices)
+		SGCOLUMN lpColumns[] = {
+			GCT_EDIT, _T("Multi-line \nHeadings \nSupported"),  NULL,
+			GCT_EDIT, _T("\n\nName"),  NULL,
+			GCT_EDIT, _T("\n\nAge"),  NULL,
+			GCT_EDIT, _T(""),  NULL,
+			GCT_EDIT, _T(""),  NULL
+		};
+		for(int i = 0; i < NELEMS(lpColumns); ++i)
+			SimpleGrid_AddColumn(hGrid, &lpColumns[i]);
+
+		// Add some rows
+		for(int i = 0; i < 100; ++i) 
+			SimpleGrid_AddRow(hGrid, 0 == i ? _T("Row Headers customizable") : _T(""));
+
+		// Set cells to data
+
+		// Column number
+		// Row number
+		// Item (cell) value
+		SGITEM lpItems[] = {
+			1, 0, (LPARAM)_T("David"),
+			1, 1, (LPARAM)_T("Maggie"),
+			1, 2, (LPARAM)_T("Chester"),
+			1, 3, (LPARAM)_T("Molly"),
+			1, 4, (LPARAM)_T("Bailey"),
+
+			2, 0, (LPARAM)_T("43"),
+			2, 1, (LPARAM)_T("41"),
+			2, 2, (LPARAM)_T("3"),
+			2, 3, (LPARAM)_T("3"),
+			2, 4, (LPARAM)_T("1")
+		};
+
+		SimpleGrid_SetProtectColor(hGrid, RGB(210, 210, 210)); //Grey
+
+		for(int i = 0; i < NELEMS(lpItems); ++i)
+		{
+			SimpleGrid_SetItemData(hGrid, &lpItems[i]);
+			//Protect just these cells
+			SimpleGrid_SetItemProtection(hGrid, &lpItems[i], TRUE);
+		}
+	}
+
+	void 
 	Main_OnSize(
 		HWND hwnd, UINT state, int cx, int cy
 	) {
@@ -914,8 +982,8 @@ namespace mainwind
 		MoveWindow(htab, 0, 0, rect.right + 1, iTabHeight, FALSE);
 		iTabHeight+= 2;
 		MoveWindow(hgrid1, 0, iTabHeight, rect.right / 3, rect.bottom - iTabHeight, TRUE);
-		//MoveWindow(hgrid2, rect.right / 3, iTabHeight, 
-		//	rect.right - rect.right / 3, rect.bottom - iTabHeight, TRUE);
+		MoveWindow(hgrid2, rect.right / 3, iTabHeight, 
+			rect.right - rect.right / 3, rect.bottom - iTabHeight, TRUE);
 		//MoveWindow(hgrid3, 0, iTabHeight, 
 		//	rect.right, rect.bottom - iTabHeight, TRUE);
 		//MoveWindow(hgrid4, 0, iTabHeight, 

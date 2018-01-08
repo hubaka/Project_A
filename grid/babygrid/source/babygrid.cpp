@@ -20,6 +20,7 @@
 #include <windowsx.h>
 #include <tchar.h>
 #include <commctrl.h>
+#include <uxtheme.h>
 #include "sys.h"
 #include "resource.h"
 #include "errhandle.h"
@@ -27,6 +28,8 @@
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
+
+#pragma comment(lib,"UxTheme.lib")
 
 namespace grid
 {
@@ -61,6 +64,22 @@ namespace grid
 		BOOL fProtected;        ///< Item (cell) protection status
 	} GRIDITEM   , *LPGRIDITEM;
 
+	/// @var NMSGKEYDOWN
+	/// @brief Contains information used in processing the SGN_KEYDOWN notification.
+
+	/// @var LPNMSGKEYDOWN
+	/// @brief Pointer to SGN_KEYDOWN message data
+
+	/// @struct tagNMSGKEYDOWN
+	/// @brief This is the data associated with the SGN_KEYDOWN notification
+	typedef struct tagNMSGKEYDOWN {
+		NMHDR hdr;               ///< Notification message header
+		int col;                 ///< Column number
+		int row;                 ///< Row number
+		DWORD dwType;            ///< Column type (thus cell type) identifier
+		WORD wVKey;              ///< Virtual key code
+	} NMSGKEYDOWN, *LPNMSGKEYDOWN;
+
 	//---------------------------------------------------------------------------
 	//!	\brief A flexable array of objects 
 	//!	\var VECTOR
@@ -87,6 +106,39 @@ namespace grid
 		LPVOID pOptional;       ///< Optional data (ex: combobox choices)
 		LPVECTOR items;         ///< The row cells associated with this column
 	} GRIDCOLUMN   , *LPGRIDCOLUMN;
+
+	/// @var NMGRID
+	/// @brief Contains information used in processing simple grid notifications
+	///         with the exception of SGN_KEYDOWN.
+
+	/// @var LPNMGRID
+	/// @brief Pointer to simple grid notification message data
+
+	/// @struct tagNMGRID
+	/// @brief This is the data associated with a simple grid notification
+	typedef struct tagNMGRID {
+		NMHDR hdr;               ///< Notification message header
+		int col;                 ///< Column number
+		int row;                 ///< Row number
+		DWORD dwType;            ///< Column type (thus cell type) identifier
+	} NMGRID, *LPNMGRID;
+
+	/// @var NMSGFOCUS
+	/// @brief Contains information used in processing the SGN_GOTFOCUS 
+	///         and SGN_LOSTFOCUS notification.
+
+	/// @var LPNMSGFOCUS
+	/// @brief Pointer to SGN_GOTFOCUS and SGN_LOSTFOCUS message data
+
+	/// @struct tagNMSGFOCUS
+	/// @brief This is the data associated with the SGN_GOTFOCUS and SGN_LOSTFOCUS notification
+	typedef struct tagNMSGFOCUS {
+		NMHDR hdr;               ///< Notification message header
+		int col;                 ///< Column number
+		int row;                 ///< Row number
+		DWORD dwType;            ///< Column type (thus cell type) identifier
+		HWND hFocus;             ///< Handle of window receiving or loosing focus 
+	} NMSGFOCUS, *LPNMSGFOCUS;
 
 	//---------------------------------------------------------------------------
 	//! \brief Data for this instance of the control
@@ -155,17 +207,24 @@ namespace grid
 
 	static LPINSTANCEDATA g_lpInst;     ///< instance data (this) pointer
 
-	//---------------------------------------------------------------------------
-	// Defines and Macros
-	//---------------------------------------------------------------------------
-	static uint32_t VECTOR_INITIAL_CAPACITY		= 16;  ///< Constant
-	static uint32_t VECTOR_CAPACITY_DELTA		= 16;  ///< Constant
-	static uint32_t INITIAL_COL_WIDTH			= 50;  ///< Constant
-	//static uint32_t HEIGHT_DESC					= 80;  ///< Constant
-
 	#define GCT_ROWHEADER -1            ///< Constant
 
+	#define ID_EDIT 2001                ///<An Id for an editor
+	#define ID_COMBO 2002               ///<An Id for an editor
+	#define ID_BUTTON 2003              ///<An Id for the button
+
+	#define EN_EDITENDOK 777            ///<Private notification for cell edit control
+
+	#define WPRC _T("Wprc")             ///<Generic property tag
+	#define EDITMODE _T("EDITMODE")     ///<Edit mode property tag
+
+	#define CHECKED _T("T")             ///< GCT_CHECK checked 
+	#define UNCHECKED _T("F")           ///< GCT_CHECK unchecked
+
 	static errhandle::ErrHandle g_errHandle;
+	static NMGRID g_nmGrid; ///< Grid notification re-usable instance
+	static NMSGFOCUS g_nmSGFocus; ///< Grid focus notification re-usable instance
+
 
 	//---------------------------------------------------------------------------
 	// FUNCTION DECLARATIONS
@@ -211,6 +270,37 @@ namespace grid
 	static LPVOID GetColOptional(INT col);
 	static HFONT Font_SetUnderline(HWND hwnd, BOOL fUnderline);
 	static BOOL IsNumeric(LPTSTR data);
+	static VOID Grid_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify);
+	static void NotifyCellClick(HWND hwnd);
+	static void NotifyEditEnd(HWND hwnd);
+	static VOID Grid_OnDestroy(HWND hwnd);
+	static VOID Grid_OnHScroll(HWND hwnd, HWND hwndCtl, UINT code, int pos);
+	static void Grid_OnKeyDown(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags);
+	static VOID Column_Delete(LPGRIDCOLUMN lpColumn);
+	static VOID Vector_Free(const LPVECTOR pVector);
+	static BOOL Control_FreeInstanceData(HWND hControl);
+	static int GetNthVisibleColumn(HWND hwnd, int n);
+	static void NotifyKeydown(HWND hwnd, UINT vk);
+	static void NotifySelChange(HWND hwnd);
+	static void NotifyEditBegin(HWND hwnd);
+	static VOID SetHomeRow(HWND hwnd, int col, int row);
+	static VOID SetHomeCol(HWND hwnd, int col, int row);
+	static VOID Grid_OnSelectEdit(HWND hwnd, RECT rc, LPTSTR text, BOOL fEditMode);//DWM 1.7: Added fEditMode argument;
+	static VOID Grid_OnSelectComboBox(HWND hwnd, RECT rc, LPTSTR szzItems, LPTSTR szSelected);
+	static VOID Grid_OnSelectButton(HWND hwnd, RECT rc, LPTSTR text);
+	static VOID Item_Delete(LPGRIDITEM lpItem);
+	static int HomeColumnNthVisible(VOID);
+	static HWND CreateEdit(HINSTANCE hInstance, HWND hwndParent, INT id, BOOL fEditMode);//DWM 1.7: Added fEditMode argument
+	static VOID Edit_CenterTextVertically(HWND hEdit);
+	static HWND CreateCombo(HINSTANCE hInstance, HWND hwndParent, INT id);
+	static VOID Combo_CalculateVerticalPos(HWND hCombo, PRECT prc);
+	static HWND CreateButton(HINSTANCE hInstance, HWND hwndParent, INT id);
+	static LRESULT CALLBACK Edit_Proc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK Button_Proc(HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK ComboBox_Proc(HWND hCombo, UINT msg, WPARAM wParam, LPARAM lParam);
+	static LRESULT DefProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	static VOID DrawBorder(HDC hdc, LPRECT lprc, DWORD dwBorder, COLORREF clr);
+	static VOID DrawLine(HDC hdc, LONG x1, LONG y1, LONG x2, LONG y2);
 
 	/// @def StringArray_Replace(lpszTarget, lpszReplace)
 	///
@@ -220,6 +310,36 @@ namespace grid
 	/// @param lpszReplace The new string array.
 	#define StringArray_Replace(lpszTarget, lpszReplace) \
 		(free((lpszTarget)), (lpszTarget) = NewStringArray(lpszReplace))
+
+	/// @def IsEmptyString(lpsz)
+	///
+	/// @brief Test a string.
+	///
+	/// @param lpsz The string to test.
+	///
+	/// @returns TRUE if empty
+	#define IsEmptyString(lpsz) (BOOL)(0 == lpsz[0])
+
+	/// @def NELEMS(a)
+	///
+	/// @brief Computes number of elements of an array.
+	///
+	/// @param a An array.
+	#define NELEMS(a) (sizeof(a) / sizeof((a)[0]))
+
+	/// @def HEIGHT(rect)
+	///
+	/// @brief Given a RECT, Computes height.
+	///
+	/// @param rect A RECT struct.
+	#define HEIGHT(rect) ((LONG)(rect.bottom - rect.top))
+
+	/// @def WIDTH(rect)
+	///
+	/// @brief Given a RECT, Computes width.
+	///
+	/// @param rect A RECT struct.
+	#define WIDTH(rect) ((LONG)(rect.right - rect.left))
 
 	/// @def String_Replace(lpszTarget, lpszReplace)
 	///
@@ -272,7 +392,6 @@ namespace grid
 	{
 
 		static HWND hControl;
-		HINSTANCE hinst;
 
 		//Step 1: Registering the Window Class
 		m_gridClassEx.cbSize        = sizeof(WNDCLASSEX);
@@ -331,6 +450,10 @@ namespace grid
 		switch (uMsg) 
 		{
 			HANDLE_MSG(hWnd, WM_CREATE, createGrid);
+			HANDLE_MSG(hWnd, WM_COMMAND, Grid_OnCommand);
+			HANDLE_MSG(hWnd, WM_DESTROY, Grid_OnDestroy);
+			HANDLE_MSG(hWnd, WM_HSCROLL, Grid_OnHScroll);
+			HANDLE_MSG(hWnd, WM_KEYDOWN, Grid_OnKeyDown);
 			HANDLE_MSG(hWnd, WM_SETFONT, Grid_OnSetFont);
 			HANDLE_MSG(hWnd, WM_PAINT, Grid_OnPaint);
 			case SG_ADDCOLUMN:
@@ -585,21 +708,21 @@ namespace grid
 			case GCT_EDIT:
 				lpCol->pOptional = NULL;
 				break;
-			//case GCT_COMBO:
-			//	lpCol->pOptional = NewStringArray((LPTSTR)lpColumn->pOptional);
-			//	break;
+			case GCT_COMBO:
+				lpCol->pOptional = NewStringArray((LPTSTR)lpColumn->pOptional);
+				break;
 			case GCT_BUTTON:
 				lpCol->pOptional = NULL;
 				break;
-			//case GCT_CHECK:
-			//	lpCol->pOptional = NULL;
-			//	break;
-			//case GCT_LINK:
-			//	lpCol->pOptional = NULL;
-			//	break;
-			//case GCT_IMAGE:
-			//	lpCol->pOptional = (HIMAGELIST)lpColumn->pOptional;
-			//	break;
+			case GCT_CHECK:
+				lpCol->pOptional = NULL;
+				break;
+			case GCT_LINK:
+				lpCol->pOptional = NULL;
+				break;
+			case GCT_IMAGE:
+				lpCol->pOptional = (HIMAGELIST)lpColumn->pOptional;
+				break;
 		}
 		lpCol->iWidth = iWidth;
 		lpCol->items = lpVector;
@@ -1935,4 +2058,1198 @@ namespace grid
 			return !(numberofperiods > 1);
 		return FALSE;
 	}
+
+	/// @brief Handles WM_COMMAND message.
+	///
+	/// @param hwnd  Handle of grid.
+	/// @param id The id of the sender.
+	/// @param hwndCtl The hwnd of the sender.
+	/// @param codeNotify The notification code sent.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
+	{
+		switch(id)
+		{
+			case ID_BUTTON:
+			{
+				if(BN_CLICKED == codeNotify)//One of the buttons was clicked fire notify
+				{
+					NotifyCellClick(hwnd);
+				}
+			}
+				break;
+			case ID_COMBO:
+			{
+				if(CBN_KILLFOCUS == codeNotify)//A selection was made update the cell text
+				{
+					LPGRIDITEM lpi = GetCellData(g_lpInst->cursorcol, g_lpInst->cursorrow);
+					if (NULL != lpi)
+					{
+						int len = ComboBox_GetTextLength(hwndCtl) + 1;
+						TCHAR buf[MAX_PATH]; //aka - changed size of array from len to max_path
+						ComboBox_GetText(hwndCtl, buf, len);
+						String_Replace(lpi->lpszCurValue, buf);
+					}
+					//adjust the column width if COLAUTOWIDTH==TRUE
+					if ((g_lpInst->COLAUTOWIDTH) || 0 == g_lpInst->cursorrow)
+					{
+						AdjustParentColWidth(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow, lpi->lpszCurValue);
+					}
+					ShowWindow(hwndCtl, SW_HIDE);
+					SetFocus(hwnd);
+					NotifyEditEnd(hwnd);
+				}
+			}
+				break;
+			case ID_EDIT:
+			{
+				if(EN_EDITENDOK == codeNotify)
+				{
+					LPGRIDITEM lpi = GetCellData(g_lpInst->cursorcol, g_lpInst->cursorrow);
+					if (NULL != lpi)
+					{
+						INT len = Edit_GetTextLength(hwndCtl);
+						TCHAR buf[MAX_PATH]; // aka -changed size of array from len to max_path
+						Edit_GetText(hwndCtl, buf, NELEMS(buf));
+						String_Replace(lpi->lpszCurValue, buf);
+					}
+					ShowWindow(hwndCtl, SW_HIDE);
+					//adjust the column width if COLAUTOWIDTH==TRUE
+					if ((g_lpInst->COLAUTOWIDTH) || 0 == g_lpInst->cursorrow)
+					{
+						AdjustParentColWidth(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow, lpi->lpszCurValue);
+					}
+					SetFocus(hwnd);
+					NotifyEditEnd(hwnd);
+				}
+			}
+				break;
+		}
+	}
+
+	/// @brief Notify Parent that a grid cell was clicked.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static void NotifyCellClick(HWND hwnd)
+	{
+		memset(&g_nmGrid,0,sizeof( g_nmGrid));
+		g_nmGrid.col = g_lpInst->cursorcol - 1;
+		g_nmGrid.row = g_lpInst->cursorrow - 1;
+		g_nmGrid.dwType = GetColType(g_lpInst->cursorcol);
+		g_nmGrid.hdr.hwndFrom = hwnd;
+		g_nmGrid.hdr.idFrom = GetDlgCtrlID(g_nmGrid.hdr.hwndFrom);
+		g_nmGrid.hdr.code = SGN_ITEMCLICK;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
+	}
+
+	/// @brief Notify Parent that a cell edit has ended.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static void NotifyEditEnd(HWND hwnd)
+	{
+		//Destroy previous editor
+		if (NULL != g_lpInst->hwndControl)//DWM 1.9: Added
+		{
+			DestroyWindow(g_lpInst->hwndControl);
+			g_lpInst->hwndControl = NULL;
+		}
+		g_nmGrid.col = g_lpInst->cursorcol - 1;
+		g_nmGrid.row = g_lpInst->cursorrow - 1;
+		g_nmGrid.dwType = GetColType(g_lpInst->cursorcol);
+		g_nmGrid.hdr.hwndFrom = hwnd;
+		g_nmGrid.hdr.idFrom = GetDlgCtrlID(g_nmGrid.hdr.hwndFrom);
+		g_nmGrid.hdr.code = SGN_EDITEND;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
+	}
+
+	/// @brief Handles WM_DESTROY message.
+	///
+	/// @param hwnd Handle of Grid.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnDestroy(HWND hwnd)
+	{
+		if (NULL != g_lpInst)
+		{
+			int nCols = Vector_Size(g_lpInst->data);
+			for (int col = 0; col < nCols; ++col)
+			{
+				Column_Delete((LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col));
+			}
+			Vector_Free(g_lpInst->data);
+			Control_FreeInstanceData(hwnd);
+		}
+	}
+
+	/// @brief Handles WM_HSCROLL message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param hwndCtl If this message is sent by a scroll bar control,
+	///                 this parameter is the handle to the scroll bar control.
+	///                However in this case the message was sent by a standard
+	///                 scroll bar, thus this parameter is NULL.
+	/// @param code The scroll bar value that indicates the user's scrolling request.
+	/// @param pos The current position of the scroll box if the @b code is
+	///             SB_THUMBPOSITION or SB_THUMBTRACK
+	///
+	/// @returns VOID
+	static VOID Grid_OnHScroll(HWND hwnd, HWND hwndCtl, UINT code, int pos)
+	{
+		SetFocus(hwnd);
+		if (code == SB_LINERIGHT || code == SB_PAGERIGHT)
+		{
+			int cp, np;
+			cp = GetScrollPos(hwnd, SB_HORZ);
+			SetScrollPos(hwnd, SB_HORZ, cp + 1, TRUE);
+			cp = GetScrollPos(hwnd, SB_HORZ);
+			np = GetNthVisibleColumn(hwnd, cp);
+			g_lpInst->homecol = np;
+			SetScrollPos(hwnd, SB_HORZ, cp, TRUE);
+			RefreshGrid(hwnd);
+		}
+		if (code == SB_LINELEFT || code == SB_PAGELEFT)
+		{
+			int cp, np;
+			cp = GetScrollPos(hwnd, SB_HORZ);
+			SetScrollPos(hwnd, SB_HORZ, cp - 1, TRUE);
+			cp = GetScrollPos(hwnd, SB_HORZ);
+			np = GetNthVisibleColumn(hwnd, cp);
+			g_lpInst->homecol = np;
+			SetScrollPos(hwnd, SB_HORZ, cp, TRUE);
+			RefreshGrid(hwnd);
+		}
+		if (code == SB_THUMBTRACK)
+		{
+			int np;
+			np = GetNthVisibleColumn(hwnd, pos);
+			SetScrollPos(hwnd, SB_HORZ, np, TRUE);
+			g_lpInst->homecol = np;
+			SetScrollPos(hwnd, SB_HORZ, pos, TRUE);
+			RefreshGrid(hwnd);
+		}
+	}
+
+	/// @brief Handles WM_KEYDOWN message.
+	///
+	/// @param hwnd  Handle of grid.
+	/// @param vk The virtual key code.
+	/// @param fDown TRUE for keydown (always TRUE).
+	/// @param cRepeat The number of times the keystroke is repeated
+	///         as a result of the user holding down the key.
+	/// @param flags Indicate OEM scan codes etc.
+	///
+	/// @returns VOID.
+	static void Grid_OnKeyDown(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags)
+	{
+		int rows = RowCount() - 1;  //Exclude header row
+
+		NotifyKeydown(hwnd, vk);
+
+		switch (vk)
+		{
+			case VK_NEXT:
+			case VK_PRIOR:
+			case VK_DOWN:
+			case VK_UP:
+			{
+				RECT gridrect = {0,0,0,0};
+				int rpp;
+				if (rows == 0)
+					break;
+
+				if (g_lpInst->cursorrow == (VK_NEXT == vk || VK_DOWN == vk ? rows : 1))
+					break;
+
+				//get rows per page
+				GetClientRect(hwnd, &gridrect);
+				rpp = (gridrect.bottom - (g_lpInst->headerrowheight + g_lpInst->titleheight)) / g_lpInst->rowheight;
+
+				if(VK_NEXT == vk || VK_DOWN == vk)
+				{
+					g_lpInst->cursorrow += (VK_NEXT == vk ? rpp : 1);
+					if (g_lpInst->cursorrow > rows)
+						g_lpInst->cursorrow = rows;
+					else
+					{
+						NotifySelChange(hwnd);
+					}
+				}
+				else //VK_PRIOR || VK_UP
+				{
+					g_lpInst->cursorrow -= (VK_PRIOR == vk ? rpp : 1);
+					if (g_lpInst->cursorrow < 1)
+						g_lpInst->cursorrow = 1;
+					else
+					{
+						NotifySelChange(hwnd);
+					}
+				}
+
+				SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+				SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+				RefreshGrid(hwnd);
+			}
+				break;
+			case VK_RIGHT:
+				if(GSO_ROWHEADER == g_lpInst->selectionMode &&
+					g_lpInst->HIGHLIGHTFULLROW)
+				{
+					//We selected off the row header so turn the hilight off
+					g_lpInst->HIGHLIGHTFULLROW = FALSE;
+					SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+					SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+					RefreshGrid(hwnd);
+					break;
+				}
+				// Everything else
+				// FALL THROUGH
+			case VK_LEFT:
+			{
+				int k = GetAdjacentCol(g_lpInst->cursorcol, VK_RIGHT == vk);
+
+				if (!k) break;
+
+				g_lpInst->cursorcol = k;
+
+				NotifySelChange(hwnd);
+
+				SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+				SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+				RefreshGrid(hwnd);
+			}
+				break;
+			default:
+			{
+				//DWM 1.5: Exclude certain keys from triggering edit by default
+				if((VK_F1 <= vk && vk <= VK_F24) ||
+					VK_TAB == vk || //DWM 1.7: Added
+					VK_RETURN == vk ||
+					VK_MENU == vk ||
+					VK_PAUSE == vk ||
+					VK_CAPITAL == vk ||
+					VK_INSERT == vk ||
+					VK_NUMLOCK == vk ||
+					VK_LWIN == vk ||
+					VK_RWIN == vk ||
+					VK_APPS == vk) break;
+
+				if(! g_lpInst->EDITABLE)
+					break; //Grid editing is disabled
+
+				if(GSO_ROWHEADER == g_lpInst->selectionMode && g_lpInst->HIGHLIGHTFULLROW)
+					break; // we are on row headers so ignore
+
+				LPGRIDITEM lpgi = GetCellData(g_lpInst->cursorcol, g_lpInst->cursorrow);
+
+				if(NULL == lpgi) //DWM:2.1 Added
+					break;
+
+				if(TRUE == (NULL == lpgi ? FALSE : lpgi->fProtected))
+					break; // no edit for protected cells
+
+				RECT cellrect = {0,0,0,0};
+				GetCellRect(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow, &cellrect);
+
+				INT iRtn = 0;
+				TCHAR buf[5] = {0};
+				BYTE kbd[256] = {0};
+				GetKeyboardState(kbd);
+
+	#ifdef _UNICODE
+				iRtn = ToUnicode(vk, flags, kbd, buf, NELEMS(buf), 0);
+	#else
+				iRtn = ToAscii(vk, flags, kbd, (LPWORD)buf, 0);
+	#endif
+				if(iRtn < 0) iRtn = 0;
+
+				// buf probably won't be null terminated so make sure it is.
+				if(iRtn < NELEMS(buf)) buf[iRtn] = 0;
+
+				switch(GetColType(g_lpInst->cursorcol))
+				{
+					case GCT_EDIT://DWM 1.6: Added CONTEXTCODE_ALT check
+					{
+						BOOL fEditMode = CONTEXTCODE_ALT & flags;
+						Grid_OnSelectEdit(hwnd, cellrect, //if CONTEXTCODE_ALT then edit mode
+							fEditMode ? lpgi->lpszCurValue : buf, fEditMode);//DWM 1.7: Added fEditMode
+					}
+						break;
+					case GCT_COMBO:
+					{
+						Grid_OnSelectComboBox(hwnd, cellrect, 
+							(LPTSTR) GetColOptional(g_lpInst->cursorcol), 
+							lpgi->lpszCurValue);
+					}
+						break;
+					case GCT_BUTTON:
+					{
+						Grid_OnSelectButton(hwnd, cellrect, 
+							lpgi->lpszCurValue);
+						FORWARD_WM_KEYDOWN(g_lpInst->hwndControl,vk,cRepeat,flags,SNDMSG);
+
+						//Cell click handled by Grid_OnCommand()
+					}
+						break;
+					case GCT_CHECK:
+					{
+						if(0 == _tcsicmp(lpgi->lpszCurValue, CHECKED))
+							String_Replace(lpgi->lpszCurValue, UNCHECKED);
+						else
+							String_Replace(lpgi->lpszCurValue, CHECKED);
+
+						NotifyCellClick(hwnd);
+					}
+						break;
+					case GCT_LINK:
+					{
+						if(!IsEmptyString(lpgi->lpszMisc) && (VK_RETURN == vk || VK_SPACE == vk))
+							ShellExecute(NULL, _T("open"), lpgi->lpszMisc, NULL,NULL, SW_SHOW);
+
+						NotifyCellClick(hwnd);
+					}
+						break;
+					case GCT_IMAGE:
+						NotifyCellClick(hwnd);
+						break;
+				}
+			}
+		}
+	}
+
+	/// @brief Free the grid's column data structure.
+	///
+	/// @param lpColumn A pointer to a LPGRIDCOLUMN object.
+	///
+	/// @returns VOID.
+	static VOID Column_Delete(LPGRIDCOLUMN lpColumn)
+	{
+		if (NULL != lpColumn->items)
+		{
+			int nCells = Vector_Size(lpColumn->items);
+			for (int cell = 0; cell < nCells; ++cell)
+			{
+				Item_Delete((LPGRIDITEM)Vector_Get(lpColumn->items, cell));
+			}
+			Vector_Free(lpColumn->items);
+		}
+		switch (lpColumn->dwType)
+		{
+			case GCT_EDIT:
+			case GCT_BUTTON:
+			case GCT_CHECK:
+			case GCT_LINK:
+				break;
+			case GCT_COMBO:
+				if (NULL != lpColumn->pOptional)
+				{
+					free(lpColumn->pOptional);
+				}
+				break;
+			case GCT_IMAGE:
+				if (NULL != lpColumn->pOptional)
+				{
+					ImageList_Destroy((HIMAGELIST)lpColumn->pOptional);
+				}
+				break;
+		}
+		free(lpColumn);
+	}
+
+	/// @brief VECTOR object destructor.
+	///
+	/// @note Vector item allocations must be freed individually as
+	///        this method only frees the list of item pointers.
+	///
+	/// @param pVector a pointer to a VECTOR instance
+	///
+	/// @returns VOID
+	static VOID Vector_Free(const LPVECTOR pVector)
+	{
+		free(pVector->_data);
+		free(pVector);
+	}
+
+	/// @brief Free the instance data allocation of an instance of the Grid Control.
+	///
+	/// @param hControl Handle to current instance.
+	///
+	/// @returns TRUE if successful
+	static BOOL Control_FreeInstanceData(HWND hControl)
+	{
+		LPINSTANCEDATA pInst;
+		if (Control_GetInstanceData(hControl, &pInst))
+		{
+
+			if(NULL != pInst->title) free(pInst->title);
+			free((LPINSTANCEDATA)pInst);
+			RemoveProp(hControl, (LPCTSTR)_T("lpInsData"));
+			return TRUE;
+		}
+		return FALSE;
+	}
+
+	/// @brief Gets the last visible column based upon scroll position.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param n The horizontal scroll position
+	///
+	/// @returns The last visible column
+	static int GetNthVisibleColumn(HWND hwnd, int n)
+	{
+		int j, count;
+		int cols = ColCount();
+		int value;
+		j = 1;
+		count = 0;
+		value = n - 1;
+		while (j < cols)
+		{
+			if (0 < GetColWidth(j))
+			{
+				count++;
+				if (count == n)
+				{
+					value = j;
+				}
+			}
+			j++;
+		}
+		return value;
+	}
+
+	/// @brief Notify Parent that a key was pressed.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param vk Virtual key code
+	///
+	/// @returns VOID
+	static void NotifyKeydown(HWND hwnd, UINT vk)
+	{
+		static NMSGKEYDOWN nmSgkd;
+		nmSgkd.col = g_lpInst->cursorcol - 1;
+		nmSgkd.row = g_lpInst->cursorrow - 1;
+		nmSgkd.dwType = GetColType(g_lpInst->cursorcol);
+		nmSgkd.wVKey = vk;
+		nmSgkd.hdr.hwndFrom = hwnd;
+		nmSgkd.hdr.idFrom = GetDlgCtrlID(nmSgkd.hdr.hwndFrom);
+		nmSgkd.hdr.code = SGN_KEYDOWN;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, nmSgkd.hdr.idFrom, &nmSgkd, SNDMSG);
+	}
+
+	/// @brief Notify Parent that the selection has changed.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static void NotifySelChange(HWND hwnd)
+	{
+		//Destroy previous editor
+		if (NULL != g_lpInst->hwndControl)
+		{
+			DestroyWindow(g_lpInst->hwndControl);
+			g_lpInst->hwndControl = NULL;
+		}
+
+		g_nmGrid.col = g_lpInst->cursorcol - 1;
+		g_nmGrid.row = g_lpInst->cursorrow - 1;
+		g_nmGrid.dwType = GetColType(g_lpInst->cursorcol);
+		g_nmGrid.hdr.hwndFrom = hwnd;
+		g_nmGrid.hdr.idFrom = GetDlgCtrlID(g_nmGrid.hdr.hwndFrom);
+		g_nmGrid.hdr.code = SGN_SELCHANGE;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
+	}
+
+	/// @brief Notify Parent that a cell edit has begun.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static void NotifyEditBegin(HWND hwnd)
+	{
+		g_nmGrid.col = g_lpInst->cursorcol - 1;
+		g_nmGrid.row = g_lpInst->cursorrow - 1;
+		g_nmGrid.dwType = GetColType(g_lpInst->cursorcol);
+		g_nmGrid.hdr.hwndFrom = hwnd;
+		g_nmGrid.hdr.idFrom = GetDlgCtrlID(g_nmGrid.hdr.hwndFrom);
+		g_nmGrid.hdr.code = SGN_EDITBEGIN;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
+	}
+
+	/// @brief Sets the home row field of the grid based on current cursor position.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param col The column that the current cell belongs to
+	/// @param row The row index of the current cell in the column 
+	///
+	/// @returns VOID
+	static VOID SetHomeRow(HWND hwnd, int col, int row)
+	{
+		RECT gridrect = {0,0,0,0};
+		RECT cellrect = {0,0,0,0};
+		//get rect of grid window
+		GetClientRect(hwnd, &gridrect);
+		//get rect of current cell
+		GetCellRect(hwnd, col, row, &cellrect);
+		if ((cellrect.bottom > gridrect.bottom) && ((cellrect.bottom - cellrect.top) < (gridrect.bottom - (g_lpInst->headerrowheight + g_lpInst->titleheight))))
+		{
+			while (cellrect.bottom > gridrect.bottom)
+			{
+				g_lpInst->homerow++;
+				if (row == RowCount())
+				{
+					gridrect.top = gridrect.bottom - (g_lpInst->rowheight);
+					InvalidateRect(hwnd, &gridrect, TRUE);
+				}
+				else
+				{
+					InvalidateRect(hwnd, &gridrect, FALSE);
+				}
+				GetCellRect(hwnd, col, row, &cellrect);
+			}
+		}
+		else
+		{
+			if ((cellrect.bottom - cellrect.top) >= (gridrect.bottom - (g_lpInst->headerrowheight + g_lpInst->titleheight)))
+			{
+				g_lpInst->homerow++;
+			}
+		}
+		GetCellRect(hwnd, col, row, &cellrect);
+		{
+			while ((row < g_lpInst->homerow))
+			{
+				g_lpInst->homerow--;
+				InvalidateRect(hwnd, &gridrect, FALSE);
+				GetCellRect(hwnd, col, row, &cellrect);
+			}
+		}
+		//set the vertical scrollbar position
+		SetScrollPos(hwnd, SB_VERT, g_lpInst->homerow, TRUE);
+	}
+
+	/// @brief Sets the home column field of the grid based on current cursor position.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param col The column that the current cell belongs to
+	/// @param row The row index of the current cell in the column 
+	///
+	/// @returns VOID
+	static VOID SetHomeCol(HWND hwnd, int col, int row)
+	{
+		RECT gridrect = {0,0,0,0};
+		RECT cellrect = {0,0,0,0};
+		//get rect of grid window
+		GetClientRect(hwnd, &gridrect);
+		//get rect of current cell
+		GetCellRect(hwnd, col, row, &cellrect);
+		//determine if scroll left or right is needed
+		while ((cellrect.right > gridrect.right) && (cellrect.left != GetColWidth(0)))
+		{
+			//scroll right is needed
+			g_lpInst->homecol++;
+
+			GetCellRect(hwnd, col, row, &cellrect);
+			InvalidateRect(hwnd, &gridrect, FALSE);
+		}
+		GetCellRect(hwnd, col, row, &cellrect);
+		while ((g_lpInst->cursorcol < g_lpInst->homecol) && (g_lpInst->homecol > 1))
+
+		{
+			//scroll left is needed
+			g_lpInst->homecol--;
+
+			GetCellRect(hwnd, col, row, &cellrect);
+			InvalidateRect(hwnd, &gridrect, FALSE);
+
+			int k;
+			k = HomeColumnNthVisible();
+			SetScrollPos(hwnd, SB_HORZ, k, TRUE);
+		}
+	}
+
+	/// @brief Handle the selection of a grid column of type GCT_EDIT.
+	///
+	/// @param hwnd The handle of the grid.
+	/// @param rc RECT containing desired coordinates for the edit control.
+	/// @param text The initial character or text for the editor.
+	/// @param fEditMode TRUE if EDIT control in edit mode FALSE for overwrite.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnSelectEdit(HWND hwnd, RECT rc, LPTSTR text, BOOL fEditMode)//DWM 1.7: Added fEditMode argument
+	{
+		//Adjust rect so text will center better
+		rc.top += 1;
+		InflateRect(&rc, -1,-1);
+
+		//display edit box
+		if (NULL == g_lpInst->hwndControl)
+			g_lpInst->hwndControl = CreateEdit(g_lpInst->hInstance, hwnd, ID_EDIT, fEditMode);
+
+		MoveWindow(g_lpInst->hwndControl, rc.left, rc.top, WIDTH(rc), HEIGHT(rc), TRUE);
+
+		//Set the text in the edit box to the initial key
+		Edit_SetText(g_lpInst->hwndControl, text);
+		ShowWindow(g_lpInst->hwndControl, SW_SHOW);
+		SetFocus(g_lpInst->hwndControl);
+		Edit_CenterTextVertically(g_lpInst->hwndControl);
+
+		//DWM 1.6: Was Edit_SetSel(g_lpInst->hwndControl, 1, -1);
+		FORWARD_WM_KEYDOWN(g_lpInst->hwndControl,VK_END,0,0,SNDMSG);
+
+		NotifyEditBegin(hwnd);
+	}
+
+	/// @brief Handle the selection of a grid column of type GCT_COMBO.
+	///
+	/// @param hwnd The handle of the grid.
+	/// @param rc RECT containing desired coordinates for the button control.
+	/// @param szzItems The drop down item choices 
+	///                  (double null terminated string array).
+	/// @param szSelected The currently selected item (if any).
+	///
+	/// @returns VOID.
+	static VOID Grid_OnSelectComboBox(HWND hwnd, RECT rc, LPTSTR szzItems, LPTSTR szSelected)
+	{
+		InflateRect(&rc, -1, -1);
+
+		if (NULL == g_lpInst->hwndControl)
+			g_lpInst->hwndControl = CreateCombo(g_lpInst->hInstance, hwnd, ID_COMBO);
+
+		ComboBox_ResetContent(g_lpInst->hwndControl);
+
+		Combo_CalculateVerticalPos(g_lpInst->hwndControl, &rc);
+		rc.bottom += 100;
+
+		MoveWindow(g_lpInst->hwndControl, rc.left, rc.top, WIDTH(rc), HEIGHT(rc), TRUE);
+
+		//Walk the item list and add each string until the empty string
+		for (LPTSTR p = szzItems; *p; p += _tcslen(p) + 1)
+		{
+			if (CB_ERR == ComboBox_FindStringExact(g_lpInst->hwndControl, 0, p))
+				ComboBox_AddString(g_lpInst->hwndControl, p);
+		}
+
+		ShowWindow(g_lpInst->hwndControl, SW_SHOW);
+		SetFocus(g_lpInst->hwndControl);
+
+		//Jump to the property's current value in the combo box
+		INT itm = ComboBox_FindStringExact(g_lpInst->hwndControl, 0, szSelected);
+		if (itm != CB_ERR)
+			ComboBox_SetCurSel(g_lpInst->hwndControl, itm);
+		else
+		{
+			ComboBox_SetCurSel(g_lpInst->hwndControl, 0);
+			ComboBox_SetText(g_lpInst->hwndControl, szSelected);
+			ComboBox_SetEditSel(g_lpInst->hwndControl, 0, -1);
+		}
+		NotifyEditBegin(hwnd);
+	}
+
+	/// @brief Handle the selection of a grid column of type GCT_BUTTON.
+	///
+	/// @param hwnd The handle of the grid.
+	/// @param rc RECT containing desired coordinates for the button control.
+	/// @param text The initial text for the button.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnSelectButton(HWND hwnd, RECT rc, LPTSTR text)
+	{
+		InflateRect(&rc, -1,-1);
+
+		if (NULL == g_lpInst->hwndControl)
+			g_lpInst->hwndControl = CreateButton(g_lpInst->hInstance, hwnd, ID_BUTTON);
+
+		MoveWindow(g_lpInst->hwndControl, rc.left, rc.top, WIDTH(rc), HEIGHT(rc), TRUE);
+
+		//Set the text in the edit box to the initial key
+		Button_SetText(g_lpInst->hwndControl, text);
+		ShowWindow(g_lpInst->hwndControl, SW_SHOW);
+		SetFocus(g_lpInst->hwndControl);
+	}
+
+	/// @brief Free the grid's item data structure.
+	///
+	/// @param lpItem A pointer to an item object.
+	///
+	/// @returns VOID.
+	static VOID Item_Delete(LPGRIDITEM lpItem)
+	{
+		if (NULL != lpItem->lpszCurValue)
+			free(lpItem->lpszCurValue);
+		free(lpItem);
+	}
+
+	/// @brief Calculate the number of visible columns.
+	///
+	/// @note Columns are "hidden" when it's width is 0.
+	///
+	/// @returns The number of visible columns
+	static int HomeColumnNthVisible(VOID)
+	{
+		int j, hc, count;
+		count = 0;
+		hc = g_lpInst->homecol;
+		for (j = 1; j <= hc; j++)
+		{
+			if (0 < GetColWidth(j))
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+
+	/// @brief Create an Edit control to edit GCT_EDIT fields.
+	///
+	/// @param hInstance The handle of an instance.
+	/// @param hwndParent The handle of the parent (the visible listbox).
+	/// @param id An id tag for this control.
+	/// @param fEditMode TRUE if EDIT control in edit mode FALSE for overwrite.
+	///
+	/// @returns HWND A handle to the edit control.
+	static HWND CreateEdit(HINSTANCE hInstance, HWND hwndParent, INT id, BOOL fEditMode)//DWM 1.7: Added fEditMode argument
+	{
+		DWORD dwStyle, dwExStyle;
+		HWND hwnd;
+
+		dwStyle = WS_CHILD | ES_LEFT | ES_WANTRETURN | ES_MULTILINE | ES_AUTOHSCROLL;
+
+		dwExStyle = WS_EX_LEFT | WS_EX_TRANSPARENT; // | WS_EX_CLIENTEDGE;
+
+		hwnd = CreateWindowEx(dwExStyle, 
+			WC_EDIT, 
+			TEXT(""), 
+			dwStyle, 
+			CW_USEDEFAULT, 
+			CW_USEDEFAULT, 
+			CW_USEDEFAULT, 
+			CW_USEDEFAULT, 
+			hwndParent, 
+			(HMENU)id, 
+			hInstance, 
+			NULL);
+
+		if (!hwnd)
+			return NULL;
+
+		//DWM 1.9: Display the same font in editor as rest of grid
+		SendMessage(hwnd, WM_SETFONT, (WPARAM)SendMessage(hwndParent, WM_GETFONT, 0L, 0L), 0L);
+
+		//DWM 1.7: Store EditMode flag
+		SetProp(hwnd, EDITMODE, fEditMode ? CHECKED : UNCHECKED);
+
+		// Subclass Editor and save the OldProc
+		SetProp(hwnd, WPRC, (HANDLE)GetWindowLongPtr(hwnd, GWLP_WNDPROC));
+		SubclassWindow(hwnd, Edit_Proc);
+
+		return hwnd;
+	}
+
+	/// @brief Center the text in an edit control.
+	///
+	/// @param hEdit The handle of an edit control.
+	/// @note This only works with mulitline edit controls (ES_MULTILINE).
+	///
+	/// @returns VOID.
+	static VOID Edit_CenterTextVertically(HWND hEdit)
+	{
+		RECT rcTxt = {0,0,0,0};
+		RECT rcEdt = {0,0,0,0};
+		HDC hdc;
+
+		//calculate client area height needed for a font
+		hdc = GetDC(hEdit);
+		DrawText(hdc, TEXT("Ky"), 2, &rcTxt, DT_CALCRECT | DT_LEFT);
+		ReleaseDC(hEdit, hdc);
+
+		// Set top and left margins
+		GetClientRect(hEdit, &rcEdt);
+		rcEdt.left += 4;
+		rcEdt.top = ((rcEdt.bottom - (rcTxt.bottom - rcTxt.top)) / 2);
+
+		Edit_SetRect(hEdit, &rcEdt);
+	}
+
+	/// @brief Create combobox control configured as a dropdown list.
+	///
+	/// @param hInstance The handle of an instance.
+	/// @param hwndParent The handle of the parent (the visible listbox).
+	/// @param id An id tag for this control.
+	///
+	/// @returns HWND A handle to the control.
+	static HWND CreateCombo(HINSTANCE hInstance, HWND hwndParent, INT id)
+	{
+		DWORD dwStyle, dwExStyle;
+		HWND hwnd;
+
+		dwStyle = WS_CHILD | CBS_NOINTEGRALHEIGHT | CBS_DROPDOWNLIST;
+
+		dwExStyle = WS_EX_LEFT;
+
+		hwnd = CreateWindowEx(dwExStyle,
+			WC_COMBOBOX,
+			NULL,
+			dwStyle,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			hwndParent,
+			(HMENU)id,
+			hInstance,
+			NULL);
+
+		if (!hwnd)
+			return NULL;
+
+		//Disable visual styles for the time being since the combo looks bad
+		// in this grid when drawn using the Vista and later styles.
+		SetWindowTheme(hwnd, L" ", L" ");
+
+		//DWM 1.9: Display the same font in editor as rest of grid
+		SendMessage(hwnd, WM_SETFONT, (WPARAM)SendMessage(hwndParent, WM_GETFONT, 0L, 0L), 0L);
+
+		SetProp(hwnd, WPRC, (HANDLE)GetWindowLongPtr(hwnd, GWLP_WNDPROC));
+		SubclassWindow(hwnd, ComboBox_Proc);
+
+		return hwnd;
+	}
+
+	/// @brief Calculate the position of the combobox within a rectangle.
+	///
+	/// @param hCombo The handle of a combobox control.
+	/// @param prc The address of a rectangle with the bounds in which to center the combobox.
+	///
+	/// @returns VOID.
+	static VOID Combo_CalculateVerticalPos(HWND hCombo, PRECT prc)
+	{
+		RECT rcCombo = {0,0,0,0};
+		GetClientRect(hCombo, &rcCombo);
+
+		int hight = HEIGHT((*prc));
+		int hightCombo = HEIGHT(rcCombo);
+
+		prc->top += (hight - hightCombo) / 2;
+	}
+
+	/// @brief Create button control for GCT_BUTTON column.
+	///
+	/// @param hInstance The handle of an instance.
+	/// @param hwndParent The handle of the parent (the visible listbox).
+	/// @param id An id tag for this control.
+	///
+	/// @returns HWND A handle to the button control.
+	static HWND CreateButton(HINSTANCE hInstance, HWND hwndParent, INT id)
+	{
+		DWORD dwStyle;
+		HWND hwnd;
+
+		dwStyle = WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON;
+
+		hwnd = CreateWindowEx(0,
+			WC_BUTTON,
+			TEXT("..."),
+			dwStyle,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			hwndParent,
+			(HMENU)id,
+			hInstance,
+			NULL);
+
+		if (!hwnd)
+			return NULL;
+
+		//Disable visual styles for the time being since the button doesn't match the
+		// psuedo button in this grid when drawn using the Vista and later styles.
+		SetWindowTheme(hwnd, L" ", L" ");
+
+		//DWM 1.9: Display the same font in buttons as rest of grid
+		SendMessage(hwnd, WM_SETFONT, (WPARAM)SendMessage(hwndParent, WM_GETFONT, 0L, 0L), 0L);
+
+		SetProp(hwnd, WPRC, (HANDLE)GetWindowLongPtr(hwnd, GWLP_WNDPROC));
+		SubclassWindow(hwnd, Button_Proc);
+
+		return hwnd;
+	}
+
+	/// @brief Window procedure for the edit control.
+	///
+	/// @param hEdit Handle of editor.
+	/// @param msg Which message?
+	/// @param wParam Message parameter.
+	/// @param lParam Message parameter.
+	///
+	/// @returns LRESULT depends on message.
+	static LRESULT CALLBACK Edit_Proc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+		HWND hGrid = GetParent(hEdit);
+
+		// Note: Instance data is attached to Edit's parent
+		Control_GetInstanceData(hGrid, &g_lpInst);
+
+		if (WM_DESTROY == msg)  // Unsubclass the Edit Control
+		{
+			SetWindowLongPtr(hEdit, GWLP_WNDPROC, (DWORD_PTR)GetProp(hEdit, WPRC));//DWM 1.2: fixed cast
+			RemoveProp(hEdit, WPRC);
+			RemoveProp(hEdit, EDITMODE);//DWM 1.7: Added
+			return 0;
+		}
+		else if (WM_MOUSEWHEEL == msg)
+		{
+			FORWARD_WM_CHAR(hEdit, VK_RETURN, 0, SNDMSG);
+		}
+		else if (WM_CHAR == msg && VK_RETURN == wParam)
+		{
+			FORWARD_WM_COMMAND(hGrid,GetDlgCtrlID(hEdit),hEdit,EN_EDITENDOK,SNDMSG);
+			return TRUE;    // handle Enter (NO BELL)
+		}
+		else if (WM_KEYDOWN == msg)
+		{
+			switch (wParam)
+			{
+				case VK_LEFT:
+				case VK_RIGHT:
+					if(CHECKED == (LPTSTR)GetProp(hEdit, EDITMODE)) break;//DWM 1.7: Added
+					//else fallthrough
+				case VK_NEXT:
+				case VK_PRIOR:
+				case VK_DOWN:
+				case VK_UP:
+				case VK_TAB:
+					//Finish edit
+					FORWARD_WM_CHAR(hEdit, VK_RETURN, 0, SNDMSG);
+					//Forward to Grid proc
+					return SNDMSG(hGrid, msg, wParam, lParam);
+
+				case VK_ESCAPE:
+					ShowWindow(hEdit, SW_HIDE);
+					SetFocus(hGrid);
+					return FALSE;
+			}
+		}
+		return DefProc(hEdit, msg, wParam, lParam);
+	}
+
+	/// @brief Window procedure for the button control.
+	///
+	/// @param hButton Handle of button control.
+	/// @param msg Which message?
+	/// @param wParam Message parameter.
+	/// @param lParam Message parameter.
+	///
+	/// @returns LRESULT depends on message.
+	static LRESULT CALLBACK Button_Proc(HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+		HWND hGrid = GetParent(hButton);
+
+		// Note: Instance data is attached to buttons's parent
+		Control_GetInstanceData(hGrid, &g_lpInst);
+
+		if (WM_DESTROY == msg)  // Unsubclass the button control
+		{
+			SetWindowLongPtr(hButton, GWLP_WNDPROC, (DWORD_PTR)GetProp(hButton, WPRC));//DWM 1.2: fixed cast
+			RemoveProp(hButton, WPRC);
+			return 0;
+		}
+		else if (WM_MOUSEWHEEL == msg)
+		{
+			FORWARD_WM_KEYDOWN(hButton, VK_ESCAPE, 0, 0, SNDMSG);
+		}
+		else if (WM_GETDLGCODE == msg)
+		{
+			return DLGC_WANTALLKEYS;
+		}
+		else if (WM_KEYUP == msg && VK_RETURN == wParam)
+		{
+			FORWARD_WM_KEYUP(hButton, VK_SPACE, 0, 0, SNDMSG);
+			return TRUE;
+		}
+		else if (WM_KEYDOWN == msg)
+		{
+			switch (wParam)
+			{
+				case VK_RETURN:
+					FORWARD_WM_KEYDOWN(hButton, VK_SPACE, 0, 0, SNDMSG);
+					return TRUE;
+
+				case VK_NEXT:
+				case VK_PRIOR:
+				case VK_DOWN:
+				case VK_UP:
+				case VK_LEFT:
+				case VK_RIGHT:
+				case VK_TAB:
+					//Forward to Grid proc
+					return SNDMSG(hGrid, msg, wParam, lParam);
+
+				case VK_ESCAPE:
+					ShowWindow(hButton, SW_HIDE);
+					SetFocus(hGrid);
+					return FALSE;
+			}
+		}
+		return DefProc(hButton, msg, wParam, lParam);
+	}
+
+	/// @brief Window procedure for the combobox control.
+	///
+	/// @param hCombo Handle of the combobox.
+	/// @param msg Which message?
+	/// @param wParam Message parameter.
+	/// @param lParam Message parameter.
+	///
+	/// @par Comments
+	///       The combobox control wraps a listbox (drop down) and an edit control
+	///       child (if it is an editable list box).  The edit control child needs
+	///       to be subclassed in order to handle keyboard events.  Each child control
+	///       posts some notification to the parent combobox control and I use this
+	///       behavior to capture and subclass the child edit control.  This edit control is
+	///       subclassed to this very procedure and so 'hwnd' could be parent combobox or
+	///       child edit control.  Care then, must be taken to differentiate between
+	///       child and parent.  I do this by getting the class name and restricting
+	///       the handling of certain messages to one or the other control type.
+	/// @par Warning
+	///       The drop down list control of a combobox is not a child of the combobox
+	///       it is the child of the desktop so that the list is not clipped by the
+	///       combobox's client area.  Do not sub class it to this procedure since
+	///       doing so will cause the instance data pointer to be reset to NULL!  The
+	///       instance data pointer is attached to the Grid's window.
+	///
+	/// @returns LRESULT depends on message.
+	static LRESULT CALLBACK ComboBox_Proc(HWND hCombo, UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+		HWND hGrid = GetParent(hCombo);
+
+		// Note: Instance data is attached to combo's parent
+		Control_GetInstanceData(hGrid, &g_lpInst);
+
+		if (WM_DESTROY == msg)  //Unsubclass the combobox or child edit control
+		{
+			SetWindowLongPtr(hCombo, GWLP_WNDPROC, (DWORD_PTR)GetProp(hCombo, WPRC));//DWM 1.2: fixed cast
+			RemoveProp(hCombo, WPRC);
+			return 0;
+		}
+		else if (WM_PAINT == msg) // Obliterate border
+		{
+			// First let the system do its thing
+			DefProc(hCombo, msg, wParam, lParam);
+
+			// Next obliterate the border
+			HDC hdc = GetWindowDC(hCombo);
+			RECT rect = {0,0,0,0};
+
+			GetClientRect(hCombo, &rect);
+
+			rect.bottom -= 2;
+			DrawBorder(hdc, &rect, BF_TOPLEFT | BF_BOTTOM, g_lpInst->clrBackground);
+			rect.top += 1;
+			rect.left += 1;
+			DrawBorder(hdc, &rect, BF_TOPLEFT, g_lpInst->clrBackground);
+
+			ReleaseDC(hCombo, hdc);
+			return TRUE;
+		}
+		else if (WM_GETDLGCODE == msg)
+		{
+			return DLGC_WANTALLKEYS;
+		}
+		else if (WM_CHAR == msg && VK_RETURN == wParam)
+		{
+			ShowWindow(hCombo, SW_HIDE);
+			return TRUE;    // handle Enter (NO BELL)
+		}
+		else if (WM_CHAR == msg && VK_TAB == wParam)
+		{
+			if (GetKeyState(VK_SHIFT) & 0x8000)
+			{
+				FORWARD_WM_CHAR(hCombo, VK_RETURN, 0, SNDMSG);
+			}
+			else //Focus to grid parent
+			{
+				ShowWindow(hCombo, SW_HIDE);
+				SetFocus(GetParent(hGrid));
+			}
+			return TRUE;
+		}
+		else if (WM_KEYDOWN == msg)
+		{
+			switch (wParam)
+			{
+				case VK_ESCAPE:
+					ShowWindow(hCombo, SW_HIDE);
+					SetFocus(hGrid);
+					return FALSE;
+			}
+		}
+		return DefProc(hCombo, msg, wParam, lParam);
+	}
+
+	/// @brief Default window procedure for the grid child windows.
+	///
+	/// @param hwnd Handle of grid or child.
+	/// @param msg Which message?
+	/// @param wParam Message parameter.
+	/// @param lParam Message parameter.
+	///
+	/// @returns LRESULT depends on message.
+	static LRESULT DefProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+		return CallWindowProc((WNDPROC)GetProp(hwnd, WPRC), hwnd, msg, wParam, lParam);
+	}
+
+	/// @brief Draw specified borders of a rectangle.
+	///
+	/// @param hdc A handle to a device context.
+	/// @param lprc The address of a RECT structure with drawing coordinates.
+	/// @param dwBorder specifies which borders to draw.
+	/// @param clr The desired line color value.
+	///
+	/// @returns VOID.
+	static VOID DrawBorder(HDC hdc, LPRECT lprc, DWORD dwBorder, COLORREF clr)
+	{
+		LOGPEN oLogPen;
+
+		HPEN hOld;
+		GetObject(hOld = (HPEN)SelectObject(hdc, GetStockObject(BLACK_PEN)), //DWM 1.9 Added cast
+			sizeof(oLogPen), &oLogPen);
+		oLogPen.lopnColor = clr;
+
+		//Don't attempt to delete stock object
+		SelectObject(hdc, CreatePenIndirect(&oLogPen));
+
+		if (dwBorder & BF_LEFT)
+			DrawLine(hdc, lprc->left, lprc->top, lprc->left, lprc->bottom);
+		if (dwBorder & BF_TOP)
+			DrawLine(hdc, lprc->left, lprc->top, lprc->right, lprc->top);
+		if (dwBorder & BF_RIGHT)
+			DrawLine(hdc, lprc->right, lprc->top, lprc->right, lprc->bottom);
+		if (dwBorder & BF_BOTTOM)
+			DrawLine(hdc, lprc->left, lprc->bottom, lprc->right, lprc->bottom);
+
+		DeleteObject(SelectObject(hdc, hOld));
+	}
+
+	/// @brief Draw a line.
+	///
+	/// @param hdc A handle to a device context.
+	/// @param x1 From point x-coordinate.
+	/// @param y1 From point y-coordinate.
+	/// @param x2 To point x-coordinate.
+	/// @param y2 To point y-coordinate.
+	///
+	/// @returns VOID.
+	static VOID DrawLine(HDC hdc, LONG x1, LONG y1, LONG x2, LONG y2)
+	{
+		MoveToEx(hdc, x1, y1, NULL);
+		LineTo(hdc, x2, y2);
+	}
+
 } //namespace mainwind

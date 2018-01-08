@@ -64,6 +64,15 @@ typedef struct tagSGITEM{
     LPARAM lpCurValue;       ///< Item (cell) value
 } SGITEM, *LPSGITEM;
 
+// Constants
+#define VECTOR_INITIAL_CAPACITY 16  ///< Constant
+#define VECTOR_CAPACITY_DELTA 16    ///< Constant
+#define INITIAL_COL_WIDTH 50        ///< Constant
+#define HEIGHT_DESC 80              ///< Constant
+
+//DWM 1.6:Added
+#define CONTEXTCODE_ALT 0x2000      ///< Constant
+
 //MAXCOLUMNS is set to limit column header text to 4 Hexavigesimal digits
 // if grid is configured to display numbered columns.  If the desired max
 // is increased then the call to Alphabetize() in the DisplayColumn() method
@@ -74,6 +83,107 @@ typedef struct tagSGITEM{
 
 #define CHECKED _T("T")             ///< GCT_CHECK checked 
 #define UNCHECKED _T("F")           ///< GCT_CHECK unchecked
+
+/****************************************************************************/
+/// @name Grid notifications.
+/// @{
+
+/// @par Notification 
+///        @b SGN_SELCHANGE code
+///
+/// @par
+///        Notifies a simple grid control's parent window that the selection of 
+///         an item has changed.  This notification code is sent in the form of 
+///         a @b WM_NOTIFY message.
+///
+/// @par lParam 
+///       The pointer an @ref NMGRID struct containing notification data.
+///
+/// @returns No return value. 
+#define SGN_SELCHANGE   0x0003
+
+/// @par Notification 
+///        @b SGN_EDITBEGIN code
+///
+/// @par
+///        Notifies a simple grid control's parent window that an edit operation 
+///         was initiated in an editable item.  This notification code is sent in 
+///         the form of a @b WM_NOTIFY message.
+///
+/// @par lParam 
+///       The pointer an @ref NMGRID struct containing notification data.
+///
+/// @returns No return value. 
+#define SGN_EDITBEGIN   0x0004
+
+/// @par Notification 
+///        @b SGN_EDITEND code
+///
+/// @par
+///        Notifies a simple grid control's parent window that an edit operation 
+///         was compleated in an editable item.  This notification code is sent in 
+///         the form of a @b WM_NOTIFY message.
+///
+/// @par lParam 
+///       The pointer an @ref NMGRID struct containing notification data.
+///
+/// @returns No return value. 
+#define SGN_EDITEND     0x0005
+
+/// @par Notification 
+///        @b SGN_KEYDOWN code
+///
+/// @par
+///        Notifies a simple grid control's parent window that a key has been pressed.
+///         This notification code is sent in the form of a @b WM_NOTIFY message.
+///
+/// @par lParam 
+///       The pointer an @ref NMSGKEYDOWN struct containing notification data.
+///
+/// @returns No return value. 
+#define SGN_KEYDOWN     0x0006
+
+/// @par Notification 
+///        @b SGN_GOTFOCUS code
+///
+/// @par
+///        Notifies a simple grid control's parent window that the grid now 
+///         has keyboard and mouse focus.  This notification code is sent in 
+///         the form of a @b WM_NOTIFY message.
+///
+/// @par lParam 
+///       The pointer an @ref NMSGFOCUS struct containing notification data.
+///
+/// @returns No return value.
+#define SGN_GOTFOCUS    0x0012
+
+/// @par Notification 
+///        @b SGN_LOSTFOCUS code
+///
+/// @par
+///        Notifies a simple grid control's parent window that the grid no longer 
+///         has keyboard and mouse focus.  This notification code is sent in 
+///         the form of a @b WM_NOTIFY message.
+///
+/// @par lParam 
+///       The pointer an @ref NMSGFOCUS struct containing notification data.
+///
+/// @returns No return value.
+#define SGN_LOSTFOCUS   0x0013
+
+/// @par Notification 
+///        @b SGN_ITEMCLICK code
+///
+/// @par
+///        Notifies a simple grid control's parent window that an item in the grid
+///         received a mouse click.  This notification code is sent in 
+///         the form of a @b WM_NOTIFY message.
+///
+/// @par lParam 
+///       The pointer an @ref NMGRID struct containing notification data.
+///
+/// @returns No return value. 
+#define SGN_ITEMCLICK   0x0015
 
 //---------------------------------------------------------------------------
 //! \name Simple Grid messages.

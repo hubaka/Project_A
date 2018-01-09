@@ -64,22 +64,6 @@ namespace grid
 		BOOL fProtected;        ///< Item (cell) protection status
 	} GRIDITEM   , *LPGRIDITEM;
 
-	/// @var NMSGKEYDOWN
-	/// @brief Contains information used in processing the SGN_KEYDOWN notification.
-
-	/// @var LPNMSGKEYDOWN
-	/// @brief Pointer to SGN_KEYDOWN message data
-
-	/// @struct tagNMSGKEYDOWN
-	/// @brief This is the data associated with the SGN_KEYDOWN notification
-	typedef struct tagNMSGKEYDOWN {
-		NMHDR hdr;               ///< Notification message header
-		int col;                 ///< Column number
-		int row;                 ///< Row number
-		DWORD dwType;            ///< Column type (thus cell type) identifier
-		WORD wVKey;              ///< Virtual key code
-	} NMSGKEYDOWN, *LPNMSGKEYDOWN;
-
 	//---------------------------------------------------------------------------
 	//!	\brief A flexable array of objects 
 	//!	\var VECTOR
@@ -106,22 +90,6 @@ namespace grid
 		LPVOID pOptional;       ///< Optional data (ex: combobox choices)
 		LPVECTOR items;         ///< The row cells associated with this column
 	} GRIDCOLUMN   , *LPGRIDCOLUMN;
-
-	/// @var NMGRID
-	/// @brief Contains information used in processing simple grid notifications
-	///         with the exception of SGN_KEYDOWN.
-
-	/// @var LPNMGRID
-	/// @brief Pointer to simple grid notification message data
-
-	/// @struct tagNMGRID
-	/// @brief This is the data associated with a simple grid notification
-	typedef struct tagNMGRID {
-		NMHDR hdr;               ///< Notification message header
-		int col;                 ///< Column number
-		int row;                 ///< Row number
-		DWORD dwType;            ///< Column type (thus cell type) identifier
-	} NMGRID, *LPNMGRID;
 
 	/// @var NMSGFOCUS
 	/// @brief Contains information used in processing the SGN_GOTFOCUS 
@@ -301,6 +269,37 @@ namespace grid
 	static LRESULT DefProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	static VOID DrawBorder(HDC hdc, LPRECT lprc, DWORD dwBorder, COLORREF clr);
 	static VOID DrawLine(HDC hdc, LONG x1, LONG y1, LONG x2, LONG y2);
+	static VOID Grid_OnKillFocus(HWND hwnd, HWND hwndNewFocus);
+	static VOID Grid_OnLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags);
+	static void NotifyLostFocus(HWND hwnd, HWND hwndNewFocus);
+	static int GetColOfMouse(int x);
+	static int GetRowOfMouse(int y);
+	static VOID Grid_OnLButtonUp(HWND hwnd, int x, int y, UINT keyFlags);
+	static VOID Grid_OnMouseMove(HWND hwnd, int x, int y, UINT keyFlags);
+	static VOID Grid_OnMouseWheel(HWND hwnd, int x, int y, int zDelta, UINT keyFlags);
+	static void Grid_OnSetFocus(HWND hwnd, HWND hwndOldFocus);
+	static void NotifyGotFocus(HWND hwnd, HWND hwndOldFocus);
+	static VOID Grid_OnVScroll(HWND hwnd, HWND hwndCtl, UINT code, int pos);
+	static VOID Grid_OnSetText(HWND hwnd, LPCTSTR lpszText);
+	static void Grid_OnSize(HWND hwnd, UINT state, int cx, int cy);
+	static LRESULT Grid_OnInsertRow(HWND hwnd, WPARAM wParam, LPARAM lParam);//DWM 2.1: Added;
+	static LRESULT Grid_OnDeleteRow(HWND hwnd, WPARAM wParam);//DWM 2.1: Added
+	static LRESULT Grid_OnGetItemDataLength(HWND hwnd, WPARAM wParam, LPARAM lParam);
+	static LRESULT Grid_OnGetItemData(HWND hwnd, WPARAM wParam, LPARAM lParam);
+	static LRESULT Grid_OnGetImageList(WPARAM wParam, LPARAM lParam);
+	static LRESULT Grid_OnGetItemProtection(HWND hwnd, WPARAM wParam, LPARAM lParam);
+	static VOID Grid_OnRefresh(HWND hwnd);
+	static VOID Grid_OnResetContent(HWND hwnd);
+	static LRESULT Grid_OnSelectCell(HWND hwnd, INT col, INT row, BOOL fOverwritemode);
+	static LRESULT Grid_OnSetCursorPos(HWND hwnd, WPARAM wParam, LPARAM lParam);
+	static LRESULT Grid_OnSetImageList(WPARAM wParam, LPARAM lParam);
+	static LRESULT Grid_OnSetItemTextAlignment(HWND hwnd, WPARAM wParam, LPARAM lParam);
+	static LRESULT Grid_OnSetItemProtection(HWND hwnd, WPARAM wParam, LPARAM lParam);
+	static void Grid_OnSetRowHeight(HWND hwnd, WPARAM wParam);
+	static void Grid_OnSetTitleHeight(HWND hwnd, WPARAM wParam, LPARAM lParam);
+	static BOOL Vector_Insert(const LPVECTOR pVector, int nPos, PVOID object); //DWM 2.1: Added
+	static BOOL Vector_RemoveAt(const LPVECTOR pVector, int nPos); //DWM 2.1: Added
+	static VOID SetColOptional(INT col, PVOID object);
 
 	/// @def StringArray_Replace(lpszTarget, lpszReplace)
 	///
@@ -454,54 +453,290 @@ namespace grid
 			HANDLE_MSG(hWnd, WM_DESTROY, Grid_OnDestroy);
 			HANDLE_MSG(hWnd, WM_HSCROLL, Grid_OnHScroll);
 			HANDLE_MSG(hWnd, WM_KEYDOWN, Grid_OnKeyDown);
-			HANDLE_MSG(hWnd, WM_SETFONT, Grid_OnSetFont);
+			HANDLE_MSG(hWnd, WM_KILLFOCUS, Grid_OnKillFocus);
+			HANDLE_MSG(hWnd, WM_LBUTTONDOWN, Grid_OnLButtonDown);
+			HANDLE_MSG(hWnd, WM_LBUTTONUP, Grid_OnLButtonUp);
+			HANDLE_MSG(hWnd, WM_MOUSEMOVE, Grid_OnMouseMove);
+			HANDLE_MSG(hWnd, WM_MOUSEWHEEL, Grid_OnMouseWheel);
 			HANDLE_MSG(hWnd, WM_PAINT, Grid_OnPaint);
+			HANDLE_MSG(hWnd, WM_SETFOCUS, Grid_OnSetFocus);
+			HANDLE_MSG(hWnd, WM_SETFONT, Grid_OnSetFont);
+	        HANDLE_MSG(hWnd, WM_SETTEXT, Grid_OnSetText);
+	        HANDLE_MSG(hWnd, WM_SIZE, Grid_OnSize);
+		    HANDLE_MSG(hWnd, WM_VSCROLL, Grid_OnVScroll);
+			        case WM_GETDLGCODE: // If this control is in a dialog
+            return DLGC_WANTALLKEYS; // Send all key presses to this proc
+
+			//
+			//Begin Grid specific messages
+			//
 			case SG_ADDCOLUMN:
-				{
 				return Grid_OnAddColumn(hWnd, wParam, lParam) - 1; // don't include row header column
-				}
-			case SG_SETCOLAUTOWIDTH:
-				{
-					g_lpInst->COLAUTOWIDTH = (BOOL)wParam;
-					break;
-				}
-			case SG_SETROWHEADERWIDTH:
-				{
-					DWORD dwRtn = 0;
-					dwRtn = Grid_OnSetColWidth(hWnd, 0, lParam);
-					return dwRtn;
-				}
-			case SG_SETHEADERROWHEIGHT:
-				{
-					Grid_OnSetHeaderRowHeight(hWnd, wParam, lParam);
-					break;
-				}
-			case SG_SETSELECTIONMODE:
-				{
-					g_lpInst->selectionMode = (DWORD) wParam;
-					g_lpInst->HIGHLIGHTFULLROW = (GSO_FULLROW == g_lpInst->selectionMode);
-					RefreshGrid(hWnd);
-					break;
-				}
 			case SG_ADDROW:
+				return Grid_OnAddRow(hWnd, wParam, lParam) - 1; //don't include the column header row
+			case SG_INSERTROW: //DWM 2.1: Added
+				return Grid_OnInsertRow(hWnd, wParam, lParam);
+			case SG_DELETEROW: //DWM 2.1: Added
+				return Grid_OnDeleteRow(hWnd, wParam) - 1; //don't include the column header row
+			case SG_ENABLEEDIT:
+				g_lpInst->EDITABLE = (BOOL)wParam;
+				break;
+			case SG_EXTENDLASTCOLUMN:
+				g_lpInst->EXTENDLASTCOLUMN = (BOOL)wParam;
+				RefreshGrid(hWnd);
+				break;
+			case SG_GETCOLCOUNT:
+				return ColCount() - 1; // don't include row header column
+			case SG_GETCOLUMNHEADERTEXT:
+			{
+				DWORD dwRtn = 0;
+				SGITEM sgi;
+				sgi.row = 0;
+				sgi.col = wParam + 1; //Skip the row header column
+				dwRtn = Grid_OnGetItemData(hWnd, 0, (LPARAM) & sgi);
+				if(ERROR_SUCCESS == dwRtn)
 				{
-					return Grid_OnAddRow(hWnd, wParam, lParam) - 1; //don't include the column header row
+					_tcscpy((LPTSTR)lParam, (LPTSTR)sgi.lpCurValue);
+					return _tcslen((LPTSTR)lParam);
 				}
+				return dwRtn;
+			}
+			case SG_GETCOLUMNHEADERTEXTLENGTH:
+			{
+				LPGRIDITEM lpgi; //Skip the row header column
+				lpgi = GetCellData((INT) wParam + 1, 0);
+
+				if(NULL != lpgi)
+				{
+					return _tcslen(lpgi->lpszCurValue);
+				}
+				// If we got here we failed
+				SetLastError(ERROR_INVALID_DATA);
+				return SG_ERROR;
+			}
+			case SG_GETCOLUMNTYPE:
+				return GetColType(wParam + 1); //Skip the row header column
+			case SG_GETCOLWIDTH:
+			{
+				INT iCol = wParam + 1; //Skip the row header column
+				if (iCol > ColCount())
+				{
+					SetLastError(ERROR_INVALID_INDEX);
+					return SG_ERROR;
+				}
+				return GetColWidth(iCol);
+			}
+			case SG_GETCURSORCOL:
+				return g_lpInst->cursorcol - 1; // don't include row header column
+			case SG_GETCURSORROW:
+				return g_lpInst->cursorrow - 1; // don't include row header column
+			case SG_GETHEADERROWHEIGHT:
+				return g_lpInst->headerrowheight;
+			case SG_GETIMAGELIST:
+				return Grid_OnGetImageList(wParam, lParam);
+			case SG_GETITEMDATA:
+			{
+				DWORD dwRtn = 0;
+				((LPSGITEM)lParam)->col++; // don't include row header column
+				((LPSGITEM)lParam)->row++; // don't include column header row
+				dwRtn = Grid_OnGetItemData(hWnd, wParam, lParam);
+				((LPSGITEM)lParam)->col--; // restore initial index
+				((LPSGITEM)lParam)->row--; // restore initial index
+				return dwRtn;
+			}
+			case SG_GETITEMDATALENGTH:
+				return Grid_OnGetItemDataLength(hWnd, wParam + 1, lParam + 1);
+			case SG_GETITEMPROTECTION:
+				return Grid_OnGetItemProtection(hWnd, wParam + 1, lParam + 1);
+			case SG_GETROWCOUNT:    // but don't include col headers
+				return RowCount() - 1;
+			case SG_GETROWHEADERTEXT:
+			{
+				DWORD dwRtn = 0;
+				SGITEM sgi;
+				sgi.row = wParam + 1; //Skip the column header row
+				sgi.col = 0;
+				dwRtn = Grid_OnGetItemData(hWnd, 0, (LPARAM) & sgi);
+				if(ERROR_SUCCESS == dwRtn)
+				{
+					_tcscpy((LPTSTR)lParam, (LPTSTR)sgi.lpCurValue);
+					return _tcslen((LPTSTR)lParam);
+				}
+				return dwRtn;
+			}
+			case SG_GETROWHEADERTEXTLENGTH:
+			{
+				LPGRIDITEM lpgi; //Skip the column header row
+				lpgi = GetCellData(0, (INT) wParam + 1);
+
+				if(NULL != lpgi)
+				{
+					return _tcslen(lpgi->lpszCurValue);
+				}
+				// If we got here we failed
+				SetLastError(ERROR_INVALID_DATA);
+				return SG_ERROR;
+			}
+			case SG_GETROWHEIGHT:
+				return g_lpInst->rowheight;
+			case SG_REFRESHGRID:
+				Grid_OnRefresh(hWnd);
+				break;
+			case SG_RESETCONTENT:
+				Grid_OnResetContent(hWnd);
+				break;
+			case SG_SELECTCELL:
+				return Grid_OnSelectCell(hWnd, 
+					((LPSGITEM)lParam)->col + 1, // don't include row header column
+					((LPSGITEM)lParam)->row + 1, // don't include column header row
+					(BOOL)wParam);
+				break;
+			case SG_SETALLOWCOLRESIZE:
+				g_lpInst->ALLOWCOLUMNRESIZING = (BOOL)wParam;
+				break;
+			case SG_SETCOLAUTOWIDTH:
+				g_lpInst->COLAUTOWIDTH = (BOOL)wParam;
+				break;
+			case SG_SETCOLSNUMBERED:
+			{
+				g_lpInst->COLUMNSNUMBERED = (BOOL)wParam;
+
+				//adjust the column width if necessary
+				LPGRIDITEM lpi = GetCellData(g_lpInst->cursorcol, 0);
+				if(NULL != lpi)
+				{
+					AdjustParentColWidth(hWnd, g_lpInst->cursorcol, 
+						0, (LPTSTR) lpi->lpszCurValue);
+				}
+				RefreshGrid(hWnd);
+			}
+				break;
+			case SG_SETCOLUMNHEADERTEXT:
+			{
+				SGITEM sgi;
+				sgi.row = 0;
+				sgi.col = wParam + 1; //Skip the row header column
+				sgi.lpCurValue = lParam;
+				return Grid_OnSetItemData(hWnd, 0, (LPARAM) & sgi);
+			}
+			case SG_SETCOLWIDTH:
+				//Skip the row header column
+				return Grid_OnSetColWidth(hWnd, wParam + 1, lParam);
+			case SG_SETCURSORPOS:
+				// don't include row header column and column header row
+				return Grid_OnSetCursorPos(hWnd, (WPARAM)(wParam + 1), (LPARAM)(lParam + 1));
+			case SG_SETDOUBLEBUFFER:
+				g_lpInst->DOUBLEBUFFER = (BOOL)wParam;
+				break;
+			case SG_SETELLIPSIS:
+				g_lpInst->ELLIPSIS = (BOOL)wParam;
+				RefreshGrid(hWnd);
+				break;
+			case SG_SETGRIDLINECOLOR:
+				g_lpInst->clrGridline = (COLORREF)wParam;
+				RefreshGrid(hWnd);
+				break;
+			case SG_SETHEADERROWHEIGHT:
+				Grid_OnSetHeaderRowHeight(hWnd, wParam, lParam);
+				break;
+			case SG_SETHEADINGFONT:
+				g_lpInst->hcolumnheadingfont = (HFONT)wParam;
+				RefreshGrid(hWnd);
+				break;
+			case SG_SETHILIGHTCOLOR:
+				g_lpInst->clrHighlight = (COLORREF)wParam;
+				RefreshGrid(hWnd);
+				break;
+			case SG_SETHILIGHTTEXTCOLOR:
+				g_lpInst->clrHighlightText = (COLORREF)wParam;
+				RefreshGrid(hWnd);
+				break;
+			case SG_SETIMAGELIST:
+				// don't include row header column
+				return Grid_OnSetImageList((WPARAM)(wParam + 1), lParam);
 			case SG_SETITEMDATA:
+			{
+				DWORD dwRtn = 0;
+				((LPSGITEM)lParam)->col++; // don't include row header column
+				((LPSGITEM)lParam)->row++; // don't include column header row
+				dwRtn = Grid_OnSetItemData(hWnd, wParam, lParam);
+				((LPSGITEM)lParam)->col--; // restore initial index
+				((LPSGITEM)lParam)->row--; // restore initial index
+				return dwRtn;
+			}
+			case SG_SETITEMTEXTALIGNMENT:
+			{
+				INT iRtn = 0;
+				((LPSGITEM)lParam)->col++; // don't include row header column
+				((LPSGITEM)lParam)->row++; // don't include column header row
+				iRtn = Grid_OnSetItemTextAlignment(hWnd, wParam, lParam);
+				((LPSGITEM)lParam)->col--; // restore initial index
+				((LPSGITEM)lParam)->row--; // restore initial index
+				return iRtn;
+			}
+			case SG_SETITEMPROTECTION:
+			{
+				DWORD dwRtn = 0;
+				((LPSGITEM)lParam)->col++; // don't include row header column
+				((LPSGITEM)lParam)->row++; // don't include column header row
+				dwRtn = Grid_OnSetItemProtection(hWnd, wParam, lParam);
+				((LPSGITEM)lParam)->col--; // restore initial index
+				((LPSGITEM)lParam)->row--; // restore initial index
+				return dwRtn;
+			}
+			case SG_SETPROTECTCOLOR:
+				g_lpInst->clrProtect = (COLORREF)wParam;
+				RefreshGrid(hWnd);
+				break;
+			case SG_SETROWHEADERTEXT:
+			{
+				SGITEM sgi;
+				sgi.row = wParam + 1; //Skip the column header row
+				sgi.col = 0;
+				sgi.lpCurValue = lParam;
+				return Grid_OnSetItemData(hWnd, 0, (LPARAM) & sgi);
+			}
+			case SG_SETROWHEADERWIDTH:
+			{
+				DWORD dwRtn = 0;
+				dwRtn = Grid_OnSetColWidth(hWnd, 0, lParam);
+				return dwRtn;
+			}
+			case SG_SETROWHEIGHT:
+				Grid_OnSetRowHeight(hWnd, wParam);
+				break;
+			case SG_SETROWSNUMBERED:
+			{
+				g_lpInst->ROWSNUMBERED = (BOOL)wParam;
+
+				//adjust the column width if necessary
+				LPGRIDITEM lpi = GetCellData(0, g_lpInst->cursorrow);
+				if(NULL != lpi)
 				{
-					DWORD dwRtn = 0;
-					((LPSGITEM)lParam)->col++; // don't include row header column
-					((LPSGITEM)lParam)->row++; // don't include column header row
-					dwRtn = Grid_OnSetItemData(hWnd, wParam, lParam);
-					((LPSGITEM)lParam)->col--; // restore initial index
-					((LPSGITEM)lParam)->row--; // restore initial index
-					return dwRtn;
+					AdjustParentColWidth(hWnd, 0, 
+						g_lpInst->cursorrow, (LPTSTR) lpi->lpszCurValue);
 				}
-			case WM_GETDLGCODE: // If this control is in a dialog
-				{
-					return DLGC_WANTALLKEYS; // Send all key presses to this proc
-				}
-		}
+				RefreshGrid(hWnd);
+			}
+				break;
+			case SG_SETSELECTIONMODE:
+				g_lpInst->selectionMode = (DWORD) wParam;
+				g_lpInst->HIGHLIGHTFULLROW = GSO_FULLROW == g_lpInst->selectionMode;
+				RefreshGrid(hWnd);
+				break;
+			case SG_SETTITLEFONT:
+				g_lpInst->htitlefont = (HFONT)wParam;
+				RefreshGrid(hWnd);
+				break;
+			case SG_SETTITLEHEIGHT:
+				Grid_OnSetTitleHeight(hWnd, wParam, lParam);
+				break;
+
+			case SG_SHOWINTEGRALROWS:
+				g_lpInst->SHOWINTEGRALROWS = (BOOL)wParam;
+				RefreshGrid(hWnd);
+				break;
+			}
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
 
@@ -3250,6 +3485,1292 @@ namespace grid
 	{
 		MoveToEx(hdc, x1, y1, NULL);
 		LineTo(hdc, x2, y2);
+	}
+
+	/// @brief Handle WM_KILLFOCUS message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param hwndNewFocus Handle of the window that recieved focus.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnKillFocus(HWND hwnd, HWND hwndNewFocus)
+	{
+		g_lpInst->GRIDHASFOCUS = FALSE;
+
+		NotifyLostFocus(hwnd, hwndNewFocus);
+		RefreshGrid(hwnd);
+	}
+
+	/// @brief Handles WM_LBUTTONDOWN message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param fDoubleClick TRUE if this is a double click event.
+	/// @param x The xpos of the mouse.
+	/// @param y The ypos of the mouse.
+	/// @param keyFlags Set if certain keys down at time of click.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
+	{
+		int r, c;
+		BOOL fClickSelect = FALSE;
+
+		//check for column sizing
+		if (g_lpInst->cursortype == 2)
+		{
+			int t, z;
+			//start column sizing
+			if (!g_lpInst->COLUMNSIZING)
+			{
+				g_lpInst->REMEMBERINTEGRALROWS = g_lpInst->SHOWINTEGRALROWS;
+			}
+			g_lpInst->COLUMNSIZING = TRUE;
+			g_lpInst->SHOWINTEGRALROWS = FALSE;
+
+			//DWM 1.9: Removed unnecessary call to hide editor
+			//DWM 2.0: Added code to remove button during resize
+			if (NULL != g_lpInst->hwndControl)
+			{
+				if(ID_BUTTON == GetWindowLong(g_lpInst->hwndControl, GWLP_ID))
+				{
+					DestroyWindow(g_lpInst->hwndControl);
+					g_lpInst->hwndControl = NULL;
+				}
+			}
+
+			g_lpInst->columntoresizeinitx = x;
+			t = GetColOfMouse(x + 10);
+			z = GetColOfMouse(x - 10);
+			c = GetColOfMouse(x);
+			if (t != c)
+			{
+				//resizing column c
+				g_lpInst->columntoresize = c;
+			}
+			if (z != c)
+			{
+				//resizing hidden column to the left of cursor
+				if (c == -1)
+				{
+					c = ColCount();
+				}
+				else
+				{
+					c -= 1;
+				}
+				g_lpInst->columntoresize = c;
+			}
+
+			g_lpInst->columntoresizeinitsize = GetColWidth(c);
+		}
+
+		SetFocus(hwnd);
+
+		BOOL NCC = FALSE;
+
+		//DWM 1.5: Finish edit
+		FORWARD_WM_CHAR(g_lpInst->hwndControl, VK_RETURN, 0, SNDMSG);
+
+		if (GetFocus() == hwnd)
+		{
+			r = GetRowOfMouse(y);
+			c = GetColOfMouse(x);
+
+			if(c == 0 && GSO_ROWHEADER == g_lpInst->selectionMode)
+			{
+				g_lpInst->HIGHLIGHTFULLROW = TRUE;
+				g_lpInst->cursorrow = r;
+				RefreshGrid(hwnd);
+				return;
+			}
+
+			if ((r > 0) && (c > 0))
+			{
+				if(GSO_ROWHEADER == g_lpInst->selectionMode &&
+					g_lpInst->HIGHLIGHTFULLROW)
+				{
+					//We selected off the row header so turn the hilight off
+					g_lpInst->HIGHLIGHTFULLROW = FALSE;
+				}
+				if (r != g_lpInst->cursorrow)
+				{
+					g_lpInst->cursorrow = r;
+					NCC = TRUE;
+				}
+				else
+				{
+					g_lpInst->cursorrow = r;
+				}
+				if (c != g_lpInst->cursorcol)
+				{
+					g_lpInst->cursorcol = c;
+					NCC = TRUE;
+				}
+				else
+				{
+					g_lpInst->cursorcol = c;
+				}
+			}
+			if (NCC)
+			{
+				NotifySelChange(hwnd);
+			}
+
+			SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+			SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+			RefreshGrid(hwnd);
+
+			fClickSelect = GCT_BUTTON == GetColType(g_lpInst->cursorcol) ||
+						GCT_COMBO == GetColType(g_lpInst->cursorcol) ||
+						GCT_CHECK == GetColType(g_lpInst->cursorcol);
+
+			// if not resizing or else over a link with hand cursor
+			if((fClickSelect && 1 == g_lpInst->cursortype) ||
+			   ((GCT_LINK == GetColType(g_lpInst->cursorcol) && 3 == g_lpInst->cursortype)))
+			{
+				//Send keydown to select control
+				FORWARD_WM_KEYDOWN(hwnd,VK_SPACE,0,0,SNDMSG);
+
+				//Send click down to control
+				FORWARD_WM_LBUTTONDOWN(g_lpInst->hwndControl,fDoubleClick,x,y,keyFlags,SNDMSG);
+			}
+		}
+		else
+		{
+			SetFocus(hwnd);
+		}
+	}
+
+	/// @brief Notify Parent that the grid lost focus.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param hwndNewFocus Handle of window receiving focus
+	///
+	/// @returns VOID
+	static void NotifyLostFocus(HWND hwnd, HWND hwndNewFocus)
+	{
+		g_nmSGFocus.col = g_lpInst->cursorcol - 1;
+		g_nmSGFocus.row = g_lpInst->cursorrow - 1;
+		g_nmSGFocus.dwType = GetColType(g_lpInst->cursorcol);
+		g_nmSGFocus.hFocus = hwndNewFocus;
+		g_nmSGFocus.hdr.hwndFrom = hwnd;
+		g_nmSGFocus.hdr.idFrom = GetDlgCtrlID(g_nmGrid.hdr.hwndFrom);
+		g_nmSGFocus.hdr.code = SGN_LOSTFOCUS;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmSGFocus.hdr.idFrom, &g_nmSGFocus, SNDMSG);
+	}
+
+	/// @brief Gets the column of the mouse pointer.
+	///
+	/// @param x The x coordinate of the mouse pointer
+	///
+	/// @returns The col number of the mouse pointer if successful, otherwise SG_ERROR
+	static int GetColOfMouse(int x)
+	{
+		int ReturnValue;
+		int j;
+		int colCount = ColCount();
+
+		if (x <= GetColWidth(0))
+		{
+			return 0;   //Col 0 row headers
+		}
+
+		x -= GetColWidth(0);
+
+		j = g_lpInst->homecol;
+		while ((j < colCount) && (x > 0))
+		{
+			x -= GetColWidth(j);
+			j++;
+		}
+		j--;
+
+		ReturnValue = j;
+		if (g_lpInst->EXTENDLASTCOLUMN)
+		{
+			if (j > colCount)
+			{
+				ReturnValue = colCount;
+			}
+		}
+		else
+		{
+			if (j > colCount)
+			{
+				SetLastError(ERROR_INVALID_INDEX);
+				ReturnValue = SG_ERROR;
+			}
+		}
+		return ReturnValue;
+	}
+
+	/// @brief Gets the row of the mouse pointer.
+	///
+	/// @param y The y coordinate of the mouse pointer
+	///
+	/// @returns The row number of the mouse pointer if successful, otherwise SG_ERROR
+	static int GetRowOfMouse(int y)
+	{
+		int ReturnValue;
+		if (y <= (g_lpInst->titleheight))
+		{
+			return -1;
+		}
+		if ((y >= g_lpInst->titleheight) && (y <= g_lpInst->headerrowheight + g_lpInst->titleheight))
+		{
+			return 0;   //Row 0
+		}
+
+
+		y = y - (g_lpInst->headerrowheight + g_lpInst->titleheight);
+		y = y / g_lpInst->rowheight;
+		ReturnValue = g_lpInst->homerow + y;
+		if (ReturnValue > RowCount() - 1)
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			ReturnValue = SG_ERROR;
+		}
+		return ReturnValue;
+	}
+
+	/// @brief Handles WM_LBUTTONUP message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param x The xpos of the mouse.
+	/// @param y The ypos of the mouse.
+	/// @param keyFlags Set if certain keys down at time of click.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnLButtonUp(HWND hwnd, int x, int y, UINT keyFlags)
+	{
+		if (g_lpInst->COLUMNSIZING)
+		{
+			g_lpInst->COLUMNSIZING = FALSE;
+			SetCursor(LoadCursor(NULL, IDC_ARROW));
+			g_lpInst->cursortype = 1;
+			g_lpInst->SHOWINTEGRALROWS = g_lpInst->REMEMBERINTEGRALROWS;
+
+			//DWM 1.9: Removed unnecessary call to restore editor
+		}
+	}
+
+	/// @brief Handles WM_MOUSEMOVE message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param x The xpos of the mouse.
+	/// @param y The ypos of the mouse.
+	/// @param keyFlags Set if certain keys down at time of move.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnMouseMove(HWND hwnd, int x, int y, UINT keyFlags)
+	{
+		int r, c, t, z;
+		r = GetRowOfMouse(y);
+		c = GetColOfMouse(x);
+		t = GetColOfMouse(x + 10);
+		z = GetColOfMouse(x - 10);
+
+		if (g_lpInst->COLUMNSIZING)
+		{
+			int dx, nx, cr;
+			dx = x - g_lpInst->columntoresizeinitx;
+			nx = g_lpInst->columntoresizeinitsize + dx;
+			if (nx <= 0)
+			{
+				nx = 0;
+			}
+			cr = g_lpInst->columntoresize;
+
+			Grid_OnSetColWidth(hwnd, (WPARAM) cr, (LPARAM) nx);
+		}
+		if ((r == 0) && (c >= -1) && ((t != c) || (z != c)) && (!g_lpInst->COLUMNSIZING))
+		{
+			if ((g_lpInst->cursortype != 2) && (g_lpInst->ALLOWCOLUMNRESIZING))
+			{
+				g_lpInst->cursortype = 2;
+				SetCursor(LoadCursor(NULL, IDC_SIZEWE));
+			}
+		}
+		else if (GCT_LINK == GetColType(c) && (!g_lpInst->COLUMNSIZING) && 0 < r)
+		{
+			RECT rcTxt = {0,0,0,0};
+			RECT rcHitBox = {0,0,0,0};
+
+			//Get rectangle for text
+			LPGRIDITEM lpgi = GetCellData(c, r);
+
+			if(NULL != lpgi)
+			{
+				HDC hdc = GetDC(hwnd);
+				DrawText(hdc, lpgi->lpszCurValue, _tcslen(lpgi->lpszCurValue), &rcTxt, DT_CALCRECT | DT_LEFT);
+				ReleaseDC(hwnd, hdc);
+
+				GetCellRect(hwnd, c, r, &rcHitBox);
+
+				//Calculate a hit box for hand cursor
+				if(HEIGHT(rcTxt) <= HEIGHT(rcHitBox))
+				{
+					rcHitBox.top += ((HEIGHT(rcHitBox) / 2) - (HEIGHT(rcTxt) / 2));
+					rcHitBox.bottom = rcHitBox.top + HEIGHT(rcTxt);
+				}
+				if(WIDTH(rcTxt) <= WIDTH(rcHitBox))
+				{
+					//rcHitBox.left += ((WIDTH(rcHitBox) / 2) - (WIDTH(rcTxt) / 2)); //Centered text
+					rcHitBox.right = rcHitBox.left + WIDTH(rcTxt);
+				}
+				if((rcHitBox.left <= x) && (x <= rcHitBox.right) && 
+					(rcHitBox.top <= y) && (y <= rcHitBox.bottom))
+				{
+					if(3 != g_lpInst->cursortype)
+					{
+						g_lpInst->cursortype = 3;
+						SetCursor(LoadCursor(NULL, IDC_HAND));
+					}
+				}
+				else // We wandered out of the box
+				{
+					if(1 != g_lpInst->cursortype)
+					{
+						g_lpInst->cursortype = 1;
+						SetCursor(LoadCursor(NULL, IDC_ARROW));
+					}
+				}
+			}
+		}
+		else if ((g_lpInst->cursortype != 1) && (!g_lpInst->COLUMNSIZING))
+		{
+			g_lpInst->cursortype = 1;
+			SetCursor(LoadCursor(NULL, IDC_ARROW));
+		}
+	}
+
+	/// @brief Handles WM_MOUSEWHEEL message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param x The xpos of the mouse.
+	/// @param y The ypos of the mouse.
+	/// @param zDelta The delta of the mouse wheel (rotation distance)
+	/// @param keyFlags Set if certain keys down at time of move.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnMouseWheel(HWND hwnd, int x, int y, int zDelta, UINT keyFlags)
+	{
+		UINT code = 0; 
+		UINT uScrollLines = 3;
+		SystemParametersInfo(SPI_GETWHEELSCROLLLINES,0, &uScrollLines, 0);
+
+		/* if scrolling changes direction, ignore left overs */
+		if ((zDelta < 0 && g_lpInst->cWheelRemainder < 0) ||
+			(zDelta > 0 && g_lpInst->cWheelRemainder > 0))
+			g_lpInst->cWheelRemainder += zDelta;
+		else
+			g_lpInst->cWheelRemainder = zDelta;
+		if (g_lpInst->cWheelRemainder && uScrollLines)
+		{
+			int cLineScroll;
+			cLineScroll = (int) (uScrollLines * (float)g_lpInst->cWheelRemainder / WHEEL_DELTA);
+			g_lpInst->cWheelRemainder -= WHEEL_DELTA * cLineScroll / (int)uScrollLines;
+
+			if(zDelta < 0)
+			{
+				code = keyFlags & MK_SHIFT ?  SB_PAGEDOWN : SB_LINEDOWN;
+			}
+			else
+			{
+				code = keyFlags & MK_SHIFT ?  SB_PAGEUP : SB_LINEUP;
+			}
+			Grid_OnVScroll(hwnd, NULL, code, -cLineScroll);      
+		}
+	}
+
+	/// @brief Handle WM_SETFOCUS message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param hwndOldFocus Handle if the window that has lost the keyboard focus.
+	///
+	/// @returns VOID.
+	static void Grid_OnSetFocus(HWND hwnd, HWND hwndOldFocus)
+	{
+		g_lpInst->GRIDHASFOCUS = TRUE;
+		SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+		SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+
+		NotifyGotFocus(hwnd, hwndOldFocus);
+		{
+			TEXTMETRIC tm;
+			HDC hdc;
+			hdc = GetDC(hwnd);
+			GetTextMetrics(hdc, &tm);
+			ReleaseDC(hwnd, hdc);
+			g_lpInst->fontascentheight = (int)tm.tmAscent;
+		}
+		RefreshGrid(hwnd);
+	}
+
+	/// @brief Notify Parent that the grid got focus.
+	///
+	/// @param hwnd Handle of the grid
+	/// @param hwndOldFocus Handle of window losing focus
+	///
+	/// @returns VOID
+	static void NotifyGotFocus(HWND hwnd, HWND hwndOldFocus)
+	{
+		g_nmSGFocus.col = g_lpInst->cursorcol - 1;
+		g_nmSGFocus.row = g_lpInst->cursorrow - 1;
+		g_nmSGFocus.dwType = GetColType(g_lpInst->cursorcol);
+		g_nmSGFocus.hFocus = hwndOldFocus;
+		g_nmSGFocus.hdr.hwndFrom = hwnd;
+		g_nmSGFocus.hdr.idFrom = GetDlgCtrlID(g_nmGrid.hdr.hwndFrom);
+		g_nmSGFocus.hdr.code = SGN_GOTFOCUS;
+		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmSGFocus.hdr.idFrom, &g_nmSGFocus, SNDMSG);
+	}
+
+	/// @brief Handles WM_VSCROLL message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param hwndCtl If this message is sent by a scroll bar control,
+	///                 this parameter is the handle to the scroll bar control.
+	///                However in this case the message was sent by a standard
+	///                 scroll bar, thus this parameter is NULL.
+	/// @param code The scroll bar value that indicates the user's scrolling request.
+	/// @param pos The current position of the scroll box if the @b code is
+	///             SB_THUMBPOSITION or SB_THUMBTRACK
+	///
+	/// @returns VOID
+	static VOID Grid_OnVScroll(HWND hwnd, HWND hwndCtl, UINT code, int pos)
+	{
+		SetFocus(hwnd);
+		if (code == SB_THUMBTRACK)
+		{
+			RECT gridrect = {0,0,0,0};
+
+			int min, max;
+			g_lpInst->homerow = pos;
+			SetScrollPos(hwnd, SB_VERT, pos, TRUE);
+			GetClientRect(hwnd, &gridrect);
+			GetScrollRange(hwnd, SB_VERT, &min, &max);
+			if (code == max)
+			{
+				gridrect.top = gridrect.bottom - (g_lpInst->rowheight);
+				InvalidateRect(hwnd, &gridrect, TRUE);
+			}
+			else
+			{
+				InvalidateRect(hwnd, &gridrect, FALSE);
+			}
+		}
+		if (code == SB_PAGEDOWN)
+		{
+			RECT gridrect = {0,0,0,0};
+
+			int min, max, sp, rpp;
+			//get rows per page
+			GetClientRect(hwnd, &gridrect);
+			rpp = (gridrect.bottom - (g_lpInst->headerrowheight + g_lpInst->titleheight)) / g_lpInst->rowheight;
+			GetScrollRange(hwnd, SB_VERT, &min, &max);
+			sp = GetScrollPos(hwnd, SB_VERT);
+			sp += rpp;
+			if (sp > max)
+			{
+				sp = max;
+			}
+			g_lpInst->homerow = sp;
+			SetScrollPos(hwnd, SB_VERT, sp, TRUE);
+			SetHomeRow(hwnd, g_lpInst->homecol, sp);
+			if (sp == max)
+			{
+				gridrect.top = gridrect.bottom - (g_lpInst->rowheight);
+				InvalidateRect(hwnd, &gridrect, TRUE);
+			}
+			else
+			{
+				InvalidateRect(hwnd, &gridrect, FALSE);
+			}
+		}
+		if (code == SB_LINEDOWN)
+		{
+			RECT gridrect = {0,0,0,0};
+
+			int min, max, sp;
+			//get rows per page
+			GetClientRect(hwnd, &gridrect);
+			GetScrollRange(hwnd, SB_VERT, &min, &max);
+			sp = GetScrollPos(hwnd, SB_VERT);
+			sp += 1;
+			if (sp > max)
+			{
+				sp = max;
+			}
+			g_lpInst->homerow = sp;
+			SetScrollPos(hwnd, SB_VERT, sp, TRUE);
+			SetHomeRow(hwnd, g_lpInst->homecol, sp);
+			if (sp == max)
+			{
+				gridrect.top = gridrect.bottom - (g_lpInst->rowheight);
+				InvalidateRect(hwnd, &gridrect, TRUE);
+			}
+			else
+			{
+				InvalidateRect(hwnd, &gridrect, FALSE);
+			}
+		}
+		if (code == SB_PAGEUP)
+		{
+			RECT gridrect = {0,0,0,0};
+
+			int min, max, sp, rpp;
+			//get rows per page
+			GetClientRect(hwnd, &gridrect);
+			rpp = (gridrect.bottom - (g_lpInst->headerrowheight + g_lpInst->titleheight)) / g_lpInst->rowheight;
+			GetScrollRange(hwnd, SB_VERT, &min, &max);
+			sp = GetScrollPos(hwnd, SB_VERT);
+			sp -= rpp;
+			if (sp < 1)
+			{
+				sp = 1;
+			}
+			g_lpInst->homerow = sp;
+			SetScrollPos(hwnd, SB_VERT, sp, TRUE);
+			SetHomeRow(hwnd, g_lpInst->homecol, sp);
+			if (sp == max)
+			{
+				gridrect.top = gridrect.bottom - (g_lpInst->rowheight);
+				InvalidateRect(hwnd, &gridrect, TRUE);
+			}
+			else
+			{
+				InvalidateRect(hwnd, &gridrect, FALSE);
+			}
+		}
+		if (code == SB_LINEUP)
+		{
+			RECT gridrect = {0,0,0,0};
+
+			int min, max, sp;
+			//get rows per page
+			GetClientRect(hwnd, &gridrect);
+			sp = GetScrollPos(hwnd, SB_VERT);
+			GetScrollRange(hwnd, SB_VERT, &min, &max);
+			sp -= 1;
+			if (sp < 1)
+			{
+				sp = 1;
+			}
+			g_lpInst->homerow = sp;
+			SetScrollPos(hwnd, SB_VERT, sp, TRUE);
+			SetHomeRow(hwnd, g_lpInst->homecol, sp);
+			if (sp == max)
+			{
+				gridrect.top = gridrect.bottom - (g_lpInst->rowheight);
+				InvalidateRect(hwnd, &gridrect, TRUE);
+			}
+			else
+			{
+				InvalidateRect(hwnd, &gridrect, FALSE);
+			}
+		}
+		RefreshGrid(hwnd);
+	}
+
+	/// @brief Handle WM_SETTEXT message.
+	///
+	/// @param hwnd Handle of grid.
+	/// @param lpszText A pointer to a null-terminated string that is the window text.
+	///
+	/// @returns VOID.
+	static VOID Grid_OnSetText(HWND hwnd, LPCTSTR lpszText)
+	{
+		int j, linecount;
+		SIZE size = {0,0};
+		HDC gdc;
+		HFONT holdfont;
+		String_Replace(g_lpInst->title, (LPTSTR)lpszText);
+
+		gdc = GetDC(hwnd);
+		//get linecount of title;
+		if (_tcslen(g_lpInst->title) > 0)
+		{
+			linecount = 1;
+			for (j = 0; j < (int)_tcslen(g_lpInst->title); j++)
+			{
+				if (g_lpInst->title[j] == _T('\n'))
+				{
+					linecount++;
+				}
+
+			}
+			holdfont = (HFONT)SelectObject(gdc, g_lpInst->htitlefont);
+			GetTextExtentPoint32(gdc, g_lpInst->title, _tcslen(g_lpInst->title), &size);
+			SelectObject(gdc, holdfont);
+			g_lpInst->titleheight = (int)((size.cy * 1.2) * linecount);
+		}
+		else
+		{
+			//no title
+			g_lpInst->titleheight = 0;
+		}
+		ReleaseDC(hwnd, gdc);
+		RefreshGrid(hwnd);
+	}
+
+	/// @brief Handles WM_SIZE message.
+	///
+	/// @param hwnd  Handle of grid.
+	/// @param state Specifies the type of resizing requested.
+	/// @param cx The width of client area.
+	/// @param cy The height of client area.
+	///
+	/// @returns VOID.
+	static void Grid_OnSize(HWND hwnd, UINT state, int cx, int cy)
+	{
+		static int cheight;
+		static int savewidth, saveheight;
+		int intout;
+
+		if (g_lpInst->SIZING)
+		{
+			g_lpInst->SIZING = FALSE;
+			return;
+		}
+		ShowHscroll(hwnd);
+		ShowVscroll(hwnd);
+
+		if ((g_lpInst->SHOWINTEGRALROWS) && (g_lpInst->VSCROLL))
+		{
+			saveheight = cy;
+			savewidth = cx;
+			cheight = cy;
+			cheight -= g_lpInst->titleheight;
+			cheight -= g_lpInst->headerrowheight;
+
+			{
+				int sbheight;
+				sbheight = GetSystemMetrics(SM_CYHSCROLL);
+				if (g_lpInst->HSCROLL)
+				{
+					cheight -= sbheight;
+				}
+				if (g_lpInst->VSCROLL)
+				{
+					RECT grect, prect;
+					GetClientRect(hwnd, &grect);
+					GetClientRect(GetParent(hwnd), &prect);
+					if ((grect.right + sbheight) < prect.right)
+					{
+						savewidth += sbheight;
+					}
+				}
+
+			}
+			if (cheight <= g_lpInst->rowheight)
+			{
+				return;
+			}
+			else
+			{
+				//calculate fractional part of cheight/rowheight
+				int remainder, nrows;
+				nrows = (int)(cheight / g_lpInst->rowheight);
+				remainder = cheight - (nrows * g_lpInst->rowheight);
+				//make the window remainder pixels shorter
+				saveheight -= remainder;
+				saveheight += 4;    //+=4
+				intout = saveheight;
+				WINDOWPLACEMENT wp;
+				RECT crect = {0,0,0,0};
+				wp.length = sizeof(wp);
+				GetWindowPlacement(hwnd, &wp);
+				crect = wp.rcNormalPosition;
+				crect.bottom = intout;
+				crect.right = savewidth;
+				g_lpInst->SIZING = TRUE;
+
+				MoveWindow(hwnd, crect.left, crect.top, crect.right, crect.bottom, TRUE);
+			}
+		}
+		// Make sure the extended column gets redrawn
+		RECT rect = {0,0,0,0};
+		GetClientRect(hwnd, &rect);
+		InvalidateRect(hwnd, &rect, FALSE);
+	}
+
+	/// @brief Handles SG_INSERTROW message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam  position where to insert the row
+	/// @param lParam The Column header text string
+	///
+	/// @returns position if successful, otherwise SG_ERROR 
+	static LRESULT Grid_OnInsertRow(HWND hwnd, WPARAM wParam, LPARAM lParam)//DWM 2.1: Added
+	{
+		// Author: Ferenc Hechler
+		int nPos = wParam + 1;
+		BOOL fSuccess = FALSE;
+		LPTSTR tempStr;
+		LPVECTOR temp;
+		LPGRIDITEM lpgi;
+		int nCols = ColCount();
+	 
+		if (0 < nCols)
+		{
+			// Insert Row header
+			temp = ((LPGRIDCOLUMN)Vector_Get(g_lpInst->data, 0))->items;
+			tempStr = (LPTSTR)lParam;
+			lpgi = createNewItem(tempStr);
+			fSuccess = Vector_Insert(temp, nPos, lpgi);
+			if (fSuccess)   // Insert an empty row
+			{
+				for (int i = 1; i < nCols; ++i)
+				{
+					temp = ((LPGRIDCOLUMN)Vector_Get(g_lpInst->data, i))->items;
+					lpgi = createNewItem(_T(""));
+					fSuccess = Vector_Insert(temp, nPos, lpgi);
+					if (!fSuccess)
+					{
+						break;
+					}
+				}
+			}
+		}
+		if (fSuccess)
+		{
+			return nPos;
+		}
+		else
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+	}
+
+	/// @brief Handles SG_DELETEROW message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam  The position of the row to delete
+	///
+	/// @returns number of rows if successful, otherwise SG_ERROR 
+	static LRESULT Grid_OnDeleteRow(HWND hwnd, WPARAM wParam)//DWM 2.1: Added
+	{
+		int nPos = wParam + 1;
+		BOOL fSuccess = FALSE;
+		LPVECTOR temp;
+		int nCols = ColCount();
+	 
+		if (0 < nCols)
+		{
+			if (NULL != g_lpInst->hwndControl)//If button is active, remove it
+			{
+				if(ID_BUTTON == GetWindowLong(g_lpInst->hwndControl, GWLP_ID))
+				{
+					DestroyWindow(g_lpInst->hwndControl);
+					g_lpInst->hwndControl = NULL;
+				}
+			}
+
+			// Remove Entire Row
+			for (int i = 0; i < nCols; ++i)
+			{
+				temp = ((LPGRIDCOLUMN)Vector_Get(g_lpInst->data, i))->items;
+				fSuccess = Vector_RemoveAt(temp, nPos);
+				if (!fSuccess)
+				{
+					break;
+				}
+			}
+		}
+		if (fSuccess)
+		{
+			return RowCount() - 1;
+		}
+		else
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+	}
+
+	/// @brief Handles SG_GETITEMDATALENGTH message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam The column that the item belongs to
+	/// @param lParam The row index of the item in the column
+	///
+	/// @returns The length of the data buffer for the item
+	static LRESULT Grid_OnGetItemDataLength(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+		LPGRIDITEM lpgi;
+		lpgi = GetCellData((INT) wParam, (INT) lParam);
+
+		if (NULL != lpgi)
+		{
+			switch(GetColType((INT) wParam))
+			{
+				case GCT_EDIT:
+				case GCT_COMBO:
+				case GCT_BUTTON:
+					return _tcslen((LPTSTR) lpgi->lpszCurValue);
+				case GCT_LINK:
+				{
+					// Note: The Link text and hyperlink are allocated in a double null terminated string buf
+					// and so are adjacent.  The pointer lpgi->lpszCurValue points to the first element
+					// and the beginning of the array.
+
+					//Determine total buffer length
+					INT iLen = 0;
+					//Walk the buffer to find the terminating empty string.
+					for (LPTSTR p = lpgi->lpszCurValue; *p; 
+						(p += _tcslen(p) + 1, iLen = p - lpgi->lpszCurValue)) ;
+
+					return iLen;
+				}
+				case GCT_CHECK:
+				case GCT_IMAGE:
+					return 0;
+			}
+		}
+		return 0;
+	}
+
+	/// @brief Handles SG_GETITEMDATA message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam This parameter is not used
+	/// @param lParam A pointer to a SGITEM struct with column and row indexes.
+	///
+	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnGetItemData(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+		LPTSTR end;
+		LPGRIDITEM lpgi;
+		LPSGITEM lpSGitem = (LPSGITEM)lParam;
+		if (OutOfRange(lpSGitem))
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+
+		int col = lpSGitem->col;
+		int row = lpSGitem->row;
+
+		lpgi = GetCellData(col, row);
+		if(NULL == lpgi)
+		{
+			SetLastError(ERROR_INVALID_DATA);
+			return SG_ERROR;
+		}
+
+		switch (GetColType(col))
+		{
+			case GCT_EDIT:
+			case GCT_COMBO:
+			case GCT_BUTTON:
+			{
+				_tcscpy((LPTSTR)lpSGitem->lpCurValue, lpgi->lpszCurValue);
+				return _tcslen((LPTSTR)lpSGitem->lpCurValue);
+			}
+			case GCT_LINK:
+			{
+				// Note: The Link text and hyperlink are allocated in a double null terminated string buf
+				// and so are adjacent.  The pointer lpgi->lpszCurValue points to the first element
+				// and the beginning of the array.
+				if(NULL == lpgi->lpszCurValue || _T('\0') == *lpgi->lpszCurValue)
+					return 0;
+
+				//Determine total buffer length
+				INT iLen = 0;
+
+				//Walk the buffer to find the terminating empty string.
+				for (LPTSTR p = lpgi->lpszCurValue; *p; 
+					(p += _tcslen(p) + 1, iLen = p - lpgi->lpszCurValue));
+
+				_tmemcpy((LPTSTR)lpSGitem->lpCurValue, lpgi->lpszCurValue, iLen + 1); // copy the terminating null also
+				return iLen;
+			}
+			case GCT_CHECK:
+				lpSGitem->lpCurValue = (0 == _tcsicmp(lpgi->lpszCurValue, CHECKED));
+				break;
+			case GCT_IMAGE:
+				lpSGitem->lpCurValue = _tcstol(lpgi->lpszCurValue, &end, 10);
+				if(0 < _tcslen(end)) // we failed but I don't know how this could have happened
+				{
+					lpSGitem->lpCurValue = 0;
+				}
+				break;
+		}
+		return ERROR_SUCCESS;
+	}
+
+	/// @brief Handles SG_SETIMAGELIST message.
+	///
+	/// @param wParam The id number of a column of type GCT_IMAGE
+	/// @param lParam This parameter is not used
+	///
+	/// @returns LRESULT the handle of the current image list if any
+	static LRESULT Grid_OnGetImageList(WPARAM wParam, LPARAM lParam)
+	{
+		HIMAGELIST himl = 0;
+		INT col = (INT)wParam + 1;
+
+		if(GCT_IMAGE != GetColType(col))
+			return (LRESULT)NULL;
+
+		himl = (HIMAGELIST)GetColOptional(col);
+		return (LRESULT)himl;
+	}
+
+	/// @brief Handles SG_GETITEMPROTECTION message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam A pointer to a SGCELL struct with column and row indexes
+	/// @param lParam This parameter is not used
+	///
+	/// @returns SG_ERROR if desired cell is out of bounds, TRUE if it is protected, otherwise FALSE
+	static LRESULT Grid_OnGetItemProtection(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+		LPGRIDITEM lpgi;
+		LPSGITEM LPSGitem = (LPSGITEM)wParam;
+
+		if (OutOfRange(LPSGitem))
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+
+		lpgi = GetCellData(LPSGitem->col, LPSGitem->row);
+		if(NULL == lpgi)
+		{
+			SetLastError(ERROR_INVALID_DATA);
+			return SG_ERROR;
+		} 
+		return lpgi->fProtected;
+	}
+
+	/// @brief Handles SG_REFRESHGRID message.
+	///
+	/// @note: This is called external to the grid and differs from
+	///         RefreshGrid() in that the call to InvalidateRect() is such that
+	///         that background is erased when the BeginPaint function is called.
+	///
+	/// @param hwnd Handle of the grid
+	///
+	/// @returns VOID
+	static VOID Grid_OnRefresh(HWND hwnd)
+	{
+		RECT rect = {0,0,0,0};
+
+		GetClientRect(hwnd, &rect);
+		InvalidateRect(hwnd, &rect, TRUE);
+		UpdateWindow(hwnd);
+	}
+
+	/// @brief Handles SG_RESETCONTENT message.
+	///
+	/// @param hwnd The handle of the grid
+	///
+	/// @returns VOID 
+	static VOID Grid_OnResetContent(HWND hwnd)
+	{
+		//DWM 1.3: Found bug in original and while fixing it
+		// Realized that this could be done in a simpler way than
+		// initially envisioned so I rewrote method.
+
+		//Destroy previous editor if any
+		if (NULL != g_lpInst->hwndControl) //DWM 1.4: Added this
+		{
+			DestroyWindow(g_lpInst->hwndControl);
+			g_lpInst->hwndControl = NULL;
+		}
+
+		// Destroy old data table
+		int nCols = Vector_Size(g_lpInst->data);
+		for (int col = 0; col < nCols; ++col)
+		{
+			Column_Delete((LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col));
+		}
+		Vector_Free(g_lpInst->data);
+
+		//Create new data table
+		g_lpInst->data = createVector();
+
+		//Add Column 0 (Row headers)
+		LPVECTOR temp = createVector();
+		//First element (the column name) Should be blank for row header column
+		BOOL fSuccess = addVector(temp, createNewItem(_T("")));
+
+		if (fSuccess)//DWM 1.9 Refactored
+		{
+			SGCOLUMN sgc;
+			sgc.dwType = GCT_ROWHEADER;
+			sgc.lpszHeader = _T("");
+			sgc.pOptional = NULL;
+			fSuccess = addVector(g_lpInst->data, addNewColumn(&sgc, INITIAL_COL_WIDTH, temp));
+		}
+		//Reset Cursor and Selection to default
+		g_lpInst->cursorrow = 1;
+		g_lpInst->cursorcol = 1;
+		g_lpInst->homerow = 1;
+		g_lpInst->homecol = 1;
+
+		RefreshGrid(hwnd);
+	}
+
+	/// @brief Handles SG_SELECTCELL message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param col The col index of the cell
+	/// @param row The row index of the cell
+	/// @param fOverwritemode TRUE to overwrite cell contents, FALSE to edit 
+	///         the current contents of the cell.
+	///
+	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnSelectCell(HWND hwnd, INT col, INT row, BOOL fOverwritemode)
+	{
+		// don't include row header column and column header row
+		LRESULT lResult = Grid_OnSetCursorPos(hwnd, (WPARAM)col, (LPARAM)row);
+		if(ERROR_SUCCESS == lResult)
+		{
+			//Send keydown to select control
+			//The context code bit is always 0 for a WM_KEYDOWN message.  
+			// We'll abuse it to signal Editmode (1) or Overwritemode (0)
+			FORWARD_WM_KEYDOWN(hwnd,VK_SHIFT,0, 
+				fOverwritemode ? 0 : CONTEXTCODE_ALT,SNDMSG);
+		}
+		return lResult;
+	}
+
+	/// @brief Handles SG_SETCURSORPOS message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam The col index of the cell
+	/// @param lParam The row index of the cell
+	///
+	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnSetCursorPos(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+		SGITEM SGitem;
+		SGitem.col = (int)wParam;
+		SGitem.row = (int)lParam;
+
+		if (OutOfRange(&SGitem))
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+		else
+		{
+			g_lpInst->cursorrow = SGitem.row;
+			g_lpInst->cursorcol = SGitem.col;
+		}
+
+		SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+		SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+		RefreshGrid(hwnd);
+
+		return ERROR_SUCCESS;
+	}
+
+	/// @brief Handles SG_SETIMAGELIST message.
+	///
+	/// @param wParam The id number of a column of type GCT_IMAGE
+	/// @param lParam The handle of the new image list
+	///
+	/// @returns LRESULT the handle of the old image list if any
+	static LRESULT Grid_OnSetImageList(WPARAM wParam, LPARAM lParam)
+	{
+		HIMAGELIST himlOld = 0;
+		INT col = (INT)wParam;
+
+		if(GCT_IMAGE != GetColType(col))
+			return (LRESULT)NULL;
+
+		himlOld = (HIMAGELIST)GetColOptional(col);
+		SetColOptional(col, (HIMAGELIST) lParam);
+		return (LRESULT)himlOld;
+	}
+
+	/// @brief Handles SG_SETITEMTEXTALIGNMENT message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam The item text alignment
+	/// @param lParam A pointer to a SGITEM struct with column and row indexes.
+	///
+	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnSetItemTextAlignment(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+		LPSGITEM lpsgi = (LPSGITEM) lParam;
+		if(NULL != lpsgi)
+		{
+			if(GCT_EDIT == GetColType(lpsgi->col))
+			{
+				LPGRIDITEM lpi = GetCellData(lpsgi->col, lpsgi->row);
+				if(NULL != lpi)
+				{
+					lpi->dwAllignment = (DWORD)wParam;
+					return ERROR_SUCCESS;
+				}
+			}
+		}
+		// If we get here we failed
+		SetLastError(ERROR_INVALID_DATA);
+		return SG_ERROR;
+	}
+
+	/// @brief Handles SG_SETITEMPROTECTION message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam BOOL TRUE to protect cell FALSE to allow changes
+	/// @param lParam A pointer to a SGITEM struct with column and row indexes
+	///
+	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnSetItemProtection(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+		LPGRIDITEM lpgi;
+
+		LPSGITEM lpSGitem = (LPSGITEM)lParam;
+		if (OutOfRange(lpSGitem))
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+
+		int col = lpSGitem->col;
+		int row = lpSGitem->row;
+
+		lpgi = GetCellData(col, row);
+		if(NULL != lpgi)
+		{
+			lpgi->fProtected = (BOOL)wParam;
+			return ERROR_SUCCESS;
+		}
+		else
+		{
+			SetLastError(ERROR_INVALID_DATA);
+			return SG_ERROR;
+		}
+	}
+
+	/// @brief Handles SG_SETROWHEIGHT message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam The desired height (in pixels) of the rows
+	///
+	/// @returns VOID
+	static void Grid_OnSetRowHeight(HWND hwnd, WPARAM wParam)
+	{
+		if (wParam < 1)
+		{
+			wParam = 1;
+		}
+		g_lpInst->rowheight = wParam;
+		SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+		SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+
+		RECT rect = {0,0,0,0};
+
+		GetClientRect(hwnd, &rect);
+		InvalidateRect(hwnd, &rect, FALSE);
+	}
+
+	/// @brief Handles SG_SETTITLEHEIGHT message.
+	///
+	/// @param hwnd The handle of the grid
+	/// @param wParam The desired height (in pixels) of the title
+	/// @param lParam This parameter is not used
+	///
+	/// @returns VOID
+	static void Grid_OnSetTitleHeight(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+		if ((int)wParam < 0)
+		{
+			wParam = 0;
+		}
+		g_lpInst->titleheight = wParam;
+		SetHomeRow(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+		SetHomeCol(hwnd, g_lpInst->cursorcol, g_lpInst->cursorrow);
+		RECT rect = {0,0,0,0};
+
+		GetClientRect(hwnd, &rect);
+		InvalidateRect(hwnd, &rect, FALSE);
+	}
+
+	/// @brief Add an item to a VECTOR at a given position
+	///
+	/// @param pVector a pointer to a VECTOR instance
+	/// @param nPos at which position to insert the object
+	/// @param object a pointer to an item to store in the vector
+	///
+	/// @returns TRUE if successful, FALSE on invalid position or out of memory.
+	static BOOL Vector_Insert(const LPVECTOR pVector, int nPos, PVOID object) //DWM 2.1: Added
+	{
+		// Author: Ferenc Hechler
+		int old_size = Vector_Size(pVector);
+		if ((nPos < 0) || (nPos > old_size)) {
+			return FALSE;
+		}
+		int new_capacity;
+		PVOID *new_data;
+
+		(pVector->_size)++;
+		if (old_size == pVector->_current_capacity)
+		{
+			new_capacity = pVector->_current_capacity + VECTOR_CAPACITY_DELTA;
+			new_data = (PVOID *)safeMalloc(sizeof(PVOID) * new_capacity);
+
+			memcpy(new_data, pVector->_data, sizeof(PVOID) * old_size);
+			free(pVector->_data);
+			(pVector->_data) = new_data;
+			pVector->_current_capacity = new_capacity;
+		}
+		int nItemsToMove = old_size - nPos;
+		if (nItemsToMove > 0) { 
+			LPVOID src = pVector->_data + nPos;         // increses in steps of sizeof(PVOID)
+			LPVOID dest = pVector->_data + (nPos + 1);  // increses in steps of sizeof(PVOID)
+
+			memmove(dest, src, sizeof(PVOID) * nItemsToMove);//overlapped data
+		}
+		(pVector->_data)[nPos] = object;
+		return TRUE;
+	}
+
+	/// @brief Remove an item from a VECTOR at a given position
+	///
+	/// @param pVector a pointer to a VECTOR instance
+	/// @param nPos the position of the object to remove
+	///
+	/// @returns TRUE if successful, FALSE on invalid position or out of memory.
+	static BOOL Vector_RemoveAt(const LPVECTOR pVector, int nPos) //DWM 2.1: Added
+	{
+		int old_size = Vector_Size(pVector);
+		if ((nPos < 0) || (nPos > old_size)) {
+			return FALSE;
+		}
+		PVOID object = Vector_Get(pVector, nPos);
+		if(NULL != object)
+			free(object);
+
+		(pVector->_size)--;
+
+		int nItemsToMove = old_size - nPos;
+		if (nItemsToMove > 0) { 
+			LPVOID src = pVector->_data + (nPos + 1);   // increses in steps of sizeof(PVOID)
+			LPVOID dest = pVector->_data + nPos;  // increses in steps of sizeof(PVOID)
+
+			memmove(dest, src, sizeof(PVOID) * nItemsToMove);//overlapped data
+		}
+		return TRUE;
+	}
+
+	/// @brief wrapper to set column optional parameter
+	///
+	/// @param col The column number
+	/// @param object Object to store
+	///
+	/// @returns VOID
+	static VOID SetColOptional(INT col, PVOID object)
+	{
+		LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col);
+		if(NULL != lpgc)
+			lpgc->pOptional = object;
 	}
 
 } //namespace mainwind

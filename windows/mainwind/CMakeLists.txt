@@ -8,6 +8,8 @@ add_folder_dependencies(
 	"resource"
 	"igrid"
 	"errhandle"
+	"toolbar"
+	"dbms"
 	"babygrid"
 )
 

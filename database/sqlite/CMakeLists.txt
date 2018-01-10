@@ -10,12 +10,21 @@ add_folder_dependencies()
 #
 add_public_header_files(
 	"sqlite3.h"
+	"sqlite3ext.h"
 )
 #
 # List of source files, relative to the module source folder
 #
 add_lib_header_files()
 #
+# List of source files, relative to the module source folder
+#
+add_source_files(
+	"shell.c"
+	"sqlite3.c"
+)
+
+#
 # Build and install library
 #
-#install_module_lib()
+install_module_lib()

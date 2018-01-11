@@ -255,7 +255,6 @@ namespace mainwind
 	{
 		switch(uMsg)
 		{
-			HANDLE_DLGMSG(m_hWnd, WM_NOTIFY, Main_OnNotify);
 			case WM_COMMAND: 
 				{
 					switch(LOWORD(wParam))
@@ -323,7 +322,11 @@ namespace mainwind
 					SendMessage(hStatus, WM_SIZE, 0, 0);
 					GetWindowRect(hStatus, &rcStatus);
 					iStatusHeight = rcStatus.bottom - rcStatus.top;
+
 					SimpleDialog_ReSize(g_hToolbar, 0);
+					RECT rect;
+					GetClientRect(m_hWnd, &rect);
+					MoveWindow(g_hToolbar, 0, 28, rect.right, rect.bottom-60, TRUE);
 					break;
 				}
 			default:
@@ -515,9 +518,6 @@ namespace mainwind
 	static BOOL 
 	Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm)
 	{
-
-		hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
-		ShowWindow(hgrid1, SW_SHOW);
 
 		if (IDC_TAB == id)
 		{
@@ -767,6 +767,21 @@ namespace mainwind
 				return TRUE;
 			}
 		}
+		if (IDC_SIMPLEGRID2 == id)
+		{
+			if (pnm->code == SGN_ITEMCLICK) //a cell was clicked in the properties grid
+			{
+				DWORD dwType = ((LPNMGRID)pnm)->dwType;
+
+				if(GCT_CHECK == dwType)
+				{
+					SGITEM sgi;
+					sgi.col = ((LPNMGRID)pnm)->col;
+					sgi.row = ((LPNMGRID)pnm)->row;
+				}
+			}   //if(pnm.code==BGN_CELLCLICKED)
+			return TRUE;
+		}
 		return FALSE;
 	}
 	
@@ -1013,6 +1028,7 @@ namespace mainwind
 			rect.right, rect.bottom - iTabHeight, TRUE);
 		MoveWindow(hgrid5, 0, iTabHeight, 
 			rect.right, rect.bottom - iTabHeight, TRUE);
+
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -1312,7 +1328,11 @@ namespace mainwind
 			GCT_EDIT, _T("\n\nName"),  NULL,
 			GCT_EDIT, _T("\n\nAge"),  NULL,
 			GCT_EDIT, _T(""),  NULL,
-			GCT_EDIT, _T(""),  NULL
+			GCT_EDIT, _T(""),  NULL,
+			GCT_CHECK, _T("Write"),  NULL,
+			GCT_CHECK, _T("Read"),  NULL,
+			GCT_BUTTON, _T("Button Column"), NULL, 
+			GCT_BUTTON, _T("Button Column"), NULL
 		};
 		for(int i = 0; i < NELEMS(lpColumns); ++i)
 			SimpleGrid_AddColumn(hGrid, &lpColumns[i]);
@@ -1332,12 +1352,20 @@ namespace mainwind
 			1, 2, (LPARAM)_T("Chester"),
 			1, 3, (LPARAM)_T("Molly"),
 			1, 4, (LPARAM)_T("Bailey"),
+			1, 5, (LPARAM)_T("Ailey"),
 
 			2, 0, (LPARAM)_T("43"),
 			2, 1, (LPARAM)_T("41"),
 			2, 2, (LPARAM)_T("3"),
 			2, 3, (LPARAM)_T("3"),
-			2, 4, (LPARAM)_T("1")
+			2, 4, (LPARAM)_T("1"),
+			2, 5, (LPARAM)_T("1"),
+
+			3, 0, (LPARAM)_T("1"),
+			3, 1, (LPARAM)_T("2"),
+			3, 2, (LPARAM)_T("3"),
+			3, 3, (LPARAM)_T("4"),
+			3, 4, (LPARAM)_T("5")
 		};
 
 		SimpleGrid_SetProtectColor(hGrid, RGB(210, 210, 210)); //Grey
@@ -1345,6 +1373,10 @@ namespace mainwind
 		for(int i = 0; i < NELEMS(lpItems); ++i)
 		{
 			SimpleGrid_SetItemData(hGrid, &lpItems[i]);
+		}
+
+		for(int i = 0; i < 12; ++i)
+		{
 			//Protect just these cells
 			SimpleGrid_SetItemProtection(hGrid, &lpItems[i], TRUE);
 		}

@@ -464,8 +464,8 @@ namespace grid
 	        HANDLE_MSG(hWnd, WM_SETTEXT, Grid_OnSetText);
 	        HANDLE_MSG(hWnd, WM_SIZE, Grid_OnSize);
 		    HANDLE_MSG(hWnd, WM_VSCROLL, Grid_OnVScroll);
-			        case WM_GETDLGCODE: // If this control is in a dialog
-            return DLGC_WANTALLKEYS; // Send all key presses to this proc
+			case WM_GETDLGCODE: // If this control is in a dialog
+				return DLGC_WANTALLKEYS; // Send all key presses to this proc
 
 			//
 			//Begin Grid specific messages

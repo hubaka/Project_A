@@ -1365,7 +1365,11 @@ namespace mainwind
 			3, 1, (LPARAM)_T("2"),
 			3, 2, (LPARAM)_T("3"),
 			3, 3, (LPARAM)_T("4"),
-			3, 4, (LPARAM)_T("5")
+			3, 4, (LPARAM)_T("5"),
+
+			// Button column
+			7, 0, (LPARAM)_T("#1 On"),
+			7, 1, (LPARAM)_T("#2 On"),
 		};
 
 		SimpleGrid_SetProtectColor(hGrid, RGB(210, 210, 210)); //Grey

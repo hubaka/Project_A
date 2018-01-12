@@ -21,6 +21,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 //---------------------------------------------------------------------------
+#include "sys.h"
 
 namespace grid {
 	class IGrid;
@@ -53,6 +54,7 @@ namespace mainwind
 		char 			m_filePath[MAX_PATH];
 		char 			m_fileName[MAX_PATH];
 		dbms::Dbms*		m_pDbms;
+		uint32_t		m_rowCnt;
 
 		static LRESULT	CALLBACK StaticWndProc(HWND, UINT, WPARAM, LPARAM);
 		LRESULT CALLBACK mainWndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -62,6 +64,7 @@ namespace mainwind
 		static void createWindowsMenu(HWND hWnd);
 		static void setWindowsIcon(HWND hWnd);
 		void stripFileName(LPTSTR filePath);
+		void updateGrid(void);
 
 	};
 

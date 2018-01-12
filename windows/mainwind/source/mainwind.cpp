@@ -25,7 +25,6 @@
 #include <sqlite3.h>  // included for database
 #include <Shlwapi.h>	// for stripping filename for full file path
 #include <time.h>
-#include "sys.h"
 #include "babygrid.h"
 #include "errhandle.h"
 #include "igrid.h"
@@ -49,8 +48,12 @@ namespace mainwind
 	static HINSTANCE ghInstance;
 	HWND hgrid1, hgrid2, hgrid3, hgrid4, hgrid5, htab;
 
+
 	//---------------------------------------------------------------------------
 	// Defines and Macros
+	//---------------------------------------------------------------------------
+	static const uint32_t FILENAMECOLUMNNUM	= 0;
+	static const uint32_t PATHCOLUMNNUM		= 1;
 	//---------------------------------------------------------------------------
 	/// @def SimpleGrid_SetProtectColor(hGrid, clrProtect)
 	///
@@ -70,7 +73,7 @@ namespace mainwind
 	static BOOL Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm);
 	static HWND dialogbar;
 	static void LoadGrid1(HWND hGrid);
-	static void LoadGrid2(HWND hGrid);
+	static void LoadGrid2(HWND hGrid, LPRECT pRect);
 	static void Main_OnSize(HWND hwnd, UINT state, int cx, int cy);
 	static void Main_OnClose(HWND hwnd);
 	static void Main_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify);
@@ -79,6 +82,7 @@ namespace mainwind
 	static void LoadGrid3(HWND hGrid);
 	static void LoadGrid4(HWND hGrid);
 	static void ResetGrid5(HWND hGrid);
+	static void ResizeColumnWidth(HWND hGrid, LPRECT pRect);
 	static BOOL CALLBACK About_DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 	//---------------------------------------------------------------------------------------------------
@@ -94,7 +98,8 @@ namespace mainwind
 		dbms::Dbms* pDbms
 		) : m_hParentInstance(hParentInstance),
 			m_nCmdShow(nCmdShow),
-			m_pDbms(pDbms) {
+			m_pDbms(pDbms),
+			m_rowCnt(0U) {
 			ghInstance = hParentInstance;
 	}
 
@@ -363,6 +368,7 @@ namespace mainwind
 			if(GetOpenFileName(&ofn))
 			{
 				stripFileName(ofn.lpstrFile);
+				updateGrid();
 				m_pDbms->addTableData(m_fileName, m_filePath, 1, 1);
 			}
 		}
@@ -891,9 +897,9 @@ namespace mainwind
 		LoadGrid1(hgrid1);
 
 		//Set the heading font for Grid 2
-		HFONT hFont = CreateFont(20, 0, 0, 0, FW_EXTRABOLD, FALSE, FALSE, FALSE,
+		HFONT hFont = CreateFont(20, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
 			ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-			PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("ARIEL"));
+			PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("Roman"));
 
 		SimpleGrid_SetHeadingFont(hgrid2,hFont);
 
@@ -902,10 +908,16 @@ namespace mainwind
 		//on row header selection hilight full row, otherwise individual cell
 		SimpleGrid_SetSelectionMode(hgrid2, GSO_ROWHEADER);
 		//do not allow in cell editing of all grid items initially
-		SimpleGrid_EnableEdit(hgrid2,FALSE);
+		SimpleGrid_EnableEdit(hgrid2,TRUE);
+		//last column standard width
+		SimpleGrid_ExtendLastColumn(hgrid2,FALSE);
+		//based on the length of the text entered into the cells
+		SimpleGrid_SetColAutoWidth(hgrid1, TRUE);
 
+		RECT rect;
+		GetClientRect(hWnd, &rect);
 		//populate grid2 with initial demo data
-		LoadGrid2(hgrid2);
+		LoadGrid2(hgrid2, &rect);
 
 		//make grid3 header row to initial height of 21 pixels
 		SimpleGrid_SetHeaderRowHeight(hgrid3, 21);
@@ -941,7 +953,7 @@ namespace mainwind
 		LoadGrid4(hgrid4);
 
 		//Force the display of the vertical scroll in grids (if necessary)
-		RECT rect;
+		//RECT rect;
 		GetClientRect(hWnd, &rect);
 		MoveWindow(hgrid2, rect.right / 3, 0, 
 			rect.right - rect.right / 3, rect.bottom + 1, FALSE);
@@ -1020,8 +1032,11 @@ namespace mainwind
 		MoveWindow(htab, 0, 0, rect.right + 1, iTabHeight, FALSE);
 		iTabHeight+= 2;
 		MoveWindow(hgrid1, 0, iTabHeight, rect.right / 3, rect.bottom - iTabHeight, TRUE);
+
 		MoveWindow(hgrid2, rect.right / 3, iTabHeight, 
 			rect.right - rect.right / 3, rect.bottom - iTabHeight, TRUE);
+		ResizeColumnWidth(hgrid2, &rect);
+
 		MoveWindow(hgrid3, 0, iTabHeight, 
 			rect.right, rect.bottom - iTabHeight, TRUE);
 		MoveWindow(hgrid4, 0, iTabHeight, 
@@ -1316,74 +1331,74 @@ namespace mainwind
 	//!
 	//! \return		
 	//!
-	void LoadGrid2(HWND hGrid)
+	void LoadGrid2(HWND hGrid, LPRECT pRect)
 	{
-		// Add some text columns
 
 		// Column type
 		// Column header text
 		// Optional data (ex: combobox choices)
 		SGCOLUMN lpColumns[] = {
-			GCT_EDIT, _T("Multi-line \nHeadings \nSupported"),  NULL,
-			GCT_EDIT, _T("\n\nName"),  NULL,
-			GCT_EDIT, _T("\n\nAge"),  NULL,
-			GCT_EDIT, _T(""),  NULL,
-			GCT_EDIT, _T(""),  NULL,
-			GCT_CHECK, _T("Write"),  NULL,
-			GCT_CHECK, _T("Read"),  NULL,
-			GCT_BUTTON, _T("Button Column"), NULL, 
-			GCT_BUTTON, _T("Button Column"), NULL
+			GCT_EDIT, _T("\nFile/Folder\nName\n"),  NULL,
+			GCT_EDIT, _T("\nFile/Folder\nPath\n"),  NULL,
+			GCT_CHECK, _T("\nWrite Protection\nMode\n"),  NULL,
+			GCT_CHECK, _T("\nRead Protection\nMode\n"),  NULL,
+			GCT_BUTTON, _T("\nChange Protection\nMode\n"), NULL, 
+			GCT_BUTTON, _T("\nDelete Protection\n"), NULL
 		};
-		for(int i = 0; i < NELEMS(lpColumns); ++i)
+		for(int i = 0; i < NELEMS(lpColumns); ++i) {
 			SimpleGrid_AddColumn(hGrid, &lpColumns[i]);
+		}
+
+		ResizeColumnWidth(hGrid, pRect);
 
 		// Add some rows
-		for(int i = 0; i < 100; ++i) 
+		for(int i = 0; i < 5; ++i) 
 			SimpleGrid_AddRow(hGrid, 0 == i ? _T("Row Headers customizable") : _T(""));
 
 		// Set cells to data
 
-		// Column number
-		// Row number
-		// Item (cell) value
-		SGITEM lpItems[] = {
-			1, 0, (LPARAM)_T("David"),
-			1, 1, (LPARAM)_T("Maggie"),
-			1, 2, (LPARAM)_T("Chester"),
-			1, 3, (LPARAM)_T("Molly"),
-			1, 4, (LPARAM)_T("Bailey"),
-			1, 5, (LPARAM)_T("Ailey"),
+		//// Column number
+		//// Row number
+		//// Item (cell) value
+		//SGITEM lpItems[] = {
+		//	1, 0, (LPARAM)_T("David"),
+		//	2, 0, (LPARAM)_T("43"),
+		//	1, 1, (LPARAM)_T("Maggie"),
+		//	1, 2, (LPARAM)_T("Chester"),
+		//	1, 3, (LPARAM)_T("Molly"),
+		//	1, 4, (LPARAM)_T("Bailey"),
+		//	1, 5, (LPARAM)_T("Ailey"),
 
-			2, 0, (LPARAM)_T("43"),
-			2, 1, (LPARAM)_T("41"),
-			2, 2, (LPARAM)_T("3"),
-			2, 3, (LPARAM)_T("3"),
-			2, 4, (LPARAM)_T("1"),
-			2, 5, (LPARAM)_T("1"),
+		//	2, 0, (LPARAM)_T("43"),
+		//	2, 1, (LPARAM)_T("41"),
+		//	2, 2, (LPARAM)_T("3"),
+		//	2, 3, (LPARAM)_T("3"),
+		//	2, 4, (LPARAM)_T("1"),
+		//	2, 5, (LPARAM)_T("1"),
 
-			3, 0, (LPARAM)_T("1"),
-			3, 1, (LPARAM)_T("2"),
-			3, 2, (LPARAM)_T("3"),
-			3, 3, (LPARAM)_T("4"),
-			3, 4, (LPARAM)_T("5"),
+		//	3, 0, (LPARAM)_T("1"),
+		//	3, 1, (LPARAM)_T("2"),
+		//	3, 2, (LPARAM)_T("3"),
+		//	3, 3, (LPARAM)_T("4"),
+		//	3, 4, (LPARAM)_T("5"),
 
-			// Button column
-			7, 0, (LPARAM)_T("#1 On"),
-			7, 1, (LPARAM)_T("#2 On"),
-		};
+		//	// Button column
+		//	7, 0, (LPARAM)_T("#1 On"),
+		//	7, 1, (LPARAM)_T("#2 On"),
+		//};
 
 		SimpleGrid_SetProtectColor(hGrid, RGB(210, 210, 210)); //Grey
 
-		for(int i = 0; i < NELEMS(lpItems); ++i)
+		/*for(int i = 0; i < NELEMS(lpItems); ++i)
 		{
 			SimpleGrid_SetItemData(hGrid, &lpItems[i]);
-		}
+		}*/
 
-		for(int i = 0; i < 12; ++i)
-		{
-			//Protect just these cells
-			SimpleGrid_SetItemProtection(hGrid, &lpItems[i], TRUE);
-		}
+		//for(int i = 0; i < 12; ++i)
+		//{
+		//	//Protect just these cells
+		//	SimpleGrid_SetItemProtection(hGrid, &lpItems[i], TRUE);
+		//}
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -1409,6 +1424,68 @@ namespace mainwind
 				break;
 		}
 		return FALSE;
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void 
+	MainWind::updateGrid(void)
+	{
+		// Set cells to data
+
+		// cbMultiByte [in] - "fourth parameter of MultiByteToWideChar"
+		// Size, in bytes, of the string indicated by the lpMultiByteStr parameter. 
+		// Alternatively, this parameter can be set to -1 if the string is null-terminated. 
+		// Note that, if cbMultiByte is 0, the function fails.
+		// If this parameter is -1, the function processes the entire input string, 
+		//including the terminating null character. Therefore, the resulting Unicode 
+		//string has a terminating null character, and the length returned by the function includes this character.
+		int wchars_num =  MultiByteToWideChar( 0, 0 , m_fileName , -1, NULL , 0 );
+		wchar_t wFileName[MAX_PATH];
+		wchar_t wFilePath[MAX_PATH];
+		MultiByteToWideChar(0,0, m_fileName, sizeof(m_fileName), wFileName, wchars_num);
+		wchars_num =  MultiByteToWideChar( 0, 0 , m_filePath , -1, NULL , 0 );
+		MultiByteToWideChar(0,0, m_filePath, sizeof(m_filePath), wFilePath, wchars_num);
+		// Column number
+		// Row number
+		// Item (cell) value
+		SGITEM lpFile[] = {
+			FILENAMECOLUMNNUM, m_rowCnt, (LPARAM)(wFileName)
+		};
+		SGITEM lpFilePath[] = {
+			PATHCOLUMNNUM, m_rowCnt, (LPARAM)(wFilePath)
+		};
+		SimpleGrid_SetItemData(hgrid2, &lpFile[0]);
+		SimpleGrid_SetItemData(hgrid2, &lpFilePath[0]);
+		//Protect just these cells
+		SimpleGrid_SetItemProtection(hgrid2, &lpFile[0], TRUE);
+		SimpleGrid_SetItemProtection(hgrid2, &lpFilePath[0], TRUE);
+		m_rowCnt++;
+
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void ResizeColumnWidth(HWND hGrid, LPRECT pRect)
+	{
+
+		uint32_t fileColWidth = ((pRect->right) * 20)/100;
+		uint32_t pathColWidth = ((pRect->right) * 20)/100;
+
+		// setting column width of file name and path name
+		SimpleGrid_SetColWidth(hGrid, FILENAMECOLUMNNUM, fileColWidth);
+		SimpleGrid_SetColWidth(hGrid, PATHCOLUMNNUM, pathColWidth);
+
 	}
 
 } //namespace mainwind

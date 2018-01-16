@@ -53,6 +53,8 @@ namespace mainwind
 		HWND*			m_hWndToolbar;
 		char 			m_filePath[MAX_PATH];
 		char 			m_fileName[MAX_PATH];
+		char 			m_inPath[MAX_PATH];
+		char 			m_outPath[MAX_PATH];
 		dbms::Dbms*		m_pDbms;
 		uint32_t		m_rowCnt;
 

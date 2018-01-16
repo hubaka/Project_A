@@ -35,9 +35,9 @@ add_source_files(
 	"appmain.cpp"
 )
 
-#add_libs_to_exe(
-#	${DEP_LIBS}
-#)
+add_libs_to_exe(
+	${DEP_LIBS}
+)
 
 #
 # Build and install library

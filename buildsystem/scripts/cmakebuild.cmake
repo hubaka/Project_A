@@ -604,6 +604,7 @@ macro(_add_module_exe)
 		list(APPEND _obj_libs "$<TARGET_OBJECTS:${_libname}>")
 	endforeach()
 
+	message("pubhdr: ${${PROJECT_ID}_PUBLIC_HEADER}")
 	add_executable(${LIBRARYNAME} ${${PROJECT_ID}_SRC} ${_obj_libs} ${${PROJECT_ID}_PUBLIC_HEADER})
 	message("libraries name ${${PROJECT_ID}_LIBS}")
 	target_link_libraries(${LIBRARYNAME} ${${PROJECT_ID}_LIBS})

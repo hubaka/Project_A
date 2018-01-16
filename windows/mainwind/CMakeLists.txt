@@ -11,6 +11,7 @@ add_folder_dependencies(
 	"toolbar"
 	"dbms"
 	"babygrid"
+	"crypto"
 )
 
 add_lib_dependencies(

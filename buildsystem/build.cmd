@@ -20,7 +20,7 @@ rem set path of cmake exectuable
 set CMAKE_EXECUTABLE_PATH=.\cmake-3.10.0-rc4-win64-x64\bin\
 set CMAKE_SOURCE_DIRECTORY=..\application
 set CMAKE_BUILD_DIRECTORY=..\1_builds
-set VISUAL_STUDIO_COMPILER_VERSION="Visual Studio 9 2008"
+set VISUAL_STUDIO_COMPILER_VERSION="Visual Studio 14"
 set CMAKE_SEARCH_PATH=%BUILD_SYSTEM_PATH%/scripts
 
 rem setting cmake command line flags

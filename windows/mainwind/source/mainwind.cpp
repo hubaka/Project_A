@@ -25,6 +25,10 @@
 #include <sqlite3.h>  // included for database
 #include <Shlwapi.h>	// for stripping filename for full file path
 #include <time.h>
+//#include "misc.h"  // reqd. for crypto++ lib
+#include "files.h" // to include crypto's file source
+//#include "default.h" // to include crypto's DefaultEncryptorWithMAC
+#include "hex.h" // to include crypto's hexencoder
 #include "babygrid.h"
 #include "errhandle.h"
 #include "igrid.h"
@@ -34,6 +38,7 @@
 #include "mainwind.h"
 
 #pragma comment(lib,"Shlwapi.lib")
+#pragma comment(lib,"cryptlib.lib")
 
 HWND g_hToolbar = NULL;
 static grid::IGrid*	m_pIGrid;
@@ -84,6 +89,7 @@ namespace mainwind
 	static void ResetGrid5(HWND hGrid);
 	static void ResizeColumnWidth(HWND hGrid, LPRECT pRect);
 	static BOOL CALLBACK About_DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+	void EncryptFile(const char *in, const char *out, const char *passPhrase);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -369,6 +375,8 @@ namespace mainwind
 			{
 				stripFileName(ofn.lpstrFile);
 				updateGrid();
+
+				EncryptFile(m_inPath, m_outPath, "password");
 				m_pDbms->addTableData(m_fileName, m_filePath, 1, 1);
 			}
 		}
@@ -804,6 +812,7 @@ namespace mainwind
 		memset(m_filePath, 0, (sizeof(m_filePath)* sizeof(char)));
 		memset(m_fileName, 0, (sizeof(m_fileName)* sizeof(char)));
 		wcstombs(m_filePath, filePath, MAX_PATH); //copying to local array
+		wcstombs(m_inPath, filePath, MAX_PATH); //copying to local array
 		char* plastSlash = strrchr(m_filePath, '\\'); //finding the last "\" to strip the filename from path
 		plastSlash++; // to move forward from "\" to actual file name
 		uint32_t pathLen = strlen(m_filePath);
@@ -813,6 +822,10 @@ namespace mainwind
 		for(uint32_t idx=0; idx<fileLen; idx++) {
 			m_filePath[pathLen+idx] = '\0';
 		}
+		char outfilename[50];
+		strcpy(outfilename, "testout.txt");
+		strcpy(m_outPath, m_filePath);
+		strcat(m_outPath, outfilename);
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -1488,4 +1501,16 @@ namespace mainwind
 
 	}
 
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void EncryptFile(const char *in, const char *out, const char *passPhrase)
+	{
+		//CryptoPP::FileSource f(in, true, new CryptoPP::DefaultEncryptorWithMAC(passPhrase, new CryptoPP::FileSink(out)));
+		CryptoPP::FileSource(in, true, new CryptoPP::HexEncoder(new CryptoPP::FileSink(out)));
+	}
 } //namespace mainwind

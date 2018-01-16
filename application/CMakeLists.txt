@@ -10,6 +10,7 @@ add_source_layers(
 	"s" "grid"
 	"s" "errorhandle"
 	"s" "bar"
+	"s" "encryption"
 )
 
 add_subfolder_dependency()

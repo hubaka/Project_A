@@ -107,7 +107,7 @@ namespace dbms
 	//! \return		
 	//!
 	void
-	Dbms::addTableData(
+	Dbms::addDbData(
 		char* pFileName,
 		char* pFilePath,
 		bool  writeAccess,

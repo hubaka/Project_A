@@ -44,7 +44,7 @@ namespace dbms
 		);
 
 		void 
-		addTableData(
+			addDbData(
 			char* pFileName,
 			char* pFilePath,
 			bool  writeAccess,

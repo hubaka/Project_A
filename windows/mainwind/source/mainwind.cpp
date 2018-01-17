@@ -22,12 +22,11 @@
 #include <tchar.h>
 #include <strsafe.h>
 #include <commctrl.h> // included in order to use tool bar related functionalities
+#include <Shlobj.h>		// to include LPBROWSEINFO
 #include <sqlite3.h>  // included for database
 #include <Shlwapi.h>	// for stripping filename for full file path
 #include <time.h>
-//#include "misc.h"  // reqd. for crypto++ lib
 #include "files.h" // to include crypto's file source
-//#include "default.h" // to include crypto's DefaultEncryptorWithMAC
 #include "hex.h" // to include crypto's hexencoder
 #include "babygrid.h"
 #include "errhandle.h"
@@ -59,6 +58,8 @@ namespace mainwind
 	//---------------------------------------------------------------------------
 	static const uint32_t FILENAMECOLUMNNUM	= 0;
 	static const uint32_t PATHCOLUMNNUM		= 1;
+	static const uint32_t ENCRYPTBUTTONCOLUMNNUM = 2;
+	static const uint32_t DECRYPTBUTTONCOLUMNNUM = 3;
 	//---------------------------------------------------------------------------
 	/// @def SimpleGrid_SetProtectColor(hGrid, clrProtect)
 	///
@@ -200,7 +201,7 @@ namespace mainwind
 			setWindowsIcon(hWnd);
 
 			HWND hStatus = CreateWindowEx(0, STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0,
-						hWnd, (HMENU)IDC_MAIN_STATUS, GetModuleHandle(NULL), NULL);
+						hWnd, (HMENU)IDC_STATUSBAR, GetModuleHandle(NULL), NULL);
 			if(hStatus == NULL)
 			{
 				g_errHandle.getErrorInfo((LPTSTR)L"StatusBar creation!");
@@ -270,18 +271,24 @@ namespace mainwind
 				{
 					switch(LOWORD(wParam))
 					{
-					case ID_FILE_EXIT:
+					case ID_MENU_EXIT:
 						{
 							PostMessage(m_hWnd, WM_CLOSE, 0, 0);
 							break;
 						}
-					case ID_FILE_OPEN:
-					case ID_OPEN_FILE:
+					case ID_TOOL_OPEN_FILE:
+					case ID_SUBMENU_OPEN_FILE:
 						{
 							getFileName();
 							break;
 						}
-					case ID_HELP_ABOUT:
+					case ID_TOOL_OPEN_FOLDER:
+					case ID_SUBMENU_OPEN_FOLDER:
+					{
+						getFolderName();
+						break;
+					}
+					case ID_MENU_HELP:
 						{
 							MessageBox(m_hWnd, (LPCWSTR)L"No help document", (LPCWSTR)L"Message",
 								MB_OK | MB_ICONINFORMATION);
@@ -322,14 +329,14 @@ namespace mainwind
 					int iStatusHeight;
 
 					// Size toolbar and get height
-					hTool = GetDlgItem(m_hWnd, IDC_MAIN_TOOL);
+					hTool = GetDlgItem(m_hWnd, ID_TOOBAR);
 					HWND hgrid1 = GetDlgItem(m_hWnd, IDC_SIMPLEGRID1);
 					SendMessage(hTool, TB_AUTOSIZE, 0, 0);
 					GetWindowRect(hTool, &rcTool);
 					iToolHeight = rcTool.bottom - rcTool.top;
 
 					// Size status bar and get height
-					hStatus = GetDlgItem(m_hWnd, IDC_MAIN_STATUS);
+					hStatus = GetDlgItem(m_hWnd, IDC_STATUSBAR);
 					SendMessage(hStatus, WM_SIZE, 0, 0);
 					GetWindowRect(hStatus, &rcStatus);
 					iStatusHeight = rcStatus.bottom - rcStatus.top;
@@ -365,7 +372,7 @@ namespace mainwind
 
 			ofn.lStructSize = sizeof(ofn); // SEE NOTE BELOW
 			ofn.hwndOwner = m_hWnd;
-			ofn.lpstrFilter = (LPCWSTR)L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
+			ofn.lpstrFilter = (LPCWSTR)L"All Files (*.*)\0*.*\0";
 			ofn.lpstrFile = (LPWSTR) szFileName;
 			ofn.nMaxFile = MAX_PATH;
 			ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
@@ -373,11 +380,13 @@ namespace mainwind
 
 			if(GetOpenFileName(&ofn))
 			{
-				stripFileName(ofn.lpstrFile);
-				updateGrid();
+				char fileName[MAX_PATH] = {0};
+				char filePath[MAX_PATH] = {0};
+				stripFileName(ofn.lpstrFile, fileName, filePath);
+				addNewEntryToGrid(fileName, filePath);
 
-				EncryptFile(m_inPath, m_outPath, "password");
-				m_pDbms->addTableData(m_fileName, m_filePath, 1, 1);
+				//EncryptFile(m_inPath, m_outPath, "password");
+				//m_pDbms->addDbData(m_fileName, m_filePath, 1, 1);
 			}
 		}
 
@@ -394,7 +403,7 @@ namespace mainwind
 		) { 
 				
 				static HWND hWndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE, 0, 0, 0, 0,
-									hWnd, (HMENU)IDC_MAIN_TOOL, GetModuleHandle(NULL), NULL);
+									hWnd, (HMENU)ID_TOOBAR, GetModuleHandle(NULL), NULL);
 				if(hWndToolbar == NULL)
 				{
 					g_errHandle.getErrorInfo((LPTSTR)L"ToolBar creation!");
@@ -404,7 +413,7 @@ namespace mainwind
 				// backward compatibility.
 				SendMessage(hWndToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
 
-				TBBUTTON tbb[3];
+				TBBUTTON tbb[2];
 				TBADDBITMAP tbab;
 
 				tbab.hInst = HINST_COMMCTRL;
@@ -415,17 +424,12 @@ namespace mainwind
 				tbb[0].iBitmap = STD_FILENEW;
 				tbb[0].fsState = TBSTATE_ENABLED;
 				tbb[0].fsStyle = TBSTYLE_BUTTON;
-				tbb[0].idCommand = ID_FILE_NEW;
+				tbb[0].idCommand = ID_TOOL_OPEN_FILE;
 
 				tbb[1].iBitmap = STD_FILEOPEN;
 				tbb[1].fsState = TBSTATE_ENABLED;
 				tbb[1].fsStyle = TBSTYLE_BUTTON;
-				tbb[1].idCommand = ID_FILE_OPEN;
-
-				tbb[2].iBitmap = STD_FILESAVE;
-				tbb[2].fsState = TBSTATE_ENABLED;
-				tbb[2].fsStyle = TBSTYLE_BUTTON;
-				tbb[2].idCommand = ID_FILE_SAVEAS;
+				tbb[1].idCommand = ID_TOOL_OPEN_FOLDER;
 
 				SendMessage(hWndToolbar, TB_ADDBUTTONS, sizeof(tbb)/sizeof(TBBUTTON), (LPARAM)&tbb);
 				return (&hWndToolbar);
@@ -442,13 +446,16 @@ namespace mainwind
 		MainWind::createWindowsMenu(
 			HWND hWnd
 		) { 
-				HMENU hMenu, hSubMenu;
+				HMENU hMenu, hFileSubMenu, hOpenSubMenu;
 				hMenu = CreateMenu();
-				hSubMenu = CreatePopupMenu();
-				AppendMenu(hSubMenu, MF_STRING, ID_FILE_EXIT, (LPCWSTR)L"&Exit");
-				AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, (LPCWSTR)L"&File");
-				AppendMenu(hMenu, MF_STRING, ID_OPEN_FILE, (LPCWSTR)L"&Open");
-				AppendMenu(hMenu, MF_STRING, ID_HELP_ABOUT, (LPCWSTR)L"&Help");
+				hFileSubMenu = CreatePopupMenu();
+				hOpenSubMenu = CreatePopupMenu();
+				AppendMenu(hFileSubMenu, MF_STRING, ID_MENU_EXIT, (LPCWSTR)L"&Exit");
+				AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hFileSubMenu, (LPCWSTR)L"&File");
+				AppendMenu(hOpenSubMenu, MF_STRING, ID_SUBMENU_OPEN_FILE, (LPCWSTR)L"&Add File");
+				AppendMenu(hOpenSubMenu, MF_STRING, ID_SUBMENU_OPEN_FOLDER, (LPCWSTR)L"&Add Folder");
+				AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hOpenSubMenu, (LPCWSTR)L"&Encrypt");
+				AppendMenu(hMenu, MF_STRING, ID_MENU_HELP, (LPCWSTR)L"&Help");
 				SetMenu(hWnd, hMenu);
 
 		}
@@ -802,30 +809,32 @@ namespace mainwind
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
 	//!
-	//! \param[in]	
+	//! \param[in]	fullPath
+	//! \param[out]	pFileName
+	//! \param[out]	pFilePath
 	//!
 	//! \return		
 	//!
 	void 
-	MainWind::stripFileName(LPTSTR filePath)
+	MainWind::stripFileName(LPTSTR fullPath, char* pFileName, char* pFilePath)
 	{
-		memset(m_filePath, 0, (sizeof(m_filePath)* sizeof(char)));
-		memset(m_fileName, 0, (sizeof(m_fileName)* sizeof(char)));
-		wcstombs(m_filePath, filePath, MAX_PATH); //copying to local array
-		wcstombs(m_inPath, filePath, MAX_PATH); //copying to local array
-		char* plastSlash = strrchr(m_filePath, '\\'); //finding the last "\" to strip the filename from path
+		wcstombs(pFilePath, fullPath, MAX_PATH); //copying to local array
+		wcstombs(pFilePath, fullPath, MAX_PATH); //copying to local array
+		char* plastSlash = strrchr(pFilePath, '\\'); //finding the last "\" to strip the filename from path
 		plastSlash++; // to move forward from "\" to actual file name
-		uint32_t pathLen = strlen(m_filePath);
+		uint32_t pathLen = strlen(pFilePath);
 		uint32_t fileLen = strlen(plastSlash);
-		strncpy(m_fileName, plastSlash, fileLen);
+		strncpy(pFileName, plastSlash, fileLen);
 		pathLen = (pathLen - fileLen);
 		for(uint32_t idx=0; idx<fileLen; idx++) {
-			m_filePath[pathLen+idx] = '\0';
+			pFilePath[pathLen+idx] = '\0';
 		}
+		// debugging purose - TODO - start of -to be deleted
 		char outfilename[50];
 		strcpy(outfilename, "testout.txt");
-		strcpy(m_outPath, m_filePath);
+		strcpy(m_outPath, pFilePath);
 		strcat(m_outPath, outfilename);
+		// debugging purose - TODO - end of - to be deleted
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -925,7 +934,11 @@ namespace mainwind
 		//last column standard width
 		SimpleGrid_ExtendLastColumn(hgrid2,FALSE);
 		//based on the length of the text entered into the cells
-		SimpleGrid_SetColAutoWidth(hgrid1, TRUE);
+		SimpleGrid_SetColAutoWidth(hgrid2, TRUE);
+		//allow column resizing
+		SimpleGrid_SetAllowColResize(hgrid2, TRUE);
+		//use column header text
+		SimpleGrid_SetColsNumbered(hgrid2, TRUE); // aka - 2nd argument of this fxn call shall be changed later to FALSE
 
 		RECT rect;
 		GetClientRect(hWnd, &rect);
@@ -1351,67 +1364,18 @@ namespace mainwind
 		// Column header text
 		// Optional data (ex: combobox choices)
 		SGCOLUMN lpColumns[] = {
-			GCT_EDIT, _T("\nFile/Folder\nName\n"),  NULL,
-			GCT_EDIT, _T("\nFile/Folder\nPath\n"),  NULL,
-			GCT_CHECK, _T("\nWrite Protection\nMode\n"),  NULL,
-			GCT_CHECK, _T("\nRead Protection\nMode\n"),  NULL,
-			GCT_BUTTON, _T("\nChange Protection\nMode\n"), NULL, 
-			GCT_BUTTON, _T("\nDelete Protection\n"), NULL
+			GCT_EDIT, _T("\nFile Name\n"),  NULL,
+			GCT_EDIT, _T("\nFile Path\n"),  NULL,
+			GCT_BUTTON, _T("\nEncrypt File\n"), NULL, 
+			GCT_BUTTON, _T("\nDecrypt File\n"), NULL
 		};
 		for(int i = 0; i < NELEMS(lpColumns); ++i) {
 			SimpleGrid_AddColumn(hGrid, &lpColumns[i]);
 		}
 
 		ResizeColumnWidth(hGrid, pRect);
-
-		// Add some rows
-		for(int i = 0; i < 5; ++i) 
-			SimpleGrid_AddRow(hGrid, 0 == i ? _T("Row Headers customizable") : _T(""));
-
-		// Set cells to data
-
-		//// Column number
-		//// Row number
-		//// Item (cell) value
-		//SGITEM lpItems[] = {
-		//	1, 0, (LPARAM)_T("David"),
-		//	2, 0, (LPARAM)_T("43"),
-		//	1, 1, (LPARAM)_T("Maggie"),
-		//	1, 2, (LPARAM)_T("Chester"),
-		//	1, 3, (LPARAM)_T("Molly"),
-		//	1, 4, (LPARAM)_T("Bailey"),
-		//	1, 5, (LPARAM)_T("Ailey"),
-
-		//	2, 0, (LPARAM)_T("43"),
-		//	2, 1, (LPARAM)_T("41"),
-		//	2, 2, (LPARAM)_T("3"),
-		//	2, 3, (LPARAM)_T("3"),
-		//	2, 4, (LPARAM)_T("1"),
-		//	2, 5, (LPARAM)_T("1"),
-
-		//	3, 0, (LPARAM)_T("1"),
-		//	3, 1, (LPARAM)_T("2"),
-		//	3, 2, (LPARAM)_T("3"),
-		//	3, 3, (LPARAM)_T("4"),
-		//	3, 4, (LPARAM)_T("5"),
-
-		//	// Button column
-		//	7, 0, (LPARAM)_T("#1 On"),
-		//	7, 1, (LPARAM)_T("#2 On"),
-		//};
-
 		SimpleGrid_SetProtectColor(hGrid, RGB(210, 210, 210)); //Grey
 
-		/*for(int i = 0; i < NELEMS(lpItems); ++i)
-		{
-			SimpleGrid_SetItemData(hGrid, &lpItems[i]);
-		}*/
-
-		//for(int i = 0; i < 12; ++i)
-		//{
-		//	//Protect just these cells
-		//	SimpleGrid_SetItemProtection(hGrid, &lpItems[i], TRUE);
-		//}
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -1442,14 +1406,18 @@ namespace mainwind
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
 	//!
-	//! \param[in]	
+	//! \param[in]	pFileName
+	//! \param[in]	pFilePath
 	//!
 	//! \return		
 	//!
 	void 
-	MainWind::updateGrid(void)
+	MainWind::addNewEntryToGrid(char* pFileName, char* pFilePath)
 	{
 		// Set cells to data
+
+		// Add one row to enter this data
+		SimpleGrid_AddRow(hgrid2, _T(""));
 
 		// cbMultiByte [in] - "fourth parameter of MultiByteToWideChar"
 		// Size, in bytes, of the string indicated by the lpMultiByteStr parameter. 
@@ -1458,27 +1426,28 @@ namespace mainwind
 		// If this parameter is -1, the function processes the entire input string, 
 		//including the terminating null character. Therefore, the resulting Unicode 
 		//string has a terminating null character, and the length returned by the function includes this character.
-		int wchars_num =  MultiByteToWideChar( 0, 0 , m_fileName , -1, NULL , 0 );
-		wchar_t wFileName[MAX_PATH];
-		wchar_t wFilePath[MAX_PATH];
-		MultiByteToWideChar(0,0, m_fileName, sizeof(m_fileName), wFileName, wchars_num);
-		wchars_num =  MultiByteToWideChar( 0, 0 , m_filePath , -1, NULL , 0 );
-		MultiByteToWideChar(0,0, m_filePath, sizeof(m_filePath), wFilePath, wchars_num);
+		int wchars_num =  MultiByteToWideChar( 0, 0 , pFileName, -1, NULL , 0 );
+		wchar_t wFileName[MAX_PATH] = {0};
+		wchar_t wFilePath[MAX_PATH] = {0};
+		MultiByteToWideChar(0,0, pFileName, -1, wFileName, wchars_num);
+		wchars_num =  MultiByteToWideChar( 0, 0 , pFilePath, -1, NULL , 0 );
+		MultiByteToWideChar(0,0, pFilePath, -1, wFilePath, wchars_num);
 		// Column number
 		// Row number
 		// Item (cell) value
-		SGITEM lpFile[] = {
-			FILENAMECOLUMNNUM, m_rowCnt, (LPARAM)(wFileName)
+		SGITEM lpItems[] = {
+			FILENAMECOLUMNNUM, m_rowCnt, (LPARAM)(wFileName),
+			PATHCOLUMNNUM, m_rowCnt, (LPARAM)(wFilePath),
+			ENCRYPTBUTTONCOLUMNNUM, m_rowCnt, (LPARAM)_T("Encrypt"),
+			DECRYPTBUTTONCOLUMNNUM, m_rowCnt, (LPARAM)_T("Decrypt"),
 		};
-		SGITEM lpFilePath[] = {
-			PATHCOLUMNNUM, m_rowCnt, (LPARAM)(wFilePath)
-		};
-		SimpleGrid_SetItemData(hgrid2, &lpFile[0]);
-		SimpleGrid_SetItemData(hgrid2, &lpFilePath[0]);
-		//Protect just these cells
-		SimpleGrid_SetItemProtection(hgrid2, &lpFile[0], TRUE);
-		SimpleGrid_SetItemProtection(hgrid2, &lpFilePath[0], TRUE);
+		for (uint32_t idx = 0; idx < NELEMS(lpItems); idx++) {
+			SimpleGrid_SetItemData(hgrid2, &lpItems[idx]);
+			SimpleGrid_SetItemProtection(hgrid2, &lpItems[idx], TRUE);
+		}
+		SimpleGrid_SetItemProtection(hgrid2, &lpItems[2], FALSE);
 		m_rowCnt++;
+		SimpleGrid_RefreshGrid(hgrid2);
 
 	}
 
@@ -1513,4 +1482,95 @@ namespace mainwind
 		//CryptoPP::FileSource f(in, true, new CryptoPP::DefaultEncryptorWithMAC(passPhrase, new CryptoPP::FileSink(out)));
 		CryptoPP::FileSource(in, true, new CryptoPP::HexEncoder(new CryptoPP::FileSink(out)));
 	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void
+		MainWind::getFolderName(
+			void
+		) {
+		BROWSEINFO  bInfo;
+
+		TCHAR szDir[MAX_PATH];
+		TCHAR szDirPath[MAX_PATH];
+		bInfo.hwndOwner = m_hWnd;
+		bInfo.pidlRoot = NULL;
+		bInfo.pszDisplayName = szDir; // Address of a buffer to receive the display name of the folder selected by the user
+		bInfo.lpszTitle = (LPCWSTR)L"Select a folder to encrypt"; // Title of the dialog
+		bInfo.ulFlags = BIF_USENEWUI;
+		bInfo.lpfn = NULL;
+		bInfo.lParam = 0;
+		bInfo.iImage = -1;
+
+		LPITEMIDLIST lpItem = SHBrowseForFolder(&bInfo);
+		if (lpItem != NULL) {
+			SHGetPathFromIDList(lpItem, szDirPath);
+			getFolderContent(szDirPath);
+		}
+
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void
+		MainWind::getFolderContent(
+			TCHAR* pDirPath
+		) {
+
+		char fileName[MAX_PATH] = {0};
+		char filePath[MAX_PATH] = { 0 };
+		TCHAR subFolderPath[MAX_PATH] = { 0 };
+		HANDLE hFind;
+		WIN32_FIND_DATA ffd;
+		LARGE_INTEGER filesize;
+
+		wcstombs(filePath, pDirPath, MAX_PATH); //copying to local array
+		StringCchCopy(subFolderPath, MAX_PATH, pDirPath); // copying path to local array
+		StringCchCat(pDirPath, MAX_PATH, TEXT("\\*"));
+		hFind = FindFirstFile(pDirPath, &ffd);
+
+		// List all the subfolders and its files in the directory with some info about them.
+		do
+		{
+			wcstombs(fileName, ffd.cFileName, MAX_PATH); //copying to local array
+			if (strcmp(fileName, ".") && strcmp(fileName, ".."))
+			{
+				if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				{
+					StringCchCat(subFolderPath, MAX_PATH, TEXT("\\"));
+					StringCchCat(subFolderPath, MAX_PATH, ffd.cFileName);
+					getFolderContent(subFolderPath);
+				}
+			}
+		} while (FindNextFile(hFind, &ffd) != 0);
+
+		hFind = FindFirstFile(pDirPath, &ffd);
+
+		// List all the files in the current directory with some info about them.
+		do
+		{
+			wcstombs(fileName, ffd.cFileName, MAX_PATH); //copying to local array
+			if (strcmp(fileName, ".") && strcmp(fileName, ".."))
+			{
+				if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+				{
+					//MessageBox(m_hWnd, ffd.cFileName, (LPCWSTR)L"Message",
+					//	MB_OK | MB_ICONINFORMATION);
+					addNewEntryToGrid(fileName, filePath);
+				}
+			}
+		} while (FindNextFile(hFind, &ffd) != 0);
+
+	}
+
 } //namespace mainwind

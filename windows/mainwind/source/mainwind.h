@@ -51,8 +51,6 @@ namespace mainwind
 		HINSTANCE&		m_hParentInstance;
 		int				m_nCmdShow;
 		HWND*			m_hWndToolbar;
-		char 			m_filePath[MAX_PATH];
-		char 			m_fileName[MAX_PATH];
 		char 			m_inPath[MAX_PATH];
 		char 			m_outPath[MAX_PATH];
 		dbms::Dbms*		m_pDbms;
@@ -62,11 +60,13 @@ namespace mainwind
 		LRESULT CALLBACK mainWndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 		void getFileName(void);
+		void getFolderName(void);
+		void getFolderContent(TCHAR* pDirPath);
 		static HWND* createToolBar(HWND hWnd);
 		static void createWindowsMenu(HWND hWnd);
 		static void setWindowsIcon(HWND hWnd);
-		void stripFileName(LPTSTR filePath);
-		void updateGrid(void);
+		void stripFileName(LPTSTR fullPath, char* pFileName, char* pFilePath);
+		void addNewEntryToGrid(char* pFileName, char* pFilePath);
 
 	};
 

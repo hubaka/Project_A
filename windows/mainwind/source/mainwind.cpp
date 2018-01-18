@@ -90,7 +90,7 @@ namespace mainwind
 	static void ResetGrid5(HWND hGrid);
 	static void ResizeColumnWidth(HWND hGrid, LPRECT pRect);
 	static BOOL CALLBACK About_DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-	void EncryptFile(const char *in, const char *out, const char *passPhrase);
+	void cryptSelectedFile(const char* pEncryptFilePath, TCHAR* pFilePath, const char *passPhrase, bool isEncrypt);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -384,9 +384,6 @@ namespace mainwind
 				char filePath[MAX_PATH] = {0};
 				stripFileName(ofn.lpstrFile, fileName, filePath);
 				addNewEntryToGrid(fileName, filePath);
-
-				//EncryptFile(m_inPath, m_outPath, "password");
-				//m_pDbms->addDbData(m_fileName, m_filePath, 1, 1);
 			}
 		}
 
@@ -793,12 +790,28 @@ namespace mainwind
 			if (pnm->code == SGN_ITEMCLICK) //a cell was clicked in the properties grid
 			{
 				DWORD dwType = ((LPNMGRID)pnm)->dwType;
-
-				if(GCT_CHECK == dwType)
-				{
-					SGITEM sgi;
-					sgi.col = ((LPNMGRID)pnm)->col;
-					sgi.row = ((LPNMGRID)pnm)->row;
+				if (GCT_BUTTON == dwType) {
+					TCHAR tfileName[MAX_PATH] = { 0 };
+					TCHAR tfilePath[MAX_PATH] = { 0 };
+					char filePath[MAX_PATH] = { 0 };
+					bool isEncrypt = false;
+					uint32_t row = ((LPNMGRID)pnm)->row;
+					SimpleGrid_GetItemText(pnm->hwndFrom, FILENAMECOLUMNNUM, row, tfileName);
+					SimpleGrid_GetItemText(pnm->hwndFrom, PATHCOLUMNNUM, row, tfilePath);
+					StringCchCat(tfilePath, MAX_PATH, tfileName);
+					wcstombs(filePath, tfilePath, MAX_PATH); //copying to local array
+					if ((((LPNMGRID)pnm)->col) == 2)
+					{
+						isEncrypt = true;
+						cryptSelectedFile(filePath, tfilePath, "password", isEncrypt);
+						//m_pDbms->addDbData(m_fileName, m_filePath, 1, 1);
+					}
+					else if ((((LPNMGRID)pnm)->col) == 3)
+					{
+						isEncrypt = false;
+						cryptSelectedFile(filePath, tfilePath, "password", isEncrypt);
+						//m_pDbms->addDbData(m_fileName, m_filePath, 1, 1);
+					}
 				}
 			}   //if(pnm.code==BGN_CELLCLICKED)
 			return TRUE;
@@ -829,12 +842,7 @@ namespace mainwind
 		for(uint32_t idx=0; idx<fileLen; idx++) {
 			pFilePath[pathLen+idx] = '\0';
 		}
-		// debugging purose - TODO - start of -to be deleted
-		char outfilename[50];
-		strcpy(outfilename, "testout.txt");
-		strcpy(m_outPath, pFilePath);
-		strcat(m_outPath, outfilename);
-		// debugging purose - TODO - end of - to be deleted
+
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -1445,7 +1453,9 @@ namespace mainwind
 			SimpleGrid_SetItemData(hgrid2, &lpItems[idx]);
 			SimpleGrid_SetItemProtection(hgrid2, &lpItems[idx], TRUE);
 		}
+		// TODO - protection of buttongs to be set based on new file or database content
 		SimpleGrid_SetItemProtection(hgrid2, &lpItems[2], FALSE);
+		SimpleGrid_SetItemProtection(hgrid2, &lpItems[3], FALSE);
 		m_rowCnt++;
 		SimpleGrid_RefreshGrid(hgrid2);
 
@@ -1477,10 +1487,28 @@ namespace mainwind
 	//!
 	//! \return		
 	//!
-	void EncryptFile(const char *in, const char *out, const char *passPhrase)
+	void cryptSelectedFile(const char* pEncryptFilePath, TCHAR* pFilePath, const char *passPhrase, bool isEncrypt)
 	{
-		//CryptoPP::FileSource f(in, true, new CryptoPP::DefaultEncryptorWithMAC(passPhrase, new CryptoPP::FileSink(out)));
-		CryptoPP::FileSource(in, true, new CryptoPP::HexEncoder(new CryptoPP::FileSink(out)));
+		char encryptFileName[MAX_PATH] = { 0 };
+		TCHAR fileName[MAX_PATH] = { 0 };
+
+		strcpy(encryptFileName, pEncryptFilePath);
+		strcat(encryptFileName, ".crypt");
+		mbstowcs(fileName, encryptFileName, MAX_PATH);
+
+		if (isEncrypt)
+		{
+			//CryptoPP::FileSource f(in, true, new CryptoPP::DefaultEncryptorWithMAC(passPhrase, new CryptoPP::FileSink(out)));
+			CryptoPP::FileSource(pEncryptFilePath, true, new CryptoPP::HexEncoder(new CryptoPP::FileSink(encryptFileName)));
+		}
+		else
+		{
+			CryptoPP::FileSource(pEncryptFilePath, true, new CryptoPP::HexDecoder(new CryptoPP::FileSink(encryptFileName)));
+		}
+
+		DeleteFile(pFilePath);
+		MoveFile(fileName, pFilePath);
+
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -1535,6 +1563,7 @@ namespace mainwind
 		LARGE_INTEGER filesize;
 
 		wcstombs(filePath, pDirPath, MAX_PATH); //copying to local array
+		strcat(filePath, "\\");
 		StringCchCopy(subFolderPath, MAX_PATH, pDirPath); // copying path to local array
 		StringCchCat(pDirPath, MAX_PATH, TEXT("\\*"));
 		hFind = FindFirstFile(pDirPath, &ffd);

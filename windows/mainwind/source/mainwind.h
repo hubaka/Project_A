@@ -51,8 +51,6 @@ namespace mainwind
 		HINSTANCE&		m_hParentInstance;
 		int				m_nCmdShow;
 		HWND*			m_hWndToolbar;
-		char 			m_inPath[MAX_PATH];
-		char 			m_outPath[MAX_PATH];
 		dbms::Dbms*		m_pDbms;
 		uint32_t		m_rowCnt;
 

@@ -547,7 +547,15 @@ namespace grid
 			case SG_GETITEMDATALENGTH:
 				return Grid_OnGetItemDataLength(hWnd, wParam + 1, lParam + 1);
 			case SG_GETITEMPROTECTION:
-				return Grid_OnGetItemProtection(hWnd, wParam + 1, lParam + 1);
+			{
+				DWORD dwRtn = 0;
+				SGITEM sgi;
+				sgi.col = wParam + 1;
+				sgi.row = lParam + 1;
+				//return Grid_OnGetItemProtection(hWnd, wParam + 1, lParam + 1);
+				dwRtn = Grid_OnGetItemProtection(hWnd, (WPARAM)& sgi, lParam);
+				return dwRtn;
+			}
 			case SG_GETROWCOUNT:    // but don't include col headers
 				return RowCount() - 1;
 			case SG_GETROWHEADERTEXT:

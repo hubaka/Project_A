@@ -29,7 +29,7 @@
 
 #pragma comment(lib,"COMCTL32.LIB")
 
-extern HWND g_hToolbar;
+extern HWND g_hDialogWind;
 
 //---------------------------------------------------------------------------------------------------
 //! \brief		
@@ -79,7 +79,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	//and GetMessage() will fail at some point :) I've gone through and corrected this, but forgive me if I've missed a few spots.
     while(GetMessage(&Msg, NULL, 0, 0) > 0)
     {
-		if(!IsDialogMessage(g_hToolbar, &Msg))
+		if(!IsDialogMessage(g_hDialogWind, &Msg))
 		{
 			TranslateMessage(&Msg);
 			DispatchMessage(&Msg);

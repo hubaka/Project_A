@@ -39,7 +39,7 @@
 #pragma comment(lib,"Shlwapi.lib")
 #pragma comment(lib,"cryptlib.lib")
 
-HWND g_hToolbar = NULL;
+HWND g_hDialogWind = NULL;
 static grid::IGrid*	m_pIGrid;
 static bar::ToolBar*	m_pBar;
 
@@ -50,7 +50,8 @@ namespace mainwind
 {
 
 	static HINSTANCE ghInstance;
-	HWND hgrid1, hgrid2, hgrid3, hgrid4, hgrid5, htab;
+	//HWND hgrid1, hgrid2, hgrid3, hgrid4, hgrid5, htab;
+	HWND hgrid2;
 
 
 	//---------------------------------------------------------------------------
@@ -83,7 +84,7 @@ namespace mainwind
 	static void Main_OnSize(HWND hwnd, UINT state, int cx, int cy);
 	static void Main_OnClose(HWND hwnd);
 	static void Main_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify);
-	static void InitializeGrid5Demo(void);
+	static void InitializeGrid5Demo(HWND hgrid);
 	static void LoadGrid5(HWND hGrid, LPTSTR *lpszzItems, int count);
 	static void LoadGrid3(HWND hGrid);
 	static void LoadGrid4(HWND hGrid);
@@ -153,20 +154,24 @@ namespace mainwind
 				g_errHandle.getErrorInfo((LPTSTR)L"Window Registration Failed!");
 			}
 
+			int width = GetSystemMetrics(SM_CXSCREEN);
+			int height = GetSystemMetrics(SM_CYSCREEN);
+
 			// Step 2: Creating the Window
 			m_hWnd = CreateWindowEx(
 							WS_EX_CLIENTEDGE,					// Extended Style For The Window
 							_T("MainWindowClass"),				// Class Name
 							(LPCWSTR)L"The Title",				// Window Title
-							WS_OVERLAPPEDWINDOW,				// Defined Window Style
-							CW_USEDEFAULT,						// Window Position
-							CW_USEDEFAULT,						// Window Position
-							CW_USEDEFAULT ,						// Window Width
-							CW_USEDEFAULT ,						// Window height
+							(WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX),				// Defined Window Style
+							0,						// Window Position
+							0,						// Window Position
+							width,						// Window Width
+							height,						// Window height
 							NULL,								// No Parent Window
 							NULL,								// No Menu
 							m_hParentInstance,					// Instance
 							this);								//  Pass this class To WM_CREATE
+
 
 			if(m_hWnd == NULL)
 			{
@@ -221,10 +226,10 @@ namespace mainwind
 			dialogClass.lpszClassName = _T("DialogClass");
 			if (!RegisterClassEx(&dialogClass))
 				return 0;
-			g_hToolbar = CreateDialog(GetModuleHandle(NULL), MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)dlgWndProc);
-			if(g_hToolbar != NULL)
+			g_hDialogWind = CreateDialog(GetModuleHandle(NULL), MAKEINTRESOURCE(ID_BABY_GRID), hWnd, (DLGPROC)dlgWndProc);
+			if(g_hDialogWind != NULL)
 			{
-				ShowWindow(g_hToolbar, SW_SHOW);
+				ShowWindow(g_hDialogWind, SW_SHOW);
 			}
 			else {
 				g_errHandle.getErrorInfo((LPTSTR)L"dialog Failed!");
@@ -314,7 +319,7 @@ namespace mainwind
 				}
 			case WM_DESTROY:
 				{
-					DestroyWindow(g_hToolbar);
+					DestroyWindow(g_hDialogWind);
 					PostQuitMessage(0);
 					break;
 				}
@@ -322,29 +327,30 @@ namespace mainwind
 				{
 					HWND hTool;
 					RECT rcTool;
-					int iToolHeight;
+					//int iToolHeight;
 
 				    HWND hStatus;
 					RECT rcStatus;
-					int iStatusHeight;
+					//int iStatusHeight;
 
 					// Size toolbar and get height
 					hTool = GetDlgItem(m_hWnd, ID_TOOBAR);
-					HWND hgrid1 = GetDlgItem(m_hWnd, IDC_SIMPLEGRID1);
 					SendMessage(hTool, TB_AUTOSIZE, 0, 0);
 					GetWindowRect(hTool, &rcTool);
-					iToolHeight = rcTool.bottom - rcTool.top;
+					//iToolHeight = rcTool.bottom - rcTool.top;
 
 					// Size status bar and get height
 					hStatus = GetDlgItem(m_hWnd, IDC_STATUSBAR);
 					SendMessage(hStatus, WM_SIZE, 0, 0);
 					GetWindowRect(hStatus, &rcStatus);
-					iStatusHeight = rcStatus.bottom - rcStatus.top;
+					//iStatusHeight = rcStatus.bottom - rcStatus.top;
 
-					SimpleDialog_ReSize(g_hToolbar, 0);
 					RECT rect;
 					GetClientRect(m_hWnd, &rect);
-					MoveWindow(g_hToolbar, 0, 28, rect.right, rect.bottom-60, TRUE);
+					SimpleGrid_RefreshGrid(g_hDialogWind);
+					SimpleDialog_ReSize(g_hDialogWind, 0);
+					MoveWindow(g_hDialogWind, 0, 28, rect.right, rect.bottom - 60, TRUE);
+					
 					break;
 				}
 			default:
@@ -537,254 +543,254 @@ namespace mainwind
 	Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm)
 	{
 
-		if (IDC_TAB == id)
-		{
-			if (TCN_SELCHANGE == pnm->code)
-			{
-				switch(TabCtrl_GetCurSel(pnm->hwndFrom))
-				{
-					case 0:
-						ShowWindow(hgrid5, SW_HIDE);
-						ShowWindow(hgrid4, SW_HIDE);
-						ShowWindow(hgrid3, SW_HIDE);
-						ShowWindow(hgrid2, SW_SHOW);
-						ShowWindow(hgrid1, SW_SHOW);
-						break;
-					case 1:
-						ShowWindow(hgrid2, SW_HIDE);
-						ShowWindow(hgrid1, SW_HIDE);
-						ShowWindow(hgrid5, SW_HIDE);
-						ShowWindow(hgrid4, SW_HIDE);
-						ShowWindow(hgrid3, SW_SHOW);
-						break;
-					case 2:
-						ShowWindow(hgrid3, SW_HIDE);
-						ShowWindow(hgrid2, SW_HIDE);
-						ShowWindow(hgrid1, SW_HIDE);
-						ShowWindow(hgrid5, SW_HIDE);
-						ShowWindow(hgrid4, SW_SHOW);
-						break;
-					case 3:
-						ShowWindow(hgrid4, SW_HIDE);
-						ShowWindow(hgrid3, SW_HIDE);
-						ShowWindow(hgrid2, SW_HIDE);
-						ShowWindow(hgrid1, SW_HIDE);
-						InitializeGrid5Demo();
-						ShowWindow(hgrid5, SW_SHOW);
-						break;
-				}
-			}
-		}
-		if (IDC_SIMPLEGRID1 == id)
-		{
-			if (pnm->code == SGN_ITEMCLICK) //a cell was clicked in the properties grid
-			{
-				DWORD dwType = ((LPNMGRID)pnm)->dwType;
+		//if (IDC_TAB == id)
+		//{
+		//	if (TCN_SELCHANGE == pnm->code)
+		//	{
+		//		switch(TabCtrl_GetCurSel(pnm->hwndFrom))
+		//		{
+		//			case 0:
+		//				ShowWindow(hgrid5, SW_HIDE);
+		//				ShowWindow(hgrid4, SW_HIDE);
+		//				ShowWindow(hgrid3, SW_HIDE);
+		//				ShowWindow(hgrid2, SW_SHOW);
+		//				ShowWindow(hgrid1, SW_SHOW);
+		//				break;
+		//			case 1:
+		//				ShowWindow(hgrid2, SW_HIDE);
+		//				ShowWindow(hgrid1, SW_HIDE);
+		//				ShowWindow(hgrid5, SW_HIDE);
+		//				ShowWindow(hgrid4, SW_HIDE);
+		//				ShowWindow(hgrid3, SW_SHOW);
+		//				break;
+		//			case 2:
+		//				ShowWindow(hgrid3, SW_HIDE);
+		//				ShowWindow(hgrid2, SW_HIDE);
+		//				ShowWindow(hgrid1, SW_HIDE);
+		//				ShowWindow(hgrid5, SW_HIDE);
+		//				ShowWindow(hgrid4, SW_SHOW);
+		//				break;
+		//			case 3:
+		//				ShowWindow(hgrid4, SW_HIDE);
+		//				ShowWindow(hgrid3, SW_HIDE);
+		//				ShowWindow(hgrid2, SW_HIDE);
+		//				ShowWindow(hgrid1, SW_HIDE);
+		//				InitializeGrid5Demo(hgrid5);
+		//				ShowWindow(hgrid5, SW_SHOW);
+		//				break;
+		//		}
+		//	}
+		//}
+		//if (IDC_SIMPLEGRID1 == id)
+		//{
+		//	if (pnm->code == SGN_ITEMCLICK) //a cell was clicked in the properties grid
+		//	{
+		//		DWORD dwType = ((LPNMGRID)pnm)->dwType;
 
-				if(GCT_CHECK == dwType)
-				{
-					SGITEM sgi;
-					sgi.col = ((LPNMGRID)pnm)->col;
-					sgi.row = ((LPNMGRID)pnm)->row;
-					SimpleGrid_GetItemData(pnm->hwndFrom, &sgi);
+		//		if(GCT_CHECK == dwType)
+		//		{
+		//			SGITEM sgi;
+		//			sgi.col = ((LPNMGRID)pnm)->col;
+		//			sgi.row = ((LPNMGRID)pnm)->row;
+		//			SimpleGrid_GetItemData(pnm->hwndFrom, &sgi);
 
-					if (FALSE == (BOOL) sgi.lpCurValue)
-					{
-						//send appropriate control message to the grid based
-						//on the row of the cell that was toggled
-						if (sgi.row == 0)
-							SimpleGrid_SetAllowColResize(hgrid2, FALSE);
-						if (sgi.row == 1)
-							SimpleGrid_EnableEdit(hgrid2, FALSE);
-						if (sgi.row == 2)
-							SimpleGrid_SetEllipsis(hgrid2, FALSE);
-						if (sgi.row == 3)
-							SimpleGrid_SetColAutoWidth(hgrid2, FALSE);
-						if (sgi.row == 4)
-							SimpleGrid_ExtendLastColumn(hgrid2, FALSE);
-						if (sgi.row == 5)
-						{
-							SimpleGrid_SetColsNumbered(hgrid2, FALSE);
-							SimpleGrid_SetHeaderRowHeight(hgrid2, 61);
-						}
-						if (sgi.row == 6)
-							SimpleGrid_SetRowsNumbered(hgrid2, FALSE);
-						if (sgi.row == 7)
-							SimpleGrid_SetSelectionMode(hgrid2, GSO_ROWHEADER);
-						if (sgi.row == 8)
-							SimpleGrid_SetGridLineColor(hgrid2, RGB(255, 255, 255));
-					}
-					else //TRUE
-					{
-						//send appropriate control message to the grid based
-						//on the row of the cell that was toggled
-						if (sgi.row == 0)
-							SimpleGrid_SetAllowColResize(hgrid2, TRUE);
-						if (sgi.row == 1)
-							SimpleGrid_EnableEdit(hgrid2, TRUE);
-						if (sgi.row == 2)
-							SimpleGrid_SetEllipsis(hgrid2, TRUE);
-						if (sgi.row == 3)
-							SimpleGrid_SetColAutoWidth(hgrid2, TRUE);
-						if (sgi.row == 4)
-							SimpleGrid_ExtendLastColumn(hgrid2, TRUE);
-						if (sgi.row == 5)
-						{
-							SimpleGrid_SetColsNumbered(hgrid2, TRUE);
-							SimpleGrid_SetHeaderRowHeight(hgrid2, 21);
-						}
-						if (sgi.row == 6)
-							SimpleGrid_SetRowsNumbered(hgrid2, TRUE);
-						if (sgi.row == 7)
-							SimpleGrid_SetSelectionMode(hgrid2, GSO_FULLROW);
-						if (sgi.row == 8)
-							SimpleGrid_SetGridLineColor(hgrid2, RGB(220, 220, 220));
-					}
-				}
-			}   //if(pnm.code==BGN_CELLCLICKED)
-			return TRUE;
-		}
-		else if (IDC_SIMPLEGRID3 == id)
-		{
-			if(pnm->code == SGN_KEYDOWN)
-			{
-				LPNMSGKEYDOWN pnmkd = (LPNMSGKEYDOWN)pnm;
-				if(VK_F2 == pnmkd->wVKey && pnmkd->dwType == GCT_EDIT)
-				{
-					SimpleGrid_SelectCell(pnm->hwndFrom, pnmkd->col, pnmkd->row, FALSE);
-				}
-			}
-		}
-		else if (IDC_SIMPLEGRID4 == id)
-		{
-			if(pnm->code == SGN_ITEMCLICK)
-			{
-				DWORD dwType = ((LPNMGRID)pnm)->dwType;
+		//			if (FALSE == (BOOL) sgi.lpCurValue)
+		//			{
+		//				//send appropriate control message to the grid based
+		//				//on the row of the cell that was toggled
+		//				if (sgi.row == 0)
+		//					SimpleGrid_SetAllowColResize(hgrid2, FALSE);
+		//				if (sgi.row == 1)
+		//					SimpleGrid_EnableEdit(hgrid2, FALSE);
+		//				if (sgi.row == 2)
+		//					SimpleGrid_SetEllipsis(hgrid2, FALSE);
+		//				if (sgi.row == 3)
+		//					SimpleGrid_SetColAutoWidth(hgrid2, FALSE);
+		//				if (sgi.row == 4)
+		//					SimpleGrid_ExtendLastColumn(hgrid2, FALSE);
+		//				if (sgi.row == 5)
+		//				{
+		//					SimpleGrid_SetColsNumbered(hgrid2, FALSE);
+		//					SimpleGrid_SetHeaderRowHeight(hgrid2, 61);
+		//				}
+		//				if (sgi.row == 6)
+		//					SimpleGrid_SetRowsNumbered(hgrid2, FALSE);
+		//				if (sgi.row == 7)
+		//					SimpleGrid_SetSelectionMode(hgrid2, GSO_ROWHEADER);
+		//				if (sgi.row == 8)
+		//					SimpleGrid_SetGridLineColor(hgrid2, RGB(255, 255, 255));
+		//			}
+		//			else //TRUE
+		//			{
+		//				//send appropriate control message to the grid based
+		//				//on the row of the cell that was toggled
+		//				if (sgi.row == 0)
+		//					SimpleGrid_SetAllowColResize(hgrid2, TRUE);
+		//				if (sgi.row == 1)
+		//					SimpleGrid_EnableEdit(hgrid2, TRUE);
+		//				if (sgi.row == 2)
+		//					SimpleGrid_SetEllipsis(hgrid2, TRUE);
+		//				if (sgi.row == 3)
+		//					SimpleGrid_SetColAutoWidth(hgrid2, TRUE);
+		//				if (sgi.row == 4)
+		//					SimpleGrid_ExtendLastColumn(hgrid2, TRUE);
+		//				if (sgi.row == 5)
+		//				{
+		//					SimpleGrid_SetColsNumbered(hgrid2, TRUE);
+		//					SimpleGrid_SetHeaderRowHeight(hgrid2, 21);
+		//				}
+		//				if (sgi.row == 6)
+		//					SimpleGrid_SetRowsNumbered(hgrid2, TRUE);
+		//				if (sgi.row == 7)
+		//					SimpleGrid_SetSelectionMode(hgrid2, GSO_FULLROW);
+		//				if (sgi.row == 8)
+		//					SimpleGrid_SetGridLineColor(hgrid2, RGB(220, 220, 220));
+		//			}
+		//		}
+		//	}   //if(pnm.code==BGN_CELLCLICKED)
+		//	return TRUE;
+		//}
+		//else if (IDC_SIMPLEGRID3 == id)
+		//{
+		//	if(pnm->code == SGN_KEYDOWN)
+		//	{
+		//		LPNMSGKEYDOWN pnmkd = (LPNMSGKEYDOWN)pnm;
+		//		if(VK_F2 == pnmkd->wVKey && pnmkd->dwType == GCT_EDIT)
+		//		{
+		//			SimpleGrid_SelectCell(pnm->hwndFrom, pnmkd->col, pnmkd->row, FALSE);
+		//		}
+		//	}
+		//}
+		//else if (IDC_SIMPLEGRID4 == id)
+		//{
+		//	if(pnm->code == SGN_ITEMCLICK)
+		//	{
+		//		DWORD dwType = ((LPNMGRID)pnm)->dwType;
 
-				if(GCT_BUTTON == dwType)
-				{
-					int col = ((LPNMGRID)pnm)->col;
-					int row = ((LPNMGRID)pnm)->row;
-					int len = SimpleGrid_GetItemDataLen(pnm->hwndFrom, col, row);
-					LPTSTR buf = (LPTSTR) _alloca(sizeof(TCHAR) * (len + 1));
-					SimpleGrid_GetItemText(pnm->hwndFrom, col, row, buf);
+		//		if(GCT_BUTTON == dwType)
+		//		{
+		//			int col = ((LPNMGRID)pnm)->col;
+		//			int row = ((LPNMGRID)pnm)->row;
+		//			int len = SimpleGrid_GetItemDataLen(pnm->hwndFrom, col, row);
+		//			LPTSTR buf = (LPTSTR) _alloca(sizeof(TCHAR) * (len + 1));
+		//			SimpleGrid_GetItemText(pnm->hwndFrom, col, row, buf);
 
-					if(row == 0)
-					{
-						if(0 == _tcsicmp((LPTSTR) buf, _T("#1 On")))
-						{
-							// Column number
-							// Row number
-							// Item (cell) value
-							SGITEM lpItems[] = {
-								// Button column
-								1, 0, (LPARAM)_T("#1 Off"),
-								// Image column
-								2, 0, (LPARAM) 1 //On light
-							};
+		//			if(row == 0)
+		//			{
+		//				if(0 == _tcsicmp((LPTSTR) buf, _T("#1 On")))
+		//				{
+		//					// Column number
+		//					// Row number
+		//					// Item (cell) value
+		//					SGITEM lpItems[] = {
+		//						// Button column
+		//						1, 0, (LPARAM)_T("#1 Off"),
+		//						// Image column
+		//						2, 0, (LPARAM) 1 //On light
+		//					};
 
-							for(int i = 0; i < NELEMS(lpItems); ++i)
-							{
-								SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
-							}
-						}
-						else
-						{
-							// Column number
-							// Row number
-							// Item (cell) value
-							SGITEM lpItems[] = {
-								// Button column
-								1, 0, (LPARAM)_T("#1 On"),
-								// Image column
-								2, 0, (LPARAM) 0 //Off light
-							};
+		//					for(int i = 0; i < NELEMS(lpItems); ++i)
+		//					{
+		//						SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
+		//					}
+		//				}
+		//				else
+		//				{
+		//					// Column number
+		//					// Row number
+		//					// Item (cell) value
+		//					SGITEM lpItems[] = {
+		//						// Button column
+		//						1, 0, (LPARAM)_T("#1 On"),
+		//						// Image column
+		//						2, 0, (LPARAM) 0 //Off light
+		//					};
 
-							for(int i = 0; i < NELEMS(lpItems); ++i)
-							{
-								SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
-							}
+		//					for(int i = 0; i < NELEMS(lpItems); ++i)
+		//					{
+		//						SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
+		//					}
 
-						}
-					}
-					if(row == 1)
-					{
-						if(0 == _tcsicmp((LPTSTR) buf, _T("#2 On")))
-						{
-							// Column number
-							// Row number
-							// Item (cell) value
-							SGITEM lpItems[] = {
-								// Button column
-								1, 1, (LPARAM)_T("#2 Off"),
-								// Image column
-								2, 1, (LPARAM) 1 //On light
-							};
+		//				}
+		//			}
+		//			if(row == 1)
+		//			{
+		//				if(0 == _tcsicmp((LPTSTR) buf, _T("#2 On")))
+		//				{
+		//					// Column number
+		//					// Row number
+		//					// Item (cell) value
+		//					SGITEM lpItems[] = {
+		//						// Button column
+		//						1, 1, (LPARAM)_T("#2 Off"),
+		//						// Image column
+		//						2, 1, (LPARAM) 1 //On light
+		//					};
 
-							for(int i = 0; i < NELEMS(lpItems); ++i)
-							{
-								SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
-							}
-						}
-						else
-						{
-							// Column number
-							// Row number
-							// Item (cell) value
-							SGITEM lpItems[] = {
-								// Button column
-								1, 1, (LPARAM)_T("#2 On"),
-								// Image column
-								2, 1, (LPARAM) 0 //Off light
-							};
+		//					for(int i = 0; i < NELEMS(lpItems); ++i)
+		//					{
+		//						SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
+		//					}
+		//				}
+		//				else
+		//				{
+		//					// Column number
+		//					// Row number
+		//					// Item (cell) value
+		//					SGITEM lpItems[] = {
+		//						// Button column
+		//						1, 1, (LPARAM)_T("#2 On"),
+		//						// Image column
+		//						2, 1, (LPARAM) 0 //Off light
+		//					};
 
-							for(int i = 0; i < NELEMS(lpItems); ++i)
-							{
-								SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
-							}
+		//					for(int i = 0; i < NELEMS(lpItems); ++i)
+		//					{
+		//						SimpleGrid_SetItemData(pnm->hwndFrom, &lpItems[i]);
+		//					}
 
-						}
-					}
-					SimpleGrid_SetCursorPos(pnm->hwndFrom,col,row);
-				}
+		//				}
+		//			}
+		//			SimpleGrid_SetCursorPos(pnm->hwndFrom,col,row);
+		//		}
 
-			} //if(pnm.code==BGN_CELLCLICKED)
-			return TRUE;
-		}
-		else if (IDC_SIMPLEGRID5 == id)
-		{
-			if(pnm->code == SGN_ITEMCLICK)
-			{
-				DWORD dwType = ((LPNMGRID)pnm)->dwType;
+		//	} //if(pnm.code==BGN_CELLCLICKED)
+		//	return TRUE;
+		//}
+		//else if (IDC_SIMPLEGRID5 == id)
+		//{
+		//	if(pnm->code == SGN_ITEMCLICK)
+		//	{
+		//		DWORD dwType = ((LPNMGRID)pnm)->dwType;
 
-				if(GCT_BUTTON == dwType)
-				{
-					if(0 == ((LPNMGRID)pnm)->col)// "-"
-						SimpleGrid_DeleteRow(pnm->hwndFrom, ((LPNMGRID)pnm)->row);
-					else // "+"
-					{
-						SGITEM sgi;
-						sgi.row = ((LPNMGRID)pnm)->row + 1;
-						SimpleGrid_InsertRow(pnm->hwndFrom, sgi.row, "");
+		//		if(GCT_BUTTON == dwType)
+		//		{
+		//			if(0 == ((LPNMGRID)pnm)->col)// "-"
+		//				SimpleGrid_DeleteRow(pnm->hwndFrom, ((LPNMGRID)pnm)->row);
+		//			else // "+"
+		//			{
+		//				SGITEM sgi;
+		//				sgi.row = ((LPNMGRID)pnm)->row + 1;
+		//				SimpleGrid_InsertRow(pnm->hwndFrom, sgi.row, "");
 
-						sgi.col = 0;
-						sgi.lpCurValue = (LPARAM)_T("-"); // Button text
-						SimpleGrid_SetItemData(pnm->hwndFrom, &sgi);
+		//				sgi.col = 0;
+		//				sgi.lpCurValue = (LPARAM)_T("-"); // Button text
+		//				SimpleGrid_SetItemData(pnm->hwndFrom, &sgi);
 
-						sgi.col = 1;
-						sgi.lpCurValue = (LPARAM)_T("+"); // Button text
-						SimpleGrid_SetItemData(pnm->hwndFrom, &sgi);
+		//				sgi.col = 1;
+		//				sgi.lpCurValue = (LPARAM)_T("+"); // Button text
+		//				SimpleGrid_SetItemData(pnm->hwndFrom, &sgi);
 
-						sgi.col = 2;
-						sgi.lpCurValue = (LPARAM)_T("Inserted Item");
-						SimpleGrid_SetItemData(pnm->hwndFrom, &sgi);
-					}
+		//				sgi.col = 2;
+		//				sgi.lpCurValue = (LPARAM)_T("Inserted Item");
+		//				SimpleGrid_SetItemData(pnm->hwndFrom, &sgi);
+		//			}
 
-					SimpleGrid_RefreshGrid(pnm->hwndFrom);
-				}
-				return TRUE;
-			}
-		}
+		//			SimpleGrid_RefreshGrid(pnm->hwndFrom);
+		//		}
+		//		return TRUE;
+		//	}
+		//}
 		if (IDC_SIMPLEGRID2 == id)
 		{
 			if (pnm->code == SGN_ITEMCLICK) //a cell was clicked in the properties grid
@@ -800,19 +806,26 @@ namespace mainwind
 					SimpleGrid_GetItemText(pnm->hwndFrom, PATHCOLUMNNUM, row, tfilePath);
 					StringCchCat(tfilePath, MAX_PATH, tfileName);
 					wcstombs(filePath, tfilePath, MAX_PATH); //copying to local array
-					if ((((LPNMGRID)pnm)->col) == 2)
+
+					bool cellProtected = SimpleGrid_GetItemProtection(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row);
+					if (((((LPNMGRID)pnm)->col) == 2) && (cellProtected == false))
 					{
 						isEncrypt = true;
 						cryptSelectedFile(filePath, tfilePath, "password", isEncrypt);
+						SimpleGrid_SetItemProtectionEx(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row, TRUE);
+						SimpleGrid_SetItemProtectionEx(hgrid2, ((((LPNMGRID)pnm)->col)+1), ((LPNMGRID)pnm)->row, FALSE);
 						//m_pDbms->addDbData(m_fileName, m_filePath, 1, 1);
 					}
-					else if ((((LPNMGRID)pnm)->col) == 3)
+					else if (((((LPNMGRID)pnm)->col) == 3) && (cellProtected == false))
 					{
 						isEncrypt = false;
 						cryptSelectedFile(filePath, tfilePath, "password", isEncrypt);
+						SimpleGrid_SetItemProtectionEx(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row, TRUE);
+						SimpleGrid_SetItemProtectionEx(hgrid2, ((((LPNMGRID)pnm)->col)-1), ((LPNMGRID)pnm)->row, FALSE);
 						//m_pDbms->addDbData(m_fileName, m_filePath, 1, 1);
-					}
+					}	
 				}
+				//SimpleGrid_RefreshGrid(hgrid2);
 			}   //if(pnm.code==BGN_CELLCLICKED)
 			return TRUE;
 		}
@@ -888,43 +901,43 @@ namespace mainwind
 		HWND hWnd, HWND hwndFocus, LPARAM lParam
 	) {
 		//Get window handles
-		hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
+		//hgrid1 = GetDlgItem(hWnd, IDC_SIMPLEGRID1);
 		hgrid2 = GetDlgItem(hWnd, IDC_SIMPLEGRID2);
-		hgrid3 = GetDlgItem(hWnd, IDC_SIMPLEGRID3);
-		hgrid4 = GetDlgItem(hWnd, IDC_SIMPLEGRID4);
-		hgrid5 = GetDlgItem(hWnd, IDC_SIMPLEGRID5);
-		htab =  GetDlgItem(hWnd, IDC_TAB);
+		//hgrid3 = GetDlgItem(hWnd, IDC_SIMPLEGRID3);
+		//hgrid4 = GetDlgItem(hWnd, IDC_SIMPLEGRID4);
+		//hgrid5 = GetDlgItem(hWnd, IDC_SIMPLEGRID5);
+		//htab =  GetDlgItem(hWnd, IDC_TAB);
 
 		//
 		//Configure tab
 		//
 
-		TCITEM tie;
-		tie.mask = TCIF_TEXT;
-		tie.pszText = _T("Original Baby Grid Demo");
-		TabCtrl_InsertItem(htab, 0, &tie);
-		tie.pszText = _T("Big Data");
-		TabCtrl_InsertItem(htab, 1, &tie);
-		tie.pszText = _T("Column Types");
-		TabCtrl_InsertItem(htab, 2, &tie);
-		tie.pszText = _T("Insert/Delete Rows");
-		TabCtrl_InsertItem(htab, 3, &tie);
+		//TCITEM tie;
+		//tie.mask = TCIF_TEXT;
+		//tie.pszText = _T("Original Baby Grid Demo");
+		//TabCtrl_InsertItem(htab, 0, &tie);
+		//tie.pszText = _T("Big Data");
+		//TabCtrl_InsertItem(htab, 1, &tie);
+		//tie.pszText = _T("Column Types");
+		//TabCtrl_InsertItem(htab, 2, &tie);
+		//tie.pszText = _T("Insert/Delete Rows");
+		//TabCtrl_InsertItem(htab, 3, &tie);
 
 		//
 		//Configure grids
 		//
 
-		//set grid1 (the properties grid) to automatically size columns 
-		//based on the length of the text entered into the cells
-		SimpleGrid_SetColAutoWidth(hgrid1, TRUE);
-		//I don't want a row header, so make it 0 pixels wide
-		SimpleGrid_SetRowHeaderWidth(hgrid1,0);
-		//this grid won't use column headings, set header row height = 0
-		SimpleGrid_SetHeaderRowHeight(hgrid1, 0);
-		//on selection hilight full row
-		SimpleGrid_SetSelectionMode(hgrid1, GSO_FULLROW);
-		//populate grid1 with data
-		LoadGrid1(hgrid1);
+		////set grid1 (the properties grid) to automatically size columns 
+		////based on the length of the text entered into the cells
+		//SimpleGrid_SetColAutoWidth(hgrid1, TRUE);
+		////I don't want a row header, so make it 0 pixels wide
+		//SimpleGrid_SetRowHeaderWidth(hgrid1,0);
+		////this grid won't use column headings, set header row height = 0
+		//SimpleGrid_SetHeaderRowHeight(hgrid1, 0);
+		////on selection hilight full row
+		//SimpleGrid_SetSelectionMode(hgrid1, GSO_FULLROW);
+		////populate grid1 with data
+		//LoadGrid1(hgrid1);
 
 		//Set the heading font for Grid 2
 		HFONT hFont = CreateFont(20, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
@@ -944,7 +957,7 @@ namespace mainwind
 		//based on the length of the text entered into the cells
 		SimpleGrid_SetColAutoWidth(hgrid2, TRUE);
 		//allow column resizing
-		SimpleGrid_SetAllowColResize(hgrid2, TRUE);
+		SimpleGrid_SetAllowColResize(hgrid2, FALSE);
 		//use column header text
 		SimpleGrid_SetColsNumbered(hgrid2, TRUE); // aka - 2nd argument of this fxn call shall be changed later to FALSE
 
@@ -953,38 +966,38 @@ namespace mainwind
 		//populate grid2 with initial demo data
 		LoadGrid2(hgrid2, &rect);
 
-		//make grid3 header row to initial height of 21 pixels
-		SimpleGrid_SetHeaderRowHeight(hgrid3, 21);
-		//use column header text
-		SimpleGrid_SetColsNumbered(hgrid3,FALSE);
-		//use row header text
-		SimpleGrid_SetRowsNumbered(hgrid3,FALSE);
-		//last column standard width
-		SimpleGrid_ExtendLastColumn(hgrid3,FALSE);
-		//vertical scroll set to non integral rows
-		SimpleGrid_ShowIntegralRows(hgrid3,FALSE);
-		//on row header selection hilight full row, otherwise individual cell
-		SimpleGrid_SetSelectionMode(hgrid3, GSO_ROWHEADER);
+		////make grid3 header row to initial height of 21 pixels
+		//SimpleGrid_SetHeaderRowHeight(hgrid3, 21);
+		////use column header text
+		//SimpleGrid_SetColsNumbered(hgrid3,FALSE);
+		////use row header text
+		//SimpleGrid_SetRowsNumbered(hgrid3,FALSE);
+		////last column standard width
+		//SimpleGrid_ExtendLastColumn(hgrid3,FALSE);
+		////vertical scroll set to non integral rows
+		//SimpleGrid_ShowIntegralRows(hgrid3,FALSE);
+		////on row header selection hilight full row, otherwise individual cell
+		//SimpleGrid_SetSelectionMode(hgrid3, GSO_ROWHEADER);
 
-		//Include a title for this grid
-		SimpleGrid_SetTitleFont(hgrid3,hFont);
-		SimpleGrid_SetTitleHeight(hgrid3, 21);
-		SimpleGrid_SetTitle(hgrid3,_T("Grid's window text displayed here."));
+		////Include a title for this grid
+		//SimpleGrid_SetTitleFont(hgrid3,hFont);
+		//SimpleGrid_SetTitleHeight(hgrid3, 21);
+		//SimpleGrid_SetTitle(hgrid3,_T("Grid's window text displayed here."));
 
-		//populate grid3 with big data
-		LoadGrid3(hgrid3);
+		////populate grid3 with big data
+		//LoadGrid3(hgrid3);
 
-		//make grid4 header row to initial height of 21 pixels
-		SimpleGrid_SetHeaderRowHeight(hgrid4, 21);
-		//allow column resizing
-		SimpleGrid_SetAllowColResize(hgrid4, TRUE);
-		//use column header text
-		SimpleGrid_SetColsNumbered(hgrid4,FALSE);
-		//on row header selection hilight full row, otherwise individual cell
-		SimpleGrid_SetSelectionMode(hgrid4, GSO_CELL);
+		////make grid4 header row to initial height of 21 pixels
+		//SimpleGrid_SetHeaderRowHeight(hgrid4, 21);
+		////allow column resizing
+		//SimpleGrid_SetAllowColResize(hgrid4, TRUE);
+		////use column header text
+		//SimpleGrid_SetColsNumbered(hgrid4,FALSE);
+		////on row header selection hilight full row, otherwise individual cell
+		//SimpleGrid_SetSelectionMode(hgrid4, GSO_CELL);
 
-		//populate grid4 with different column types
-		LoadGrid4(hgrid4);
+		////populate grid4 with different column types
+		//LoadGrid4(hgrid4);
 
 		//Force the display of the vertical scroll in grids (if necessary)
 		//RECT rect;
@@ -1060,23 +1073,25 @@ namespace mainwind
 		HWND hwnd, UINT state, int cx, int cy
 	) {
 		RECT rect;
+		RECT rect1;
 		INT iTabHeight = 20;
 
 		GetClientRect(hwnd, &rect);
-		MoveWindow(htab, 0, 0, rect.right + 1, iTabHeight, FALSE);
-		iTabHeight+= 2;
-		MoveWindow(hgrid1, 0, iTabHeight, rect.right / 3, rect.bottom - iTabHeight, TRUE);
+		//MoveWindow(htab, 0, 0, rect.right + 1, iTabHeight, FALSE);
+		//iTabHeight+= 2;
+		//MoveWindow(hgrid1, 0, iTabHeight, rect.right / 3, rect.bottom - iTabHeight, TRUE);
 
-		MoveWindow(hgrid2, rect.right / 3, iTabHeight, 
-			rect.right - rect.right / 3, rect.bottom - iTabHeight, TRUE);
-		ResizeColumnWidth(hgrid2, &rect);
+		SimpleGrid_RefreshGrid(hgrid2);
+		MoveWindow(hgrid2, rect.left, rect.top, 
+			rect.right, rect.bottom, TRUE);
+		ResizeColumnWidth(hgrid2, &rect);		
 
-		MoveWindow(hgrid3, 0, iTabHeight, 
-			rect.right, rect.bottom - iTabHeight, TRUE);
-		MoveWindow(hgrid4, 0, iTabHeight, 
-			rect.right, rect.bottom - iTabHeight, TRUE);
-		MoveWindow(hgrid5, 0, iTabHeight, 
-			rect.right, rect.bottom - iTabHeight, TRUE);
+		//MoveWindow(hgrid3, 0, iTabHeight, 
+		//	rect.right, rect.bottom - iTabHeight, TRUE);
+		//MoveWindow(hgrid4, 0, iTabHeight, 
+		//	rect.right, rect.bottom - iTabHeight, TRUE);
+		//MoveWindow(hgrid5, 0, iTabHeight, 
+		//	rect.right, rect.bottom - iTabHeight, TRUE);
 
 	}
 
@@ -1281,11 +1296,11 @@ namespace mainwind
 		SimpleGrid_ResetContent(hGrid);
 		//set grid5 (remove rows) to automatically size columns 
 		//based on the length of the text entered into the cells
-		SimpleGrid_SetColAutoWidth(hgrid5, TRUE);
+		SimpleGrid_SetColAutoWidth(hGrid, TRUE);
 		//I don't want a row header, so make it 0 pixels wide
-		SimpleGrid_SetRowHeaderWidth(hgrid5,0);
+		SimpleGrid_SetRowHeaderWidth(hGrid,0);
 		//this grid won't use column headings, set header row height = 0
-		SimpleGrid_SetHeaderRowHeight(hgrid5, 0);
+		SimpleGrid_SetHeaderRowHeight(hGrid, 0);
 
 		// Add the columns
 
@@ -1309,7 +1324,7 @@ namespace mainwind
 	//!
 	//! \return		
 	//!
-	void InitializeGrid5Demo(void)
+	void InitializeGrid5Demo(HWND hgrid)
 	{
 		//create data records to display in grid5
 		LPTSTR items[] = {
@@ -1325,7 +1340,7 @@ namespace mainwind
 		};
 
 		//populate grid5 with data
-		LoadGrid5(hgrid5,items, NELEMS(items));
+		LoadGrid5(hgrid,items, NELEMS(items));
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -1455,7 +1470,6 @@ namespace mainwind
 		}
 		// TODO - protection of buttongs to be set based on new file or database content
 		SimpleGrid_SetItemProtection(hgrid2, &lpItems[2], FALSE);
-		SimpleGrid_SetItemProtection(hgrid2, &lpItems[3], FALSE);
 		m_rowCnt++;
 		SimpleGrid_RefreshGrid(hgrid2);
 
@@ -1472,11 +1486,16 @@ namespace mainwind
 	{
 
 		uint32_t fileColWidth = ((pRect->right) * 20)/100;
-		uint32_t pathColWidth = ((pRect->right) * 20)/100;
+		uint32_t pathColWidth = ((pRect->right) * 39)/100;
+		uint32_t encColWidth = ((pRect->right) * 20) / 100;
+		uint32_t decColWidth = ((pRect->right) * 20) / 100;
+		pathColWidth = ((((pRect->right) - fileColWidth) - encColWidth) - decColWidth) - 54;
 
 		// setting column width of file name and path name
 		SimpleGrid_SetColWidth(hGrid, FILENAMECOLUMNNUM, fileColWidth);
 		SimpleGrid_SetColWidth(hGrid, PATHCOLUMNNUM, pathColWidth);
+		SimpleGrid_SetColWidth(hGrid, ENCRYPTBUTTONCOLUMNNUM, encColWidth);
+		SimpleGrid_SetColWidth(hGrid, DECRYPTBUTTONCOLUMNNUM, decColWidth);
 
 	}
 

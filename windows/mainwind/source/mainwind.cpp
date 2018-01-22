@@ -1628,9 +1628,9 @@ namespace mainwind
 		WIN32_FIND_DATA ffd;
 		LARGE_INTEGER filesize;
 
-		wcstombs(filePath, pDirPath, MAX_PATH); //copying to local array
+		wcstombs(filePath, pDirPath, MAX_PATH); //copying to local char array
 		strcat(filePath, "\\");
-		StringCchCopy(subFolderPath, MAX_PATH, pDirPath); // copying path to local array
+		StringCchCopy(subFolderPath, MAX_PATH, pDirPath); // copying path to local TCHAR array
 		StringCchCat(pDirPath, MAX_PATH, TEXT("\\*"));
 		hFind = FindFirstFile(pDirPath, &ffd);
 

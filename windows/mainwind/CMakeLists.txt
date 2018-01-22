@@ -12,6 +12,7 @@ add_folder_dependencies(
 	"dbms"
 	"babygrid"
 	"crypto"
+	"encrypter"
 )
 
 add_lib_dependencies(

@@ -28,12 +28,15 @@
 #include <time.h>
 #include "files.h" // to include crypto's file source
 #include "hex.h" // to include crypto's hexencoder
+#include "modes.h" // For CTR_Mode - crypto
+#include "aes.h" // For AES - crypto
 #include "babygrid.h"
 #include "errhandle.h"
 #include "igrid.h"
 #include "resource.h"
 #include "toolbar.h"
 #include "dbms.h"
+#include "cryptomain.h"
 #include "mainwind.h"
 
 #pragma comment(lib,"Shlwapi.lib")
@@ -45,6 +48,8 @@ static bar::ToolBar*	m_pBar;
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
+
+using namespace CryptoPP;
 
 namespace mainwind
 {
@@ -61,6 +66,7 @@ namespace mainwind
 	static const uint32_t PATHCOLUMNNUM		= 1;
 	static const uint32_t ENCRYPTBUTTONCOLUMNNUM = 2;
 	static const uint32_t DECRYPTBUTTONCOLUMNNUM = 3;
+	static const uint32_t REMOVEFILECOLUMNNUM = 4;
 	//---------------------------------------------------------------------------
 	/// @def SimpleGrid_SetProtectColor(hGrid, clrProtect)
 	///
@@ -71,9 +77,10 @@ namespace mainwind
 	///
 	/// @returns The return value is not meaningful. 
 	#define SimpleDialog_ReSize(hDialog, clrProtect) (BOOL)SNDMSG((hDialog),WM_SIZE,(WPARAM)(UINT)(clrProtect),0L)
-
 	#define HANDLE_DLGMSG(hWnd,message,fn)  case (message): return SetDlgMsgResult((hWnd),(message),HANDLE_##message((hWnd),(wParam),(lParam),(fn)))  /* added 05-01-29 */
+
 	static errhandle::ErrHandle g_errHandle;
+
 	//static LRESULT CALLBACK mainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static BOOL CALLBACK dlgWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static BOOL Main_OnInitDialog(HWND hWnd, HWND hwndFocus, LPARAM lParam);
@@ -92,6 +99,7 @@ namespace mainwind
 	static void ResizeColumnWidth(HWND hGrid, LPRECT pRect);
 	static BOOL CALLBACK About_DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 	void cryptSelectedFile(const char* pEncryptFilePath, TCHAR* pFilePath, const char *passPhrase, bool isEncrypt);
+	SecByteBlock HexDecodeString(const char *hex);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -103,11 +111,13 @@ namespace mainwind
 	MainWind::MainWind(
 		HINSTANCE&	hParentInstance,
 		int			nCmdShow,
-		dbms::Dbms* pDbms
+		dbms::Dbms* pDbms,
+		encryptmain::EncryptDBFile* pEncrypter
 		) : m_hParentInstance(hParentInstance),
 			m_nCmdShow(nCmdShow),
 			m_pDbms(pDbms),
-			m_rowCnt(0U) {
+			m_rowCnt(0U),
+			m_pEncryptfile(pEncrypter) {
 			ghInstance = hParentInstance;
 	}
 
@@ -162,11 +172,12 @@ namespace mainwind
 							WS_EX_CLIENTEDGE,					// Extended Style For The Window
 							_T("MainWindowClass"),				// Class Name
 							(LPCWSTR)L"The Title",				// Window Title
-							(WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX),				// Defined Window Style
-							0,						// Window Position
-							0,						// Window Position
-							width,						// Window Width
-							height,						// Window height
+							WS_OVERLAPPEDWINDOW,
+							//(WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX),				// Defined Window Style
+							CW_USEDEFAULT,						// Window Position
+							CW_USEDEFAULT,						// Window Position
+							CW_USEDEFAULT,						// Window Width
+							CW_USEDEFAULT,						// Window height
 							NULL,								// No Parent Window
 							NULL,								// No Menu
 							m_hParentInstance,					// Instance
@@ -179,6 +190,8 @@ namespace mainwind
 			}
 			ShowWindow(m_hWnd, m_nCmdShow);
 			UpdateWindow(m_hWnd);
+
+			m_pEncryptfile->getUserCredentials(m_hParentInstance, m_hWnd);
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -314,6 +327,7 @@ namespace mainwind
 				}
 			case WM_CLOSE:
 				{
+					encryptDatabase();
 					DestroyWindow(m_hWnd);
 					break;
 				}
@@ -823,7 +837,12 @@ namespace mainwind
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row, TRUE);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((((LPNMGRID)pnm)->col)-1), ((LPNMGRID)pnm)->row, FALSE);
 						//m_pDbms->addDbData(m_fileName, m_filePath, 1, 1);
-					}	
+					}
+					SimpleGrid_DeleteButton(hgrid2, 0);
+				}
+				else if (GCT_IMAGE == dwType)
+				{
+					// TODO - code to delete row
 				}
 				//SimpleGrid_RefreshGrid(hgrid2);
 			}   //if(pnm.code==BGN_CELLCLICKED)
@@ -1383,6 +1402,25 @@ namespace mainwind
 	void LoadGrid2(HWND hGrid, LPRECT pRect)
 	{
 
+		//
+		// Create image list
+		//
+		INT iImages[] = { ID_RECYCLE_BIN_IMAGE };
+
+		HIMAGELIST hImageList = ImageList_Create(32, 32, ILC_COLOR32, NELEMS(iImages), 1);
+		bool resourceret = IS_INTRESOURCE(iImages[0]);
+		for (int i = 0; i < NELEMS(iImages); ++i) {
+			HBITMAP hbmp = (HBITMAP)LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(iImages[i]), IMAGE_BITMAP, 32, 32,
+				LR_CREATEDIBSECTION | LR_DEFAULTSIZE);
+			if (hbmp == NULL) {
+				g_errHandle.getErrorInfo((LPTSTR)L"Image loading Failed!");
+			}
+			ImageList_Add(hImageList, hbmp, NULL);
+		}
+
+		// Set Row height to accomodate the graphics
+		SimpleGrid_SetRowHeight(hGrid, 34);
+
 		// Column type
 		// Column header text
 		// Optional data (ex: combobox choices)
@@ -1390,7 +1428,8 @@ namespace mainwind
 			GCT_EDIT, _T("\nFile Name\n"),  NULL,
 			GCT_EDIT, _T("\nFile Path\n"),  NULL,
 			GCT_BUTTON, _T("\nEncrypt File\n"), NULL, 
-			GCT_BUTTON, _T("\nDecrypt File\n"), NULL
+			GCT_BUTTON, _T("\nDecrypt File\n"), NULL,
+			GCT_IMAGE, _T("Image Column"),  hImageList
 		};
 		for(int i = 0; i < NELEMS(lpColumns); ++i) {
 			SimpleGrid_AddColumn(hGrid, &lpColumns[i]);
@@ -1463,6 +1502,7 @@ namespace mainwind
 			PATHCOLUMNNUM, m_rowCnt, (LPARAM)(wFilePath),
 			ENCRYPTBUTTONCOLUMNNUM, m_rowCnt, (LPARAM)_T("Encrypt"),
 			DECRYPTBUTTONCOLUMNNUM, m_rowCnt, (LPARAM)_T("Decrypt"),
+			REMOVEFILECOLUMNNUM, m_rowCnt, (LPARAM)0
 		};
 		for (uint32_t idx = 0; idx < NELEMS(lpItems); idx++) {
 			SimpleGrid_SetItemData(hgrid2, &lpItems[idx]);
@@ -1470,6 +1510,7 @@ namespace mainwind
 		}
 		// TODO - protection of buttongs to be set based on new file or database content
 		SimpleGrid_SetItemProtection(hgrid2, &lpItems[2], FALSE);
+		SimpleGrid_SetItemProtection(hgrid2, &lpItems[4], FALSE);
 		m_rowCnt++;
 		SimpleGrid_RefreshGrid(hgrid2);
 
@@ -1489,7 +1530,8 @@ namespace mainwind
 		uint32_t pathColWidth = ((pRect->right) * 39)/100;
 		uint32_t encColWidth = ((pRect->right) * 20) / 100;
 		uint32_t decColWidth = ((pRect->right) * 20) / 100;
-		pathColWidth = ((((pRect->right) - fileColWidth) - encColWidth) - decColWidth) - 54;
+		uint32_t imageColWidth = 51;
+		pathColWidth = ((((pRect->right) - fileColWidth) - encColWidth) - decColWidth) - 54 - imageColWidth;
 
 		// setting column width of file name and path name
 		SimpleGrid_SetColWidth(hGrid, FILENAMECOLUMNNUM, fileColWidth);
@@ -1517,6 +1559,11 @@ namespace mainwind
 
 		if (isEncrypt)
 		{
+			//SecByteBlock key = HexDecodeString(hexKey);
+			//SecByteBlock iv = HexDecodeString(hexIV);
+			//CTR_Mode<AES>::Encryption aes(key, key.size(), iv);
+			//CryptoPP::FileSource(pEncryptFilePath, true, new CryptoPP::StreamTransformationFilter(aes, new CryptoPP::FileSink(encryptFileName)));
+
 			//CryptoPP::FileSource f(in, true, new CryptoPP::DefaultEncryptorWithMAC(passPhrase, new CryptoPP::FileSink(out)));
 			CryptoPP::FileSource(pEncryptFilePath, true, new CryptoPP::HexEncoder(new CryptoPP::FileSink(encryptFileName)));
 		}
@@ -1619,6 +1666,35 @@ namespace mainwind
 			}
 		} while (FindNextFile(hFind, &ffd) != 0);
 
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void
+		MainWind::encryptDatabase(
+			void
+		) {
+		// TODO - encrypt database code
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	SecByteBlock HexDecodeString(const char *hex)
+	{
+		StringSource ss(hex, true, new HexDecoder);
+		SecByteBlock result((size_t)ss.MaxRetrievable());
+		ss.Get(result, result.size());
+		return result;
 	}
 
 } //namespace mainwind

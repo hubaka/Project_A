@@ -35,11 +35,15 @@ namespace dbms {
 	class Dbms;
 }
 
+namespace encryptmain {
+	class EncryptDBFile;
+}
+
 namespace mainwind
 {
 	class MainWind {
 	public:
-		MainWind(HINSTANCE& hParentInstance, int nCmdShow, dbms::Dbms* pDbms);
+		MainWind(HINSTANCE& hParentInstance, int nCmdShow, dbms::Dbms* pDbms, encryptmain::EncryptDBFile* pEncrypter);
 		~MainWind(void);
 		void createWind(void);
 		void attachGrid(grid::IGrid *p_grid);
@@ -53,6 +57,7 @@ namespace mainwind
 		HWND*			m_hWndToolbar;
 		dbms::Dbms*		m_pDbms;
 		uint32_t		m_rowCnt;
+		encryptmain::EncryptDBFile*	m_pEncryptfile;
 
 		static LRESULT	CALLBACK StaticWndProc(HWND, UINT, WPARAM, LPARAM);
 		LRESULT CALLBACK mainWndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -65,6 +70,7 @@ namespace mainwind
 		static void setWindowsIcon(HWND hWnd);
 		void stripFileName(LPTSTR fullPath, char* pFileName, char* pFilePath);
 		void addNewEntryToGrid(char* pFileName, char* pFilePath);
+		void encryptDatabase(void);
 
 	};
 

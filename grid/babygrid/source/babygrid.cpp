@@ -744,6 +744,15 @@ namespace grid
 				g_lpInst->SHOWINTEGRALROWS = (BOOL)wParam;
 				RefreshGrid(hWnd);
 				break;
+			case SG_DELETEBUTTON:
+			{
+				if (NULL != g_lpInst->hwndControl)
+				{
+					DestroyWindow(g_lpInst->hwndControl);
+					g_lpInst->hwndControl = NULL;
+				}
+				break;
+			}
 			}
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
@@ -3633,7 +3642,8 @@ namespace grid
 
 			fClickSelect = GCT_BUTTON == GetColType(g_lpInst->cursorcol) ||
 						GCT_COMBO == GetColType(g_lpInst->cursorcol) ||
-						GCT_CHECK == GetColType(g_lpInst->cursorcol);
+						GCT_CHECK == GetColType(g_lpInst->cursorcol) ||
+						GCT_IMAGE == GetColType(g_lpInst->cursorcol);
 
 			// if not resizing or else over a link with hand cursor
 			if((fClickSelect && 1 == g_lpInst->cursortype) ||

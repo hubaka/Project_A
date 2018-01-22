@@ -25,6 +25,7 @@
 #include "babygrid.h"
 #include "toolbar.h"
 #include "dbms.h"
+#include "cryptomain.h"
 #include "appmain.h"
 
 #pragma comment(lib,"COMCTL32.LIB")
@@ -55,8 +56,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	grid::BabyGrid	babygrid(hInstance);
 	// creating Toolbar instance
 	bar::ToolBar toolbar;
+	// creating cypter instance
+	encryptmain::EncryptDBFile encrypter;
 	//creating mainwindow instance
-	mainwind::MainWind mainWindow(hInstance, nCmdShow, &dbmsObj);
+	mainwind::MainWind mainWindow(hInstance, nCmdShow, &dbmsObj, &encrypter);
 	mainWindow.attachGrid(&babygrid);
 	mainWindow.attachBar(&toolbar);
 	mainWindow.createWind();

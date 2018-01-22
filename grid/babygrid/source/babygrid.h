@@ -241,6 +241,7 @@ typedef struct tagSGITEM{
 #define SG_RIGHTJUSTIFYNUMERICS  WM_USER + 0x32 ///<Unused
 #define SG_INSERTROW WM_USER + 0x33             ///<SimpleGrid_InsertRow()
 #define SG_DELETEROW WM_USER + 0x34             ///<SimpleGrid_DeleteRow()
+#define SG_DELETEBUTTON WM_USER + 0x35            
 
 //---------------------------------------------------------------------------
 //! \name Grid Column types.
@@ -943,6 +944,16 @@ static uint32_t GSA_RIGHT       = 3;   ///< Item Text alignment: Right justified
 ///
 /// @returns TRUE If the window was previously disabled, otherwise false. 
 #define SimpleGrid_Enable(hGrid,fEnable) EnableWindow((hGrid),(fEnable))
+
+/// @def SimpleGrid_Enable(hGrid,fEnable)
+///
+/// @brief Enables or disables mouse and keyboard input to the specified grid.
+///
+/// @param hGrid The handle of the grid.
+/// @param fEnable TRUE to allow input, otherwise FALSE. 
+///
+/// @returns TRUE If the window was previously disabled, otherwise false. 
+#define SimpleGrid_DeleteButton(hGrid,fEnable) (BOOL)SNDMSG((hGrid),SG_DELETEBUTTON,(WPARAM)(fEnable),0L)
 
 /// @}
 

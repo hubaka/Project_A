@@ -1,12 +1,13 @@
 //!
 //! $URL: $
 //!
+//!	Project	
 //!
-//! \file       
+//! \file       appmain.H
 //! \author     Anand.Kathiresan
-//! \date       
+//! \date       2017
 //!
-//! \brief      @ Header file for 
+//! \brief      @ Header file of the main application
 //!
 //! @(#)$Id:    $
 //!
@@ -18,10 +19,19 @@
 ////////////////////////////////////////////////////////////////////////////
 
 //---------------------------------------------------------------------------
-#ifndef application_h
-#define application_h
+#ifndef APPLICATIONMAIN_H
+#define APPLICATIONMAIN_H
 //---------------------------------------------------------------------------
 
-void InitializeMyCommonControls();
+//----------------------------------------------------------------------------
+//! \brief		 This function registers and initializes certain common 
+//!					control window classes
+//!
+//! \param[in]	nothing
+//!
+//! \return		nothing
+//!
+//!
+void InitializeMyCommonControls(void);
 
-#endif //application_h
+#endif //APPLICATIONMAIN_H

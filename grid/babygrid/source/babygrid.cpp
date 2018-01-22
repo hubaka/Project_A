@@ -2,11 +2,11 @@
 //! $URL: $
 //!
 //!
-//! \file       
+//! \file       babygrid.cpp
 //! \author     Anand.Kathiresan
-//! \date       
+//! \date       2017
 //!
-//! \brief      @ Header file for 
+//! \brief      @ Source file of baby grid implementation
 //!
 //! @(#)$Id:    $
 //!
@@ -33,19 +33,20 @@ extern "C" IMAGE_DOS_HEADER __ImageBase;
 
 namespace grid
 {
-
-	/// @def HEIGHT(rect)
-	///
-	/// @brief Given a RECT, Computes height.
-	///
-	/// @param rect A RECT struct.
+	//---------------------------------------------------------------------------------------------------
+	//! @def HEIGHT(rect)
+	//!
+	//! @brief Given a RECT, Computes height.
+	//!
+	//! @param rect A RECT struct.
 	#define HEIGHT(rect) ((LONG)(rect.bottom - rect.top))
 
-	/// @def WIDTH(rect)
-	///
-	/// @brief Given a RECT, Computes width.
-	///
-	/// @param rect A RECT struct.
+	//---------------------------------------------------------------------------------------------------
+	//! @def WIDTH(rect)
+	//!
+	//! @brief Given a RECT, Computes width.
+	//!
+	//! @param rect A RECT struct.
 	#define WIDTH(rect) ((LONG)(rect.right - rect.left))
 	//---------------------------------------------------------------------------
 	// Data
@@ -58,10 +59,10 @@ namespace grid
 	//!	\brief This is the data associated with a grid item
 	//!	\struct tagGRIDITEM	
 	typedef struct tagGRIDITEM {
-		LPTSTR lpszCurValue;    ///< Item (cell) value
-		LPTSTR lpszMisc;        ///< Item (cell) specific data string
-		DWORD dwAllignment;     ///< Item (cell) text allignment
-		BOOL fProtected;        ///< Item (cell) protection status
+		LPTSTR lpszCurValue;    //!< Item (cell) value
+		LPTSTR lpszMisc;        //!< Item (cell) specific data string
+		DWORD dwAllignment;     //!< Item (cell) text allignment
+		BOOL fProtected;        //!< Item (cell) protection status
 	} GRIDITEM   , *LPGRIDITEM;
 
 	//---------------------------------------------------------------------------
@@ -72,9 +73,9 @@ namespace grid
 	//!	\brief A data structure to hold a flexable array of objects
 	//!	\struct tagVECTOR
 	typedef struct tagVECTOR {
-		int _current_capacity;  ///< Current size of storage allocation
-		PVOID *_data;           ///< Allocated space for item storage
-		int _size;              ///< Number of items in storage
+		int _current_capacity;  //!< Current size of storage allocation
+		PVOID *_data;           //!< Allocated space for item storage
+		int _size;              //!< Number of items in storage
 	} VECTOR , *LPVECTOR;
 
 	//---------------------------------------------------------------------------
@@ -85,27 +86,26 @@ namespace grid
 	//! \brief This is the data associated with a grid column
 	//! \struct tagGRIDCOLUMN
 	typedef struct tagGRIDCOLUMN {
-		DWORD dwType;           ///< Column type
-		INT iWidth;             ///< Column width
-		LPVOID pOptional;       ///< Optional data (ex: combobox choices)
-		LPVECTOR items;         ///< The row cells associated with this column
+		DWORD dwType;           //!< Column type
+		INT iWidth;             //!< Column width
+		LPVOID pOptional;       //!< Optional data (ex: combobox choices)
+		LPVECTOR items;         //!< The row cells associated with this column
 	} GRIDCOLUMN   , *LPGRIDCOLUMN;
 
-	/// @var NMSGFOCUS
-	/// @brief Contains information used in processing the SGN_GOTFOCUS 
-	///         and SGN_LOSTFOCUS notification.
-
-	/// @var LPNMSGFOCUS
-	/// @brief Pointer to SGN_GOTFOCUS and SGN_LOSTFOCUS message data
-
-	/// @struct tagNMSGFOCUS
-	/// @brief This is the data associated with the SGN_GOTFOCUS and SGN_LOSTFOCUS notification
+	//---------------------------------------------------------------------------------------------------
+	//! @var NMSGFOCUS
+	//! @brief Contains information used in processing the SGN_GOTFOCUS 
+	//!         and SGN_LOSTFOCUS notification.
+	//! @var LPNMSGFOCUS
+	//! @brief Pointer to SGN_GOTFOCUS and SGN_LOSTFOCUS message data
+	//! @struct tagNMSGFOCUS
+	//! @brief This is the data associated with the SGN_GOTFOCUS and SGN_LOSTFOCUS notification
 	typedef struct tagNMSGFOCUS {
-		NMHDR hdr;               ///< Notification message header
-		int col;                 ///< Column number
-		int row;                 ///< Row number
-		DWORD dwType;            ///< Column type (thus cell type) identifier
-		HWND hFocus;             ///< Handle of window receiving or loosing focus 
+		NMHDR hdr;               //!< Notification message header
+		int col;                 //!< Column number
+		int row;                 //!< Row number
+		DWORD dwType;            //!< Column type (thus cell type) identifier
+		HWND hFocus;             //!< Handle of window receiving or loosing focus 
 	} NMSGFOCUS, *LPNMSGFOCUS;
 
 	//---------------------------------------------------------------------------
@@ -116,245 +116,1164 @@ namespace grid
 	//! \brief This is the data associated with an instance of the grid
 	//! \struct tagINSTANCEDATA
 	typedef struct tagINSTANCEDATA {
-		HINSTANCE hInstance;            ///< Handle to this instance
-		HWND hWndParent;                ///< Handle of grid's parent
-		HWND hwndControl;               ///< Handle to the current cell control
-		HMENU gridmenu;                 ///< The child-window identifier of this grid
-		LPVECTOR data;                  ///< A collection of columns of cells
-		LPTSTR title;                   ///< The grid title string
-		INT gridwidth;                  ///< Grid width
-		INT gridheight;                 ///< Grid height
-		INT homerow;                    ///< The index of the home row
-		INT homecol;                    ///< The index of the home col
-		INT rowheight;                  ///< The height of the rows
-		INT leftvisiblecol;             ///< The index of the leftmost visible col
-		INT rightvisiblecol;            ///< The index of the rightmost visible col
-		INT topvisiblerow;              ///< The index of the topmost visible row
-		INT bottomvisiblerow;           ///< The index of the bottommost visible row
-		INT headerrowheight;            ///< The height of the header row
-		INT cursorrow;                  ///< The row index of the cursor
-		INT cursorcol;                  ///< The col index of the cursor
-		INT visiblecolumns;             ///< The number of visible columns
-		INT titleheight;                ///< The height of the grid title
-		INT fontascentheight;           ///< The ascent height of the current font
-		INT cWheelRemainder;            ///< Mouse wheel scroll units
-		COLORREF clrProtect;            ///< Protected cell background color value
-		COLORREF clrHighlight;          ///< Highlight cell background color value
-		COLORREF clrGridline;           ///< Grid lines color value
-		COLORREF clrHighlightText;      ///< Highlight cell text color value
-		COLORREF clrBackground;         ///< The normal background color
-		COLORREF clrLink;               ///< The normal link color
-		DWORD selectionMode;            ///< The Selection mode (full row, cell, or row header click)
-		BOOL HIGHLIGHTFULLROW;          ///< Draw highlight full row flag
-		BOOL GRIDHASFOCUS;              ///< Grid has focus flag
-		RECT activecellrect;            ///< The boundaries of the active cell
-		HFONT hfont;                    ///< The handle to the cell text font
-		HFONT hcolumnheadingfont;       ///< The handle of the font for column headers
-		HFONT htitlefont;               ///< The handle of the font for the grid title
-		BOOL ROWSNUMBERED;              ///< Numbered row option flag
-		BOOL COLUMNSNUMBERED;           ///< Numbered col option flag
-		BOOL EDITABLE;                  ///< The grid editable flag 
-		BOOL EXTENDLASTCOLUMN;          ///< Extend last column flag
-		BOOL HSCROLL;                   ///< Horizontal scrolling flag
-		BOOL VSCROLL;                   ///< Vertical scrolling flag
-		BOOL SHOWINTEGRALROWS;          ///< Show integral rows flag
-		BOOL REMEMBERINTEGRALROWS;      ///< Remember the integral rows flag during resizing
-		BOOL SIZING;                    ///< Sizing flag
-		BOOL ELLIPSIS;                  ///< Draw ellipsis flag
-		BOOL COLAUTOWIDTH;              ///< Column auto width flag
-		BOOL COLUMNSIZING;              ///< Column resizing flag
-		BOOL ALLOWCOLUMNRESIZING;       ///< Allow column resizing flag
-		BOOL FORCELEFTJUSTIFY;          ///< Numeric types Left justified
-		BOOL DOUBLEBUFFER;              ///< Use double buffering while painting
-		BOOL LAUNCLINK;                 ///< Link launch flag
-		INT columntoresize;             ///< Field to hold the index of the column to resize
-		INT columntoresizeinitsize;     ///< Field to hold the initial size of a column to resize
-		INT columntoresizeinitx;        ///< Field to hold the x coord of the mouse button during resize 
-		INT cursortype;                 ///< Text, pointer, or column resize cursor
+		HINSTANCE hInstance;            //!< Handle to this instance
+		HWND hWndParent;                //!< Handle of grid's parent
+		HWND hwndControl;               //!< Handle to the current cell control
+		HMENU gridmenu;                 //!< The child-window identifier of this grid
+		LPVECTOR data;                  //!< A collection of columns of cells
+		LPTSTR title;                   //!< The grid title string
+		INT gridwidth;                  //!< Grid width
+		INT gridheight;                 //!< Grid height
+		INT homerow;                    //!< The index of the home row
+		INT homecol;                    //!< The index of the home col
+		INT rowheight;                  //!< The height of the rows
+		INT leftvisiblecol;             //!< The index of the leftmost visible col
+		INT rightvisiblecol;            //!< The index of the rightmost visible col
+		INT topvisiblerow;              //!< The index of the topmost visible row
+		INT bottomvisiblerow;           //!< The index of the bottommost visible row
+		INT headerrowheight;            //!< The height of the header row
+		INT cursorrow;                  //!< The row index of the cursor
+		INT cursorcol;                  //!< The col index of the cursor
+		INT visiblecolumns;             //!< The number of visible columns
+		INT titleheight;                //!< The height of the grid title
+		INT fontascentheight;           //!< The ascent height of the current font
+		INT cWheelRemainder;            //!< Mouse wheel scroll units
+		COLORREF clrProtect;            //!< Protected cell background color value
+		COLORREF clrHighlight;          //!< Highlight cell background color value
+		COLORREF clrGridline;           //!< Grid lines color value
+		COLORREF clrHighlightText;      //!< Highlight cell text color value
+		COLORREF clrBackground;         //!< The normal background color
+		COLORREF clrLink;               //!< The normal link color
+		DWORD selectionMode;            //!< The Selection mode (full row, cell, or row header click)
+		BOOL HIGHLIGHTFULLROW;          //!< Draw highlight full row flag
+		BOOL GRIDHASFOCUS;              //!< Grid has focus flag
+		RECT activecellrect;            //!< The boundaries of the active cell
+		HFONT hfont;                    //!< The handle to the cell text font
+		HFONT hcolumnheadingfont;       //!< The handle of the font for column headers
+		HFONT htitlefont;               //!< The handle of the font for the grid title
+		BOOL ROWSNUMBERED;              //!< Numbered row option flag
+		BOOL COLUMNSNUMBERED;           //!< Numbered col option flag
+		BOOL EDITABLE;                  //!< The grid editable flag 
+		BOOL EXTENDLASTCOLUMN;          //!< Extend last column flag
+		BOOL HSCROLL;                   //!< Horizontal scrolling flag
+		BOOL VSCROLL;                   //!< Vertical scrolling flag
+		BOOL SHOWINTEGRALROWS;          //!< Show integral rows flag
+		BOOL REMEMBERINTEGRALROWS;      //!< Remember the integral rows flag during resizing
+		BOOL SIZING;                    //!< Sizing flag
+		BOOL ELLIPSIS;                  //!< Draw ellipsis flag
+		BOOL COLAUTOWIDTH;              //!< Column auto width flag
+		BOOL COLUMNSIZING;              //!< Column resizing flag
+		BOOL ALLOWCOLUMNRESIZING;       //!< Allow column resizing flag
+		BOOL FORCELEFTJUSTIFY;          //!< Numeric types Left justified
+		BOOL DOUBLEBUFFER;              //!< Use double buffering while painting
+		BOOL LAUNCLINK;                 //!< Link launch flag
+		INT columntoresize;             //!< Field to hold the index of the column to resize
+		INT columntoresizeinitsize;     //!< Field to hold the initial size of a column to resize
+		INT columntoresizeinitx;        //!< Field to hold the x coord of the mouse button during resize 
+		INT cursortype;                 //!< Text, pointer, or column resize cursor
 	} INSTANCEDATA , *LPINSTANCEDATA;
 
-	static LPINSTANCEDATA g_lpInst;     ///< instance data (this) pointer
+	static LPINSTANCEDATA g_lpInst;     //!< instance data (this) pointer
 
-	#define GCT_ROWHEADER -1            ///< Constant
+	#define GCT_ROWHEADER -1            //!< Constant
 
-	#define ID_EDIT 2001                ///<An Id for an editor
-	#define ID_COMBO 2002               ///<An Id for an editor
-	#define ID_BUTTON 2003              ///<An Id for the button
+	#define ID_EDIT 2001                //!<An Id for an editor
+	#define ID_COMBO 2002               //!<An Id for an editor
+	#define ID_BUTTON 2003              //!<An Id for the button
 
-	#define EN_EDITENDOK 777            ///<Private notification for cell edit control
+	#define EN_EDITENDOK 777            //!<Private notification for cell edit control
 
-	#define WPRC _T("Wprc")             ///<Generic property tag
-	#define EDITMODE _T("EDITMODE")     ///<Edit mode property tag
+	#define WPRC _T("Wprc")             //!<Generic property tag
+	#define EDITMODE _T("EDITMODE")     //!<Edit mode property tag
 
-	#define CHECKED _T("T")             ///< GCT_CHECK checked 
-	#define UNCHECKED _T("F")           ///< GCT_CHECK unchecked
+	#define CHECKED _T("T")             //!< GCT_CHECK checked 
+	#define UNCHECKED _T("F")           //!< GCT_CHECK unchecked
 
-	static errhandle::ErrHandle g_errHandle;
-	static NMGRID g_nmGrid; ///< Grid notification re-usable instance
-	static NMSGFOCUS g_nmSGFocus; ///< Grid focus notification re-usable instance
+	static errhandle::ErrHandle g_errHandle;	//!< Error handle instance
+	static NMGRID g_nmGrid; //!< Grid notification re-usable instance
+	static NMSGFOCUS g_nmSGFocus; //!< Grid focus notification re-usable instance
 
 
 	//---------------------------------------------------------------------------
 	// FUNCTION DECLARATIONS
 	//---------------------------------------------------------------------------
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		call back function of grid dialog. This handles the messages sent to the grid dialog
+	//!
+	//! \param[in]	hWnd	A handle to the dialog box.
+	//! \param[in]	uMsg	The message sent to dialog box
+	//! \param[in]	wParam	Additional message-specific information.
+	//! \param[in]	lParam	Additional message-specific information.
+	//!
+	//! \return		Typically, the dialog box procedure should return TRUE if it processed the message, 
+	//!				and FALSE if it did not. If the dialog box procedure returns FALSE, the dialog manager 
+	//!				performs the default dialog operation in response to the message.
+	//!
 	static LRESULT CALLBACK Grid_Proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief Handles WM_CREATE message.
+	//!
+	//! \param[in] hwnd Handle of grid.
+	//! \param[in] lpCreateStruct Pointer to a structure with creation data.
+	//!
+	//! \returns BOOL If an application processes this message,
+	//!                it should return TRUE to continue creation of the window.
 	static BOOL createGrid(HWND hWnd, LPCREATESTRUCT lpCreateStruct); //Grid_OnCreate
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Create an new instance of VECTOR
+	//!
+	//! @returns A pointer to the new VECTOR allocation
 	static LPVECTOR createVector(void); // New_Vector
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		Add an item to a VECTOR
+	//!
+	//! \param[in]	 pVector a pointer to a VECTOR instance
+	//! \param[in]	 object a pointer to an item to store in the vector
+	//!
+	//! \return		TRUE if successful
+	//!
 	static BOOL addVector(const LPVECTOR pVector, PVOID object); //Vector_Add
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		Allocate and populate a grid item data structure.
+	//!
+	//! \param[in]	 szCurValue The item's current value.
+	//!
+	//! \return		 a Pointer to the allocated grid item.
+	//!
 	static LPGRIDITEM createNewItem(LPTSTR szCurValue); //New_Item
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		Allocate the Instance data associated with this instance.
+	//!
+	//! \param[in]	 lpColumn The column data.hControl Handle to current instance.
+	//! \param[in]	 pInstanceData Pointer to an INSTANCEDATA struct
+	//!
+	//! \return		 TRUE if successful
+	//!
 	static BOOL addWindowPropList(HWND hControl, LPINSTANCEDATA pInstanceData); //Control_CreateInstanceData
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		Allocate and populate a grid column data structure.
+	//!
+	//! \param[in]	 lpColumn The column data.
+	//! \param[in]	 iWidth The column width.
+	//! \param[in]	 lpVector The column vector.
+	//!
+	//! \return		 a Pointer to the allocated grid column.
+	//!
 	static LPGRIDCOLUMN addNewColumn(LPSGCOLUMN lpColumn, uint32_t iWidth, LPVECTOR lpVector); //New_Column
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		Allocate and store a string.
+	//!
+	//! \param[in]	 str The string to store.
+	//!
+	//! \return		 a Pointer to the allocated string.
+	//!
 	static LPTSTR createNewString(LPTSTR str); //NewString
 	
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		Add an item to a VECTOR
+	//!
+	//! \param[in]	 pVector a pointer to a VECTOR instance
+	//! \param[in]	 object a pointer to an item to store in the vector
+	//!
+	//! \return		TRUE if successful
+	//!
 	static int32_t Vector_Size(const LPVECTOR pVector);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETCOLWIDTH message.
+	//!
+	//! @param hWnd The handle of the grid
+	//! @param wParam The index of the column
+	//! @param lParam The desired width (in pixels) of the column
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnSetColWidth(HWND hWnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief wrapper to access column count (including the row header column 0)
+	//!
+	//! @returns The number of columns in the underlying data table
 	static int ColCount(VOID);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Access an item stored in the VECTOR
+	//!
+	//! @param pVector a pointer to a VECTOR instance
+	//! @param index the array index associated with the desired item
+	//!
+	//! @returns The desired item if successful, otherwise NULL
 	static PVOID Vector_Get(const LPVECTOR pVector, const int index);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Sets the visible columns field to the number of visible columns.
+	//!
+	//! @param hWnd Handle of the grid
+	//!
+	//! @returns VOID
 	static void SetVisibleColumns(HWND hWnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief wrapper to access column width
+	//!
+	//! @param col The column number
+	//!
+	//! @returns The width of the column
 	static int GetColWidth(INT col);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETHEADERROWHEIGHT message.
+	//!
+	//! @param hWnd The handle of the grid
+	//! @param wParam The desired height (in pixels) of the header row
+	//! @param lParam This parameter is not used
+	//!
+	//! @returns VOID
 	static void Grid_OnSetHeaderRowHeight(HWND hWnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_ADDCOLUMN message.
+	//!
+	//! @param hWnd The handle of the grid
+	//! @param wParam  The type of column to add
+	//! @param lParam The Column header text string
+	//!
+	//! @returns The index of the added column if successful, otherwise SG_ERROR 
 	static LRESULT Grid_OnAddColumn(HWND hWnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_ADDROW message.
+	//!
+	//! @param hWnd The handle of the grid
+	//! @param wParam  This parameter is not used
+	//! @param lParam The Column header text string
+	//!
+	//! @returns The index of the added column if successful, otherwise SG_ERROR 
 	static LRESULT Grid_OnAddRow(HWND hWnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETITEMDATA message.
+	//!
+	//! @param hWnd The handle of the grid
+	//! @param wParam This parameter is not used
+	//! @param lParam A pointer to a SGITEM struct with column and row indexes.
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnSetItemData(HWND hWnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Gets the contents of a cell.
+	//!
+	//! @param col The column that the cell belongs to
+	//! @param row The row index of the cell in the column
+	//!
+	//! @returns The item and data associated with the cell
 	static LPGRIDITEM GetCellData(int col, int row);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief wrapper to access column type
+	//!
+	//! @param col The column number
+	//!
+	//! @returns The type of the column
 	static DWORD GetColType(INT col);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Cause the grid to be repainted.
+	//!
+	//! @param hWnd Handle of the grid
+	//!
+	//! @returns VOID
 	static VOID RefreshGrid(HWND hWnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief wrapper to access row count (including the column header row 0)
+	//!
+	//! @returns The number of rows in the underlying data table
 	static int RowCount(VOID);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Determines if a cells coordinates are out of range.
+	//!
+	//! @param cell A cell struct pointer (x and y coordinate)
+	//!
+	//! @returns TRUE if the cell is out of range (doesn't exist), otherwise FALSE
 	static BOOL OutOfRange(LPSGITEM cell);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Allocate and store a string array (double-null-terminated string).
+	//!
+	//! @param szzStr The double-null-terminated string to store.
+	//!
+	//! @returns a Pointer to the allocated string array.
 	static LPTSTR NewStringArray(LPTSTR szzStr);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Calculates the rectangle of a cell location.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param col The column that the cell belongs to
+	//! @param row The row index of the cell in the column
+	//! @param prc A pointer to a RECT to recieve coordinates
+	//!
+	//! @returns VOID
 	static VOID GetCellRect(HWND hwnd, int col, int row, PRECT prc);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Get the next adjacent column or previous adjacent column.
+	//!
+	//! @param startcol The number of the column to begin search.
+	//! @param fNextCol TRUE to get the next column
+	//!                  FALSE to get the previous column.
+	//!
+	//! @returns The number of the desired adjacent column or
+	//!           0 if no more cols in that direction.
 	static int GetAdjacentCol(int startcol, BOOL fNextCol);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Calculate and increase the parent column width based on the length of
+	//!         the item text.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param col The column of the item
+	//! @param row The row of the item
+	//! @param lpszValue The item text
+	//!
+	//! @returns VOID
 	static VOID AdjustParentColWidth(HWND hwnd, INT col, INT row, LPTSTR lpszValue);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief If there are \n codes in the string, find the longest line
+	//!
+	//! @param hdc Handle of the device context
+	//! @param text The text to analyze
+	//! @param size Pointer to a SIZE struct to receive text height and width
+	//!
+	//! @returns The length of the longest line of multiline text
 	static int FindLongestLine(HDC hdc, LPTSTR text, PSIZE size);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Get the Instance data associated with this instance.
+	//!
+	//! @param hControl Handle to Current instance.
+	//! @param ppInstanceData - Pointer to the address of an INSTANCEDATA struct. 
+	//!
+	//! @returns TRUE if successful
 	static BOOL Control_GetInstanceData(HWND hControl, LPINSTANCEDATA *ppInstanceData);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle WM_SETFONT message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param hfont A handle to the font. If this parameter is NULL,
+	//!               the control uses the default system font to draw text.
+	//! @param fRedraw If TRUE this control should be redrawn immediately. 
+	//!
+	//! @returns VOID.
 	static void Grid_OnSetFont(HWND hwnd, HFONT hfont, BOOL fRedraw);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_PAINT message.
+	//!
+	//! @param hwnd Handle of grid.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnPaint(HWND hwnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Wrapper for setting cell coordinates.
+	//!
+	//! @returns VOID
 	static VOID CalcVisibleCellBoundaries(VOID);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Draw the grid Title with the specified font.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param hfont Handle of the desired font
+	//! @param hdc Handle of the current device context
+	//! @param rc A rectangle of the bounds of the client area
+	//!
+	//! @returns VOID
 	static VOID DisplayTitle(HWND hwnd, HFONT hfont, HDC hdc, RECT rc);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Draw a column of cells in the grid.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param col The index of the column to draw
+	//! @param offset number of pixles from the left to begin drawing
+	//! @param hfont The handle of the desired cell font
+	//! @param hcolumnheadingfont The handle of the font used for the headers
+	//! @param hdc Handle of the current device context
+	//!
+	//! @returns VOID
 	static VOID DisplayColumn(HWND hwnd, int col, int offset, HFONT hfont, HFONT hcolumnheadingfont, HDC hdc);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Determine if it is necessary to show the VScroll and then
+	//!         show it if necessary.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static VOID ShowVscroll(HWND hwnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Determine if it is necessary to show the HScroll and then
+	//!         show it if necessary.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static VOID ShowHscroll(HWND hwnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Convert a number to an alphabetic representation.
+	//!
+	//! @par Example:
+	//!       The number 728 would be converted to "AAZ"
+	//!
+	//! @note Numeric values less than 1 return FALSE without converting
+	//!        the numeric value.  Also if the buffer is not big enough 
+	//!        to contain the converted value, this function returns FALSE. 
+	//!
+	//! @param num The number to convert
+	//! @param buf A buffer to receive text
+	//! @param iSize The size of the buffer
+	//!
+	//! @returns TRUE if successful, otherwise false
 	static BOOL Alphabetize(INT num, LPTSTR buf, INT iSize);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Wrapper to access column optional parameter
+	//!
+	//! @param col The column number
+	//!
+	//! @returns The column optional parameter
 	static LPVOID GetColOptional(INT col);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Draw the grid Title with the specified font.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param fUnderline True to set underlined font
+	//!
+	//! @returns a new font with new font weight
 	static HFONT Font_SetUnderline(HWND hwnd, BOOL fUnderline);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Determine whether a string of data represents a number.
+	//!
+	//! @param data A string to analyze.
+	//!
+	//! @returns TRUE if is numeric (decimal or floating point) otherwise FALSE.
 	static BOOL IsNumeric(LPTSTR data);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_COMMAND message.
+	//!
+	//! @param hwnd  Handle of grid.
+	//! @param id The id of the sender.
+	//! @param hwndCtl The hwnd of the sender.
+	//! @param codeNotify The notification code sent.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that a grid cell was clicked.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static void NotifyCellClick(HWND hwnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that a cell edit has ended.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static void NotifyEditEnd(HWND hwnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_DESTROY message.
+	//!
+	//! @param hwnd Handle of Grid.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnDestroy(HWND hwnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_HSCROLL message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param hwndCtl If this message is sent by a scroll bar control,
+	//!                 this parameter is the handle to the scroll bar control.
+	//!                However in this case the message was sent by a standard
+	//!                 scroll bar, thus this parameter is NULL.
+	//! @param code The scroll bar value that indicates the user's scrolling request.
+	//! @param pos The current position of the scroll box if the @b code is
+	//!             SB_THUMBPOSITION or SB_THUMBTRACK
+	//!
+	//! @returns VOID
 	static VOID Grid_OnHScroll(HWND hwnd, HWND hwndCtl, UINT code, int pos);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_KEYDOWN message.
+	//!
+	//! @param hwnd  Handle of grid.
+	//! @param vk The virtual key code.
+	//! @param fDown TRUE for keydown (always TRUE).
+	//! @param cRepeat The number of times the keystroke is repeated
+	//!         as a result of the user holding down the key.
+	//! @param flags Indicate OEM scan codes etc.
+	//!
+	//! @returns VOID.
 	static void Grid_OnKeyDown(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Free the grid's column data structure.
+	//!
+	//! @param lpColumn A pointer to a LPGRIDCOLUMN object.
+	//!
+	//! @returns VOID.
 	static VOID Column_Delete(LPGRIDCOLUMN lpColumn);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief VECTOR object destructor.
+	//!
+	//! @note Vector item allocations must be freed individually as
+	//!        this method only frees the list of item pointers.
+	//!
+	//! @param pVector a pointer to a VECTOR instance
+	//!
+	//! @returns VOID
 	static VOID Vector_Free(const LPVECTOR pVector);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Free the instance data allocation of an instance of the Grid Control.
+	//!
+	//! @param hControl Handle to current instance.
+	//!
+	//! @returns TRUE if successful
 	static BOOL Control_FreeInstanceData(HWND hControl);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Gets the last visible column based upon scroll position.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param n The horizontal scroll position
+	//!
+	//! @returns The last visible column
 	static int GetNthVisibleColumn(HWND hwnd, int n);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that a key was pressed.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param vk Virtual key code
+	//!
+	//! @returns VOID
 	static void NotifyKeydown(HWND hwnd, UINT vk);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that the selection has changed.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static void NotifySelChange(HWND hwnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that a cell edit has begun.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static void NotifyEditBegin(HWND hwnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Sets the home row field of the grid based on current cursor position.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param col The column that the current cell belongs to
+	//! @param row The row index of the current cell in the column 
+	//!
+	//! @returns VOID
 	static VOID SetHomeRow(HWND hwnd, int col, int row);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Sets the home column field of the grid based on current cursor position.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param col The column that the current cell belongs to
+	//! @param row The row index of the current cell in the column 
+	//!
+	//! @returns VOID
 	static VOID SetHomeCol(HWND hwnd, int col, int row);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle the selection of a grid column of type GCT_EDIT.
+	//!
+	//! @param hwnd The handle of the grid.
+	//! @param rc RECT containing desired coordinates for the edit control.
+	//! @param text The initial character or text for the editor.
+	//! @param fEditMode TRUE if EDIT control in edit mode FALSE for overwrite.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnSelectEdit(HWND hwnd, RECT rc, LPTSTR text, BOOL fEditMode);//DWM 1.7: Added fEditMode argument;
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle the selection of a grid column of type GCT_COMBO.
+	//!
+	//! @param hwnd The handle of the grid.
+	//! @param rc RECT containing desired coordinates for the button control.
+	//! @param szzItems The drop down item choices 
+	//!                  (double null terminated string array).
+	//! @param szSelected The currently selected item (if any).
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnSelectComboBox(HWND hwnd, RECT rc, LPTSTR szzItems, LPTSTR szSelected);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle the selection of a grid column of type GCT_BUTTON.
+	//!
+	//! @param hwnd The handle of the grid.
+	//! @param rc RECT containing desired coordinates for the button control.
+	//! @param text The initial text for the button.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnSelectButton(HWND hwnd, RECT rc, LPTSTR text);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Free the grid's item data structure.
+	//!
+	//! @param lpItem A pointer to an item object.
+	//!
+	//! @returns VOID.
 	static VOID Item_Delete(LPGRIDITEM lpItem);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Calculate the number of visible columns.
+	//!
+	//! @note Columns are "hidden" when it's width is 0.
+	//!
+	//! @returns The number of visible columns
 	static int HomeColumnNthVisible(VOID);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Create an Edit control to edit GCT_EDIT fields.
+	//!
+	//! @param hInstance The handle of an instance.
+	//! @param hwndParent The handle of the parent (the visible listbox).
+	//! @param id An id tag for this control.
+	//! @param fEditMode TRUE if EDIT control in edit mode FALSE for overwrite.
+	//!
+	//! @returns HWND A handle to the edit control.
 	static HWND CreateEdit(HINSTANCE hInstance, HWND hwndParent, INT id, BOOL fEditMode);//DWM 1.7: Added fEditMode argument
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Center the text in an edit control.
+	//!
+	//! @param hEdit The handle of an edit control.
+	//! @note This only works with mulitline edit controls (ES_MULTILINE).
+	//!
+	//! @returns VOID.
 	static VOID Edit_CenterTextVertically(HWND hEdit);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Create combobox control configured as a dropdown list.
+	//!
+	//! @param hInstance The handle of an instance.
+	//! @param hwndParent The handle of the parent (the visible listbox).
+	//! @param id An id tag for this control.
+	//!
+	//! @returns HWND A handle to the control.
 	static HWND CreateCombo(HINSTANCE hInstance, HWND hwndParent, INT id);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Calculate the position of the combobox within a rectangle.
+	//!
+	//! @param hCombo The handle of a combobox control.
+	//! @param prc The address of a rectangle with the bounds in which to center the combobox.
+	//!
+	//! @returns VOID.
 	static VOID Combo_CalculateVerticalPos(HWND hCombo, PRECT prc);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Create button control for GCT_BUTTON column.
+	//!
+	//! @param hInstance The handle of an instance.
+	//! @param hwndParent The handle of the parent (the visible listbox).
+	//! @param id An id tag for this control.
+	//!
+	//! @returns HWND A handle to the button control.
 	static HWND CreateButton(HINSTANCE hInstance, HWND hwndParent, INT id);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Window procedure for the edit control.
+	//!
+	//! @param hEdit Handle of editor.
+	//! @param msg Which message?
+	//! @param wParam Message parameter.
+	//! @param lParam Message parameter.
+	//!
+	//! @returns LRESULT depends on message.
 	static LRESULT CALLBACK Edit_Proc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Window procedure for the button control.
+	//!
+	//! @param hButton Handle of button control.
+	//! @param msg Which message?
+	//! @param wParam Message parameter.
+	//! @param lParam Message parameter.
+	//!
+	//! @returns LRESULT depends on message.
 	static LRESULT CALLBACK Button_Proc(HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Window procedure for the combobox control.
+	//!
+	//! @param hCombo Handle of the combobox.
+	//! @param msg Which message?
+	//! @param wParam Message parameter.
+	//! @param lParam Message parameter.
+	//!
+	//! @par Comments
+	//!       The combobox control wraps a listbox (drop down) and an edit control
+	//!       child (if it is an editable list box).  The edit control child needs
+	//!       to be subclassed in order to handle keyboard events.  Each child control
+	//!       posts some notification to the parent combobox control and I use this
+	//!       behavior to capture and subclass the child edit control.  This edit control is
+	//!       subclassed to this very procedure and so 'hwnd' could be parent combobox or
+	//!       child edit control.  Care then, must be taken to differentiate between
+	//!       child and parent.  I do this by getting the class name and restricting
+	//!       the handling of certain messages to one or the other control type.
+	//! @par Warning
+	//!       The drop down list control of a combobox is not a child of the combobox
+	//!       it is the child of the desktop so that the list is not clipped by the
+	//!       combobox's client area.  Do not sub class it to this procedure since
+	//!       doing so will cause the instance data pointer to be reset to NULL!  The
+	//!       instance data pointer is attached to the Grid's window.
+	//!
+	//! @returns LRESULT depends on message.
 	static LRESULT CALLBACK ComboBox_Proc(HWND hCombo, UINT msg, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Default window procedure for the grid child windows.
+	//!
+	//! @param hwnd Handle of grid or child.
+	//! @param msg Which message?
+	//! @param wParam Message parameter.
+	//! @param lParam Message parameter.
+	//!
+	//! @returns LRESULT depends on message.
 	static LRESULT DefProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Draw specified borders of a rectangle.
+	//!
+	//! @param hdc A handle to a device context.
+	//! @param lprc The address of a RECT structure with drawing coordinates.
+	//! @param dwBorder specifies which borders to draw.
+	//! @param clr The desired line color value.
+	//!
+	//! @returns VOID.
 	static VOID DrawBorder(HDC hdc, LPRECT lprc, DWORD dwBorder, COLORREF clr);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Draw a line.
+	//!
+	//! @param hdc A handle to a device context.
+	//! @param x1 From point x-coordinate.
+	//! @param y1 From point y-coordinate.
+	//! @param x2 To point x-coordinate.
+	//! @param y2 To point y-coordinate.
+	//!
+	//! @returns VOID.
 	static VOID DrawLine(HDC hdc, LONG x1, LONG y1, LONG x2, LONG y2);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle WM_KILLFOCUS message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param hwndNewFocus Handle of the window that recieved focus.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnKillFocus(HWND hwnd, HWND hwndNewFocus);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_LBUTTONDOWN message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param fDoubleClick TRUE if this is a double click event.
+	//! @param x The xpos of the mouse.
+	//! @param y The ypos of the mouse.
+	//! @param keyFlags Set if certain keys down at time of click.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that the grid lost focus.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param hwndNewFocus Handle of window receiving focus
+	//!
+	//! @returns VOID
 	static void NotifyLostFocus(HWND hwnd, HWND hwndNewFocus);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Gets the column of the mouse pointer.
+	//!
+	//! @param x The x coordinate of the mouse pointer
+	//!
+	//! @returns The col number of the mouse pointer if successful, otherwise SG_ERROR
 	static int GetColOfMouse(int x);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Gets the row of the mouse pointer.
+	//!
+	//! @param y The y coordinate of the mouse pointer
+	//!
+	//! @returns The row number of the mouse pointer if successful, otherwise SG_ERROR
 	static int GetRowOfMouse(int y);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_LBUTTONUP message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param x The xpos of the mouse.
+	//! @param y The ypos of the mouse.
+	//! @param keyFlags Set if certain keys down at time of click.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnLButtonUp(HWND hwnd, int x, int y, UINT keyFlags);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_MOUSEMOVE message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param x The xpos of the mouse.
+	//! @param y The ypos of the mouse.
+	//! @param keyFlags Set if certain keys down at time of move.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnMouseMove(HWND hwnd, int x, int y, UINT keyFlags);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_MOUSEWHEEL message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param x The xpos of the mouse.
+	//! @param y The ypos of the mouse.
+	//! @param zDelta The delta of the mouse wheel (rotation distance)
+	//! @param keyFlags Set if certain keys down at time of move.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnMouseWheel(HWND hwnd, int x, int y, int zDelta, UINT keyFlags);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle WM_SETFOCUS message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param hwndOldFocus Handle if the window that has lost the keyboard focus.
+	//!
+	//! @returns VOID.
 	static void Grid_OnSetFocus(HWND hwnd, HWND hwndOldFocus);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that the grid got focus.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param hwndOldFocus Handle of window losing focus
+	//!
+	//! @returns VOID
 	static void NotifyGotFocus(HWND hwnd, HWND hwndOldFocus);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_VSCROLL message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param hwndCtl If this message is sent by a scroll bar control,
+	//!                 this parameter is the handle to the scroll bar control.
+	//!                However in this case the message was sent by a standard
+	//!                 scroll bar, thus this parameter is NULL.
+	//! @param code The scroll bar value that indicates the user's scrolling request.
+	//! @param pos The current position of the scroll box if the @b code is
+	//!             SB_THUMBPOSITION or SB_THUMBTRACK
+	//!
+	//! @returns VOID
 	static VOID Grid_OnVScroll(HWND hwnd, HWND hwndCtl, UINT code, int pos);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle WM_SETTEXT message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param lpszText A pointer to a null-terminated string that is the window text.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnSetText(HWND hwnd, LPCTSTR lpszText);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_SIZE message.
+	//!
+	//! @param hwnd  Handle of grid.
+	//! @param state Specifies the type of resizing requested.
+	//! @param cx The width of client area.
+	//! @param cy The height of client area.
+	//!
+	//! @returns VOID.
 	static void Grid_OnSize(HWND hwnd, UINT state, int cx, int cy);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_INSERTROW message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam  position where to insert the row
+	//! @param lParam The Column header text string
+	//!
+	//! @returns position if successful, otherwise SG_ERROR 
 	static LRESULT Grid_OnInsertRow(HWND hwnd, WPARAM wParam, LPARAM lParam);//DWM 2.1: Added;
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_DELETEROW message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam  The position of the row to delete
+	//!
+	//! @returns number of rows if successful, otherwise SG_ERROR 
 	static LRESULT Grid_OnDeleteRow(HWND hwnd, WPARAM wParam);//DWM 2.1: Added
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_GETITEMDATALENGTH message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam The column that the item belongs to
+	//! @param lParam The row index of the item in the column
+	//!
+	//! @returns The length of the data buffer for the item
 	static LRESULT Grid_OnGetItemDataLength(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_GETITEMDATA message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam This parameter is not used
+	//! @param lParam A pointer to a SGITEM struct with column and row indexes.
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnGetItemData(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETIMAGELIST message.
+	//!
+	//! @param wParam The id number of a column of type GCT_IMAGE
+	//! @param lParam This parameter is not used
+	//!
+	//! @returns LRESULT the handle of the current image list if any
 	static LRESULT Grid_OnGetImageList(WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_GETITEMPROTECTION message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam A pointer to a SGCELL struct with column and row indexes
+	//! @param lParam This parameter is not used
+	//!
+	//! @returns SG_ERROR if desired cell is out of bounds, TRUE if it is protected, otherwise FALSE
 	static LRESULT Grid_OnGetItemProtection(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_REFRESHGRID message.
+	//!
+	//! @note: This is called external to the grid and differs from
+	//!         RefreshGrid() in that the call to InvalidateRect() is such that
+	//!         that background is erased when the BeginPaint function is called.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static VOID Grid_OnRefresh(HWND hwnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_RESETCONTENT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//!
+	//! @returns VOID 
 	static VOID Grid_OnResetContent(HWND hwnd);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SELECTCELL message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param col The col index of the cell
+	//! @param row The row index of the cell
+	//! @param fOverwritemode TRUE to overwrite cell contents, FALSE to edit 
+	//!         the current contents of the cell.
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnSelectCell(HWND hwnd, INT col, INT row, BOOL fOverwritemode);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETCURSORPOS message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam The col index of the cell
+	//! @param lParam The row index of the cell
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnSetCursorPos(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETIMAGELIST message.
+	//!
+	//! @param wParam The id number of a column of type GCT_IMAGE
+	//! @param lParam The handle of the new image list
+	//!
+	//! @returns LRESULT the handle of the old image list if any
 	static LRESULT Grid_OnSetImageList(WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETITEMTEXTALIGNMENT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam The item text alignment
+	//! @param lParam A pointer to a SGITEM struct with column and row indexes.
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnSetItemTextAlignment(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETITEMPROTECTION message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam BOOL TRUE to protect cell FALSE to allow changes
+	//! @param lParam A pointer to a SGITEM struct with column and row indexes
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnSetItemProtection(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETROWHEIGHT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam The desired height (in pixels) of the rows
+	//!
+	//! @returns VOID
 	static void Grid_OnSetRowHeight(HWND hwnd, WPARAM wParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETTITLEHEIGHT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam The desired height (in pixels) of the title
+	//! @param lParam This parameter is not used
+	//!
+	//! @returns VOID
 	static void Grid_OnSetTitleHeight(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Add an item to a VECTOR at a given position
+	//!
+	//! @param pVector a pointer to a VECTOR instance
+	//! @param nPos at which position to insert the object
+	//! @param object a pointer to an item to store in the vector
+	//!
+	//! @returns TRUE if successful, FALSE on invalid position or out of memory.
 	static BOOL Vector_Insert(const LPVECTOR pVector, int nPos, PVOID object); //DWM 2.1: Added
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Remove an item from a VECTOR at a given position
+	//!
+	//! @param pVector a pointer to a VECTOR instance
+	//! @param nPos the position of the object to remove
+	//!
+	//! @returns TRUE if successful, FALSE on invalid position or out of memory.
 	static BOOL Vector_RemoveAt(const LPVECTOR pVector, int nPos); //DWM 2.1: Added
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief wrapper to set column optional parameter
+	//!
+	//! @param col The column number
+	//! @param object Object to store
+	//!
+	//! @returns VOID
 	static VOID SetColOptional(INT col, PVOID object);
 
-	/// @def StringArray_Replace(lpszTarget, lpszReplace)
-	///
-	/// @brief Replace an allocated string array.
-	///
-	/// @param lpszTarget The existing allocated string array.
-	/// @param lpszReplace The new string array.
+	//---------------------------------------------------------------------------------------------------
+	//! @def StringArray_Replace(lpszTarget, lpszReplace)
+	//!
+	//! @brief Replace an allocated string array.
+	//!
+	//! @param lpszTarget The existing allocated string array.
+	//! @param lpszReplace The new string array.
 	#define StringArray_Replace(lpszTarget, lpszReplace) \
 		(free((lpszTarget)), (lpszTarget) = NewStringArray(lpszReplace))
 
-	/// @def IsEmptyString(lpsz)
-	///
-	/// @brief Test a string.
-	///
-	/// @param lpsz The string to test.
-	///
-	/// @returns TRUE if empty
+	//---------------------------------------------------------------------------------------------------
+	//! @def IsEmptyString(lpsz)
+	//!
+	//! @brief Test a string.
+	//!
+	//! @param lpsz The string to test.
+	//!
+	//! @returns TRUE if empty
 	#define IsEmptyString(lpsz) (BOOL)(0 == lpsz[0])
 
-	/// @def NELEMS(a)
-	///
-	/// @brief Computes number of elements of an array.
-	///
-	/// @param a An array.
+	//---------------------------------------------------------------------------------------------------
+	//! @def NELEMS(a)
+	//!
+	//! @brief Computes number of elements of an array.
+	//!
+	//! @param a An array.
 	#define NELEMS(a) (sizeof(a) / sizeof((a)[0]))
 
-	/// @def HEIGHT(rect)
-	///
-	/// @brief Given a RECT, Computes height.
-	///
-	/// @param rect A RECT struct.
+	//---------------------------------------------------------------------------------------------------
+	//! @def HEIGHT(rect)
+	//!
+	//! @brief Given a RECT, Computes height.
+	//!
+	//! @param rect A RECT struct.
 	#define HEIGHT(rect) ((LONG)(rect.bottom - rect.top))
 
-	/// @def WIDTH(rect)
-	///
-	/// @brief Given a RECT, Computes width.
-	///
-	/// @param rect A RECT struct.
+	//---------------------------------------------------------------------------------------------------
+	//! @def WIDTH(rect)
+	//!
+	//! @brief Given a RECT, Computes width.
+	//!
+	//! @param rect A RECT struct.
 	#define WIDTH(rect) ((LONG)(rect.right - rect.left))
 
-	/// @def String_Replace(lpszTarget, lpszReplace)
-	///
-	/// @brief Replace an allocated string.
-	///
-	/// @param lpszTarget The existing allocated string.
-	/// @param lpszReplace The new string.
+	//---------------------------------------------------------------------------------------------------
+	//! @def String_Replace(lpszTarget, lpszReplace)
+	//!
+	//! @brief Replace an allocated string.
+	//!
+	//! @param lpszTarget The existing allocated string.
+	//! @param lpszReplace The new string.
 	#define String_Replace(lpszTarget, lpszReplace) \
 		(free((lpszTarget)), (lpszTarget) = createNewString(lpszReplace))
 
 	//---------------------------------------------------------------------------------------------------
-	//! \brief		
+	//! \brief		constructor
 	//!
-	//! \param[in]	
+	//! \param[in]	hParentInstance	hInstance is something called a "handle to an instance" or 
+	//!								"handle to a module." The operating system uses this value to 
+	//!								identify the executable (EXE) when it is loaded in memory. 
+	//!								The instance handle is needed for certain Windows functions
 	//!
-	//! \return		
+	//! \return		nothing
 	//!
 	BabyGrid::BabyGrid(
 		HINSTANCE&	hParentInstance
@@ -363,11 +1282,11 @@ namespace grid
 	}
 
 	//---------------------------------------------------------------------------------------------------
-	//! \brief		
+	//! \brief		destructor
 	//!
-	//! \param[in]	
+	//! \param[in]	nothing
 	//!
-	//! \return		
+	//! \return		nothing
 	//!
 	BabyGrid::~BabyGrid(
 		void
@@ -378,11 +1297,11 @@ namespace grid
 	}
 
 	//---------------------------------------------------------------------------------------------------
-	//! \brief		
+	//! \brief		This function registers the grid class with the parent window instance
 	//!
-	//! \param[in]	
+	//! \param[in]	hWnd	window handle of the parent window
 	//!
-	//! \return		
+	//! \return		nothing
 	//!
 	void 
 	BabyGrid::createBabyGrid(
@@ -426,11 +1345,16 @@ namespace grid
 	}
 
 	//---------------------------------------------------------------------------------------------------
-	//! \brief		
+	//! \brief		call back function of grid dialog. This handles the messages sent to the grid dialog
 	//!
-	//! \param[in]	
+	//! \param[in]	hWnd	A handle to the dialog box.
+	//! \param[in]	uMsg	The message sent to dialog box
+	//! \param[in]	wParam	Additional message-specific information.
+	//! \param[in]	lParam	Additional message-specific information.
 	//!
-	//! \return		
+	//! \return		Typically, the dialog box procedure should return TRUE if it processed the message, 
+	//!				and FALSE if it did not. If the dialog box procedure returns FALSE, the dialog manager 
+	//!				performs the default dialog operation in response to the message.
 	//!
 	LRESULT	CALLBACK 
 	Grid_Proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -758,12 +1682,13 @@ namespace grid
 	}
 
 	//---------------------------------------------------------------------------------------------------
-	//! \brief		
+	//! \brief Handles WM_CREATE message.
 	//!
-	//! \param[in]	
+	//! \param[in] hwnd Handle of grid.
+	//! \param[in] lpCreateStruct Pointer to a structure with creation data.
 	//!
-	//! \return		
-	//!
+	//! \returns BOOL If an application processes this message,
+	//!                it should return TRUE to continue creation of the window.
 	BOOL 
 	createGrid(HWND hWnd, LPCREATESTRUCT lpCreateStruct)
 	{
@@ -831,12 +1756,9 @@ namespace grid
 
 
 	//---------------------------------------------------------------------------------------------------
-	//! \brief		
+	//! @brief Create an new instance of VECTOR
 	//!
-	//! \param[in]	
-	//!
-	//! \return		
-	//!
+	//! @returns A pointer to the new VECTOR allocation
 	static LPVECTOR 
 	createVector(
 		void
@@ -998,12 +1920,13 @@ namespace grid
 		return SetProp(hControl, (LPCTSTR)_T("lpInsData"), pInst);
 	}
 
-	/// @brief Get the Instance data associated with this instance.
-	///
-	/// @param hControl Handle to Current instance.
-	/// @param ppInstanceData - Pointer to the address of an INSTANCEDATA struct. 
-	///
-	/// @returns TRUE if successful
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Get the Instance data associated with this instance.
+	//!
+	//! @param hControl Handle to Current instance.
+	//! @param ppInstanceData - Pointer to the address of an INSTANCEDATA struct. 
+	//!
+	//! @returns TRUE if successful
 	static BOOL 
 	Control_GetInstanceData(HWND hControl, LPINSTANCEDATA *ppInstanceData)
 	{
@@ -1017,13 +1940,14 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles SG_SETCOLWIDTH message.
-	///
-	/// @param hWnd The handle of the grid
-	/// @param wParam The index of the column
-	/// @param lParam The desired width (in pixels) of the column
-	///
-	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETCOLWIDTH message.
+	//!
+	//! @param hWnd The handle of the grid
+	//! @param wParam The index of the column
+	//! @param lParam The desired width (in pixels) of the column
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT 
 	Grid_OnSetColWidth(
 		HWND hWnd, WPARAM wParam, LPARAM lParam
@@ -1042,9 +1966,10 @@ namespace grid
 		return ERROR_SUCCESS;
 	}
 
-	/// @brief wrapper to access column count (including the row header column 0)
-	///
-	/// @returns The number of columns in the underlying data table
+	//---------------------------------------------------------------------------------------------------
+	//! @brief wrapper to access column count (including the row header column 0)
+	//!
+	//! @returns The number of columns in the underlying data table
 	static int 
 	ColCount(
 		VOID
@@ -1052,12 +1977,13 @@ namespace grid
 		return Vector_Size(g_lpInst->data);
 	}
 
-	/// @brief Access an item stored in the VECTOR
-	///
-	/// @param pVector a pointer to a VECTOR instance
-	/// @param index the array index associated with the desired item
-	///
-	/// @returns The desired item if successful, otherwise NULL
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Access an item stored in the VECTOR
+	//!
+	//! @param pVector a pointer to a VECTOR instance
+	//! @param index the array index associated with the desired item
+	//!
+	//! @returns The desired item if successful, otherwise NULL
 	static PVOID 
 	Vector_Get(
 		const LPVECTOR pVector, const int index
@@ -1072,11 +1998,12 @@ namespace grid
 		}
 	}
 
-	/// @brief Sets the visible columns field to the number of visible columns.
-	///
-	/// @param hWnd Handle of the grid
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Sets the visible columns field to the number of visible columns.
+	//!
+	//! @param hWnd Handle of the grid
+	//!
+	//! @returns VOID
 	static void 
 	SetVisibleColumns(
 		HWND hWnd
@@ -1096,11 +2023,12 @@ namespace grid
 		SetScrollRange(hWnd, SB_HORZ, 1, value, TRUE);
 	}
 
-	/// @brief wrapper to access column width
-	///
-	/// @param col The column number
-	///
-	/// @returns The width of the column
+	//---------------------------------------------------------------------------------------------------
+	//! @brief wrapper to access column width
+	//!
+	//! @param col The column number
+	//!
+	//! @returns The width of the column
 	static int 
 	GetColWidth(
 		INT col
@@ -1112,13 +2040,14 @@ namespace grid
 		return lpgc->iWidth;
 	}
 
-	/// @brief Handles SG_SETHEADERROWHEIGHT message.
-	///
-	/// @param hWnd The handle of the grid
-	/// @param wParam The desired height (in pixels) of the header row
-	/// @param lParam This parameter is not used
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETHEADERROWHEIGHT message.
+	//!
+	//! @param hWnd The handle of the grid
+	//! @param wParam The desired height (in pixels) of the header row
+	//! @param lParam This parameter is not used
+	//!
+	//! @returns VOID
 	static void 
 	Grid_OnSetHeaderRowHeight(
 		HWND hWnd, WPARAM wParam, LPARAM lParam
@@ -1133,13 +2062,14 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles SG_ADDCOLUMN message.
-	///
-	/// @param hWnd The handle of the grid
-	/// @param wParam  The type of column to add
-	/// @param lParam The Column header text string
-	///
-	/// @returns The index of the added column if successful, otherwise SG_ERROR 
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_ADDCOLUMN message.
+	//!
+	//! @param hWnd The handle of the grid
+	//! @param wParam  The type of column to add
+	//! @param lParam The Column header text string
+	//!
+	//! @returns The index of the added column if successful, otherwise SG_ERROR 
 	static LRESULT 
 	Grid_OnAddColumn(
 		HWND hWnd, WPARAM wParam, LPARAM lParam
@@ -1181,13 +2111,14 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles SG_ADDROW message.
-	///
-	/// @param hWnd The handle of the grid
-	/// @param wParam  This parameter is not used
-	/// @param lParam The Column header text string
-	///
-	/// @returns The index of the added column if successful, otherwise SG_ERROR 
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_ADDROW message.
+	//!
+	//! @param hWnd The handle of the grid
+	//! @param wParam  This parameter is not used
+	//! @param lParam The Column header text string
+	//!
+	//! @returns The index of the added column if successful, otherwise SG_ERROR 
 	static LRESULT 
 	Grid_OnAddRow(
 		HWND hWnd, WPARAM wParam, LPARAM lParam
@@ -1230,13 +2161,14 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles SG_SETITEMDATA message.
-	///
-	/// @param hWnd The handle of the grid
-	/// @param wParam This parameter is not used
-	/// @param lParam A pointer to a SGITEM struct with column and row indexes.
-	///
-	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETITEMDATA message.
+	//!
+	//! @param hWnd The handle of the grid
+	//! @param wParam This parameter is not used
+	//! @param lParam A pointer to a SGITEM struct with column and row indexes.
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT 
 	Grid_OnSetItemData(
 		HWND hWnd, WPARAM wParam, LPARAM lParam
@@ -1313,12 +2245,13 @@ namespace grid
 		return ERROR_SUCCESS;
 	}
 
-	/// @brief Gets the contents of a cell.
-	///
-	/// @param col The column that the cell belongs to
-	/// @param row The row index of the cell in the column
-	///
-	/// @returns The item and data associated with the cell
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Gets the contents of a cell.
+	//!
+	//! @param col The column that the cell belongs to
+	//! @param row The row index of the cell in the column
+	//!
+	//! @returns The item and data associated with the cell
 	static LPGRIDITEM 
 	GetCellData(
 		int col, int row
@@ -1336,11 +2269,12 @@ namespace grid
 		return NULL;
 	}
 
-	/// @brief wrapper to access column type
-	///
-	/// @param col The column number
-	///
-	/// @returns The type of the column
+	//---------------------------------------------------------------------------------------------------
+	//! @brief wrapper to access column type
+	//!
+	//! @param col The column number
+	//!
+	//! @returns The type of the column
 	static DWORD 
 	GetColType(
 		INT col
@@ -1352,11 +2286,12 @@ namespace grid
 		return lpgc->dwType;
 	}
 
-	/// @brief Cause the grid to be repainted.
-	///
-	/// @param hWnd Handle of the grid
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Cause the grid to be repainted.
+	//!
+	//! @param hWnd Handle of the grid
+	//!
+	//! @returns VOID
 	static VOID 
 	RefreshGrid(
 		HWND hWnd
@@ -1366,9 +2301,10 @@ namespace grid
 		InvalidateRect(hWnd, &rect, FALSE);
 	}
 
-	/// @brief wrapper to access row count (including the column header row 0)
-	///
-	/// @returns The number of rows in the underlying data table
+	//---------------------------------------------------------------------------------------------------
+	//! @brief wrapper to access row count (including the column header row 0)
+	//!
+	//! @returns The number of rows in the underlying data table
 	static int 
 	RowCount(
 		VOID
@@ -1381,11 +2317,12 @@ namespace grid
 		return NULL == temp ? 0 : Vector_Size(temp);
 	}
 
-	/// @brief Determines if a cells coordinates are out of range.
-	///
-	/// @param cell A cell struct pointer (x and y coordinate)
-	///
-	/// @returns TRUE if the cell is out of range (doesn't exist), otherwise FALSE
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Determines if a cells coordinates are out of range.
+	//!
+	//! @param cell A cell struct pointer (x and y coordinate)
+	//!
+	//! @returns TRUE if the cell is out of range (doesn't exist), otherwise FALSE
 	static BOOL 
 	OutOfRange(
 		LPSGITEM cell
@@ -1400,11 +2337,12 @@ namespace grid
 		}
 	}
 
-	/// @brief Allocate and store a string array (double-null-terminated string).
-	///
-	/// @param szzStr The double-null-terminated string to store.
-	///
-	/// @returns a Pointer to the allocated string array.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Allocate and store a string array (double-null-terminated string).
+	//!
+	//! @param szzStr The double-null-terminated string to store.
+	//!
+	//! @returns a Pointer to the allocated string array.
 	static LPTSTR NewStringArray(LPTSTR szzStr)
 	{
 		if(NULL == szzStr || _T('\0') == *szzStr) szzStr = _T("");
@@ -1424,14 +2362,15 @@ namespace grid
 		return _tmemmove(tmp, szzStr, iLen);
 	}
 
-	/// @brief Calculates the rectangle of a cell location.
-	///
-	/// @param hwnd Handle of the grid
-	/// @param col The column that the cell belongs to
-	/// @param row The row index of the cell in the column
-	/// @param prc A pointer to a RECT to recieve coordinates
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Calculates the rectangle of a cell location.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param col The column that the cell belongs to
+	//! @param row The row index of the cell in the column
+	//! @param prc A pointer to a RECT to recieve coordinates
+	//!
+	//! @returns VOID
 	static VOID 
 	GetCellRect(
 		HWND hwnd, int col, int row, PRECT prc
@@ -1477,14 +2416,15 @@ namespace grid
 		prc->bottom = offset + g_lpInst->rowheight;
 	}
 
-	/// @brief Get the next adjacent column or previous adjacent column.
-	///
-	/// @param startcol The number of the column to begin search.
-	/// @param fNextCol TRUE to get the next column
-	///                  FALSE to get the previous column.
-	///
-	/// @returns The number of the desired adjacent column or
-	///           0 if no more cols in that direction.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Get the next adjacent column or previous adjacent column.
+	//!
+	//! @param startcol The number of the column to begin search.
+	//! @param fNextCol TRUE to get the next column
+	//!                  FALSE to get the previous column.
+	//!
+	//! @returns The number of the desired adjacent column or
+	//!           0 if no more cols in that direction.
 	static int GetAdjacentCol(int startcol, BOOL fNextCol)
 	{
 		//calls with direction == 1 for right, direction == -1 for left
@@ -1523,15 +2463,16 @@ namespace grid
 		return ReturnValue;
 	}
 
-	/// @brief Calculate and increase the parent column width based on the length of
-	///         the item text.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param col The column of the item
-	/// @param row The row of the item
-	/// @param lpszValue The item text
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Calculate and increase the parent column width based on the length of
+	//!         the item text.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param col The column of the item
+	//! @param row The row of the item
+	//! @param lpszValue The item text
+	//!
+	//! @returns VOID
 	static VOID AdjustParentColWidth(HWND hwnd, INT col, INT row, LPTSTR lpszValue)
 	{
 		HDC hdc;
@@ -1601,13 +2542,14 @@ namespace grid
 		}
 	}
 
-	/// @brief If there are \n codes in the string, find the longest line
-	///
-	/// @param hdc Handle of the device context
-	/// @param text The text to analyze
-	/// @param size Pointer to a SIZE struct to receive text height and width
-	///
-	/// @returns The length of the longest line of multiline text
+	//---------------------------------------------------------------------------------------------------
+	//! @brief If there are \n codes in the string, find the longest line
+	//!
+	//! @param hdc Handle of the device context
+	//! @param text The text to analyze
+	//! @param size Pointer to a SIZE struct to receive text height and width
+	//!
+	//! @returns The length of the longest line of multiline text
 	static int FindLongestLine(HDC hdc, LPTSTR text, PSIZE size)
 	{
 		int longest, lines, j, len;
@@ -1637,14 +2579,15 @@ namespace grid
 		return longest;
 	}
 
-	/// @brief Handle WM_SETFONT message.
-	///
-	/// @param hwnd Handle of grid.
-	/// @param hfont A handle to the font. If this parameter is NULL,
-	///               the control uses the default system font to draw text.
-	/// @param fRedraw If TRUE this control should be redrawn immediately. 
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle WM_SETFONT message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param hfont A handle to the font. If this parameter is NULL,
+	//!               the control uses the default system font to draw text.
+	//! @param fRedraw If TRUE this control should be redrawn immediately. 
+	//!
+	//! @returns VOID.
 	static void 
 	Grid_OnSetFont(
 		HWND hwnd, HFONT hfont, BOOL fRedraw
@@ -1665,11 +2608,12 @@ namespace grid
 			RefreshGrid(hwnd);
 	}
 
-	/// @brief Handles WM_PAINT message.
-	///
-	/// @param hwnd Handle of grid.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_PAINT message.
+	//!
+	//! @param hwnd Handle of grid.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnPaint(HWND hwnd)
 	{
 		PAINTSTRUCT ps;
@@ -1725,9 +2669,10 @@ namespace grid
 		EndPaint(hwnd, &ps);
 	}
 
-	/// @brief Wrapper for setting cell coordinates.
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Wrapper for setting cell coordinates.
+	//!
+	//! @returns VOID
 	static VOID CalcVisibleCellBoundaries(VOID)
 	{
 		int gridx, gridy;
@@ -1773,14 +2718,15 @@ namespace grid
 		g_lpInst->bottomvisiblerow = j;
 	}
 
-	/// @brief Draw the grid Title with the specified font.
-	///
-	/// @param hwnd Handle of the grid
-	/// @param hfont Handle of the desired font
-	/// @param hdc Handle of the current device context
-	/// @param rc A rectangle of the bounds of the client area
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Draw the grid Title with the specified font.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param hfont Handle of the desired font
+	//! @param hdc Handle of the current device context
+	//! @param rc A rectangle of the bounds of the client area
+	//!
+	//! @returns VOID
 	static VOID DisplayTitle(HWND hwnd, HFONT hfont, HDC hdc, RECT rc)
 	{
 		HFONT hOldfont;
@@ -1793,16 +2739,17 @@ namespace grid
 		SelectObject(hdc, hOldfont);
 	}
 
-	/// @brief Draw a column of cells in the grid.
-	///
-	/// @param hwnd Handle of the grid
-	/// @param col The index of the column to draw
-	/// @param offset number of pixles from the left to begin drawing
-	/// @param hfont The handle of the desired cell font
-	/// @param hcolumnheadingfont The handle of the font used for the headers
-	/// @param hdc Handle of the current device context
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Draw a column of cells in the grid.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param col The index of the column to draw
+	//! @param offset number of pixles from the left to begin drawing
+	//! @param hfont The handle of the desired cell font
+	//! @param hcolumnheadingfont The handle of the font used for the headers
+	//! @param hdc Handle of the current device context
+	//!
+	//! @returns VOID
 	static VOID DisplayColumn(HWND hwnd, int col, int offset, HFONT hfont, HFONT hcolumnheadingfont, HDC hdc)
 	{
 		RECT rect = {0,0,0,0};
@@ -2127,12 +3074,13 @@ namespace grid
 	}
 
 
-	/// @brief Determine if it is necessary to show the VScroll and then
-	///         show it if necessary.
-	///
-	/// @param hwnd Handle of the grid
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Determine if it is necessary to show the VScroll and then
+	//!         show it if necessary.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static VOID ShowVscroll(HWND hwnd)
 	{
 		//if more rows than can be visible on grid, display vertical scrollbar
@@ -2163,12 +3111,13 @@ namespace grid
 
 	}
 
-	/// @brief Determine if it is necessary to show the HScroll and then
-	///         show it if necessary.
-	///
-	/// @param hwnd Handle of the grid
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Determine if it is necessary to show the HScroll and then
+	//!         show it if necessary.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static VOID ShowHscroll(HWND hwnd)
 	{
 		//if more rows than can be visible on grid, display vertical scrollbar
@@ -2206,20 +3155,21 @@ namespace grid
 
 	}
 
-	/// @brief Convert a number to an alphabetic representation.
-	///
-	/// @par Example:
-	///       The number 728 would be converted to "AAZ"
-	///
-	/// @note Numeric values less than 1 return FALSE without converting
-	///        the numeric value.  Also if the buffer is not big enough 
-	///        to contain the converted value, this function returns FALSE. 
-	///
-	/// @param num The number to convert
-	/// @param buf A buffer to receive text
-	/// @param iSize The size of the buffer
-	///
-	/// @returns TRUE if successful, otherwise false
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Convert a number to an alphabetic representation.
+	//!
+	//! @par Example:
+	//!       The number 728 would be converted to "AAZ"
+	//!
+	//! @note Numeric values less than 1 return FALSE without converting
+	//!        the numeric value.  Also if the buffer is not big enough 
+	//!        to contain the converted value, this function returns FALSE. 
+	//!
+	//! @param num The number to convert
+	//! @param buf A buffer to receive text
+	//! @param iSize The size of the buffer
+	//!
+	//! @returns TRUE if successful, otherwise false
 	static BOOL Alphabetize(INT num, LPTSTR buf, INT iSize)
 	{
 		//fill buffer with spaces initially
@@ -2235,11 +3185,12 @@ namespace grid
 		return 0 >= num;
 	}
 
-	/// @brief Wrapper to access column optional parameter
-	///
-	/// @param col The column number
-	///
-	/// @returns The column optional parameter
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Wrapper to access column optional parameter
+	//!
+	//! @param col The column number
+	//!
+	//! @returns The column optional parameter
 	static LPVOID GetColOptional(INT col)
 	{
 		LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col);
@@ -2249,12 +3200,13 @@ namespace grid
 		return lpgc->pOptional;
 	}
 
-	/// @brief Draw the grid Title with the specified font.
-	///
-	/// @param hwnd Handle of the grid
-	/// @param fUnderline True to set underlined font
-	///
-	/// @returns a new font with new font weight
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Draw the grid Title with the specified font.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param fUnderline True to set underlined font
+	//!
+	//! @returns a new font with new font weight
 	static HFONT Font_SetUnderline(HWND hwnd, BOOL fUnderline)
 	{
 		HFONT hFont;
@@ -2273,11 +3225,12 @@ namespace grid
 		return CreateFontIndirect(&lf);
 	}
 
-	/// @brief Determine whether a string of data represents a number.
-	///
-	/// @param data A string to analyze.
-	///
-	/// @returns TRUE if is numeric (decimal or floating point) otherwise FALSE.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Determine whether a string of data represents a number.
+	//!
+	//! @param data A string to analyze.
+	//!
+	//! @returns TRUE if is numeric (decimal or floating point) otherwise FALSE.
 	static BOOL IsNumeric(LPTSTR data)
 	{
 		int j, k, numberofperiods;
@@ -2314,14 +3267,15 @@ namespace grid
 		return FALSE;
 	}
 
-	/// @brief Handles WM_COMMAND message.
-	///
-	/// @param hwnd  Handle of grid.
-	/// @param id The id of the sender.
-	/// @param hwndCtl The hwnd of the sender.
-	/// @param codeNotify The notification code sent.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_COMMAND message.
+	//!
+	//! @param hwnd  Handle of grid.
+	//! @param id The id of the sender.
+	//! @param hwndCtl The hwnd of the sender.
+	//! @param codeNotify The notification code sent.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
 	{
 		switch(id)
@@ -2383,11 +3337,12 @@ namespace grid
 		}
 	}
 
-	/// @brief Notify Parent that a grid cell was clicked.
-	///
-	/// @param hwnd Handle of the grid
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that a grid cell was clicked.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static void NotifyCellClick(HWND hwnd)
 	{
 		memset(&g_nmGrid,0,sizeof( g_nmGrid));
@@ -2400,11 +3355,12 @@ namespace grid
 		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
 	}
 
-	/// @brief Notify Parent that a cell edit has ended.
-	///
-	/// @param hwnd Handle of the grid
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that a cell edit has ended.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static void NotifyEditEnd(HWND hwnd)
 	{
 		//Destroy previous editor
@@ -2422,11 +3378,12 @@ namespace grid
 		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
 	}
 
-	/// @brief Handles WM_DESTROY message.
-	///
-	/// @param hwnd Handle of Grid.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_DESTROY message.
+	//!
+	//! @param hwnd Handle of Grid.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnDestroy(HWND hwnd)
 	{
 		if (NULL != g_lpInst)
@@ -2441,18 +3398,19 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles WM_HSCROLL message.
-	///
-	/// @param hwnd Handle of grid.
-	/// @param hwndCtl If this message is sent by a scroll bar control,
-	///                 this parameter is the handle to the scroll bar control.
-	///                However in this case the message was sent by a standard
-	///                 scroll bar, thus this parameter is NULL.
-	/// @param code The scroll bar value that indicates the user's scrolling request.
-	/// @param pos The current position of the scroll box if the @b code is
-	///             SB_THUMBPOSITION or SB_THUMBTRACK
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_HSCROLL message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param hwndCtl If this message is sent by a scroll bar control,
+	//!                 this parameter is the handle to the scroll bar control.
+	//!                However in this case the message was sent by a standard
+	//!                 scroll bar, thus this parameter is NULL.
+	//! @param code The scroll bar value that indicates the user's scrolling request.
+	//! @param pos The current position of the scroll box if the @b code is
+	//!             SB_THUMBPOSITION or SB_THUMBTRACK
+	//!
+	//! @returns VOID
 	static VOID Grid_OnHScroll(HWND hwnd, HWND hwndCtl, UINT code, int pos)
 	{
 		SetFocus(hwnd);
@@ -2489,16 +3447,17 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles WM_KEYDOWN message.
-	///
-	/// @param hwnd  Handle of grid.
-	/// @param vk The virtual key code.
-	/// @param fDown TRUE for keydown (always TRUE).
-	/// @param cRepeat The number of times the keystroke is repeated
-	///         as a result of the user holding down the key.
-	/// @param flags Indicate OEM scan codes etc.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_KEYDOWN message.
+	//!
+	//! @param hwnd  Handle of grid.
+	//! @param vk The virtual key code.
+	//! @param fDown TRUE for keydown (always TRUE).
+	//! @param cRepeat The number of times the keystroke is repeated
+	//!         as a result of the user holding down the key.
+	//! @param flags Indicate OEM scan codes etc.
+	//!
+	//! @returns VOID.
 	static void Grid_OnKeyDown(HWND hwnd, UINT vk, BOOL fDown, int cRepeat, UINT flags)
 	{
 		int rows = RowCount() - 1;  //Exclude header row
@@ -2676,11 +3635,12 @@ namespace grid
 		}
 	}
 
-	/// @brief Free the grid's column data structure.
-	///
-	/// @param lpColumn A pointer to a LPGRIDCOLUMN object.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Free the grid's column data structure.
+	//!
+	//! @param lpColumn A pointer to a LPGRIDCOLUMN object.
+	//!
+	//! @returns VOID.
 	static VOID Column_Delete(LPGRIDCOLUMN lpColumn)
 	{
 		if (NULL != lpColumn->items)
@@ -2715,25 +3675,27 @@ namespace grid
 		free(lpColumn);
 	}
 
-	/// @brief VECTOR object destructor.
-	///
-	/// @note Vector item allocations must be freed individually as
-	///        this method only frees the list of item pointers.
-	///
-	/// @param pVector a pointer to a VECTOR instance
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief VECTOR object destructor.
+	//!
+	//! @note Vector item allocations must be freed individually as
+	//!        this method only frees the list of item pointers.
+	//!
+	//! @param pVector a pointer to a VECTOR instance
+	//!
+	//! @returns VOID
 	static VOID Vector_Free(const LPVECTOR pVector)
 	{
 		free(pVector->_data);
 		free(pVector);
 	}
 
-	/// @brief Free the instance data allocation of an instance of the Grid Control.
-	///
-	/// @param hControl Handle to current instance.
-	///
-	/// @returns TRUE if successful
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Free the instance data allocation of an instance of the Grid Control.
+	//!
+	//! @param hControl Handle to current instance.
+	//!
+	//! @returns TRUE if successful
 	static BOOL Control_FreeInstanceData(HWND hControl)
 	{
 		LPINSTANCEDATA pInst;
@@ -2748,12 +3710,13 @@ namespace grid
 		return FALSE;
 	}
 
-	/// @brief Gets the last visible column based upon scroll position.
-	///
-	/// @param hwnd Handle of the grid
-	/// @param n The horizontal scroll position
-	///
-	/// @returns The last visible column
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Gets the last visible column based upon scroll position.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param n The horizontal scroll position
+	//!
+	//! @returns The last visible column
 	static int GetNthVisibleColumn(HWND hwnd, int n)
 	{
 		int j, count;
@@ -2777,12 +3740,13 @@ namespace grid
 		return value;
 	}
 
-	/// @brief Notify Parent that a key was pressed.
-	///
-	/// @param hwnd Handle of the grid
-	/// @param vk Virtual key code
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that a key was pressed.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param vk Virtual key code
+	//!
+	//! @returns VOID
 	static void NotifyKeydown(HWND hwnd, UINT vk)
 	{
 		static NMSGKEYDOWN nmSgkd;
@@ -2796,11 +3760,12 @@ namespace grid
 		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, nmSgkd.hdr.idFrom, &nmSgkd, SNDMSG);
 	}
 
-	/// @brief Notify Parent that the selection has changed.
-	///
-	/// @param hwnd Handle of the grid
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that the selection has changed.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static void NotifySelChange(HWND hwnd)
 	{
 		//Destroy previous editor
@@ -2819,11 +3784,12 @@ namespace grid
 		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
 	}
 
-	/// @brief Notify Parent that a cell edit has begun.
-	///
-	/// @param hwnd Handle of the grid
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that a cell edit has begun.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static void NotifyEditBegin(HWND hwnd)
 	{
 		g_nmGrid.col = g_lpInst->cursorcol - 1;
@@ -2835,13 +3801,14 @@ namespace grid
 		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmGrid.hdr.idFrom, &g_nmGrid, SNDMSG);
 	}
 
-	/// @brief Sets the home row field of the grid based on current cursor position.
-	///
-	/// @param hwnd Handle of the grid
-	/// @param col The column that the current cell belongs to
-	/// @param row The row index of the current cell in the column 
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Sets the home row field of the grid based on current cursor position.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param col The column that the current cell belongs to
+	//! @param row The row index of the current cell in the column 
+	//!
+	//! @returns VOID
 	static VOID SetHomeRow(HWND hwnd, int col, int row)
 	{
 		RECT gridrect = {0,0,0,0};
@@ -2887,13 +3854,14 @@ namespace grid
 		SetScrollPos(hwnd, SB_VERT, g_lpInst->homerow, TRUE);
 	}
 
-	/// @brief Sets the home column field of the grid based on current cursor position.
-	///
-	/// @param hwnd Handle of the grid
-	/// @param col The column that the current cell belongs to
-	/// @param row The row index of the current cell in the column 
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Sets the home column field of the grid based on current cursor position.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param col The column that the current cell belongs to
+	//! @param row The row index of the current cell in the column 
+	//!
+	//! @returns VOID
 	static VOID SetHomeCol(HWND hwnd, int col, int row)
 	{
 		RECT gridrect = {0,0,0,0};
@@ -2927,14 +3895,15 @@ namespace grid
 		}
 	}
 
-	/// @brief Handle the selection of a grid column of type GCT_EDIT.
-	///
-	/// @param hwnd The handle of the grid.
-	/// @param rc RECT containing desired coordinates for the edit control.
-	/// @param text The initial character or text for the editor.
-	/// @param fEditMode TRUE if EDIT control in edit mode FALSE for overwrite.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle the selection of a grid column of type GCT_EDIT.
+	//!
+	//! @param hwnd The handle of the grid.
+	//! @param rc RECT containing desired coordinates for the edit control.
+	//! @param text The initial character or text for the editor.
+	//! @param fEditMode TRUE if EDIT control in edit mode FALSE for overwrite.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnSelectEdit(HWND hwnd, RECT rc, LPTSTR text, BOOL fEditMode)//DWM 1.7: Added fEditMode argument
 	{
 		//Adjust rect so text will center better
@@ -2959,15 +3928,16 @@ namespace grid
 		NotifyEditBegin(hwnd);
 	}
 
-	/// @brief Handle the selection of a grid column of type GCT_COMBO.
-	///
-	/// @param hwnd The handle of the grid.
-	/// @param rc RECT containing desired coordinates for the button control.
-	/// @param szzItems The drop down item choices 
-	///                  (double null terminated string array).
-	/// @param szSelected The currently selected item (if any).
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle the selection of a grid column of type GCT_COMBO.
+	//!
+	//! @param hwnd The handle of the grid.
+	//! @param rc RECT containing desired coordinates for the button control.
+	//! @param szzItems The drop down item choices 
+	//!                  (double null terminated string array).
+	//! @param szSelected The currently selected item (if any).
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnSelectComboBox(HWND hwnd, RECT rc, LPTSTR szzItems, LPTSTR szSelected)
 	{
 		InflateRect(&rc, -1, -1);
@@ -3005,13 +3975,14 @@ namespace grid
 		NotifyEditBegin(hwnd);
 	}
 
-	/// @brief Handle the selection of a grid column of type GCT_BUTTON.
-	///
-	/// @param hwnd The handle of the grid.
-	/// @param rc RECT containing desired coordinates for the button control.
-	/// @param text The initial text for the button.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle the selection of a grid column of type GCT_BUTTON.
+	//!
+	//! @param hwnd The handle of the grid.
+	//! @param rc RECT containing desired coordinates for the button control.
+	//! @param text The initial text for the button.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnSelectButton(HWND hwnd, RECT rc, LPTSTR text)
 	{
 		InflateRect(&rc, -1,-1);
@@ -3027,11 +3998,12 @@ namespace grid
 		SetFocus(g_lpInst->hwndControl);
 	}
 
-	/// @brief Free the grid's item data structure.
-	///
-	/// @param lpItem A pointer to an item object.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Free the grid's item data structure.
+	//!
+	//! @param lpItem A pointer to an item object.
+	//!
+	//! @returns VOID.
 	static VOID Item_Delete(LPGRIDITEM lpItem)
 	{
 		if (NULL != lpItem->lpszCurValue)
@@ -3039,11 +4011,12 @@ namespace grid
 		free(lpItem);
 	}
 
-	/// @brief Calculate the number of visible columns.
-	///
-	/// @note Columns are "hidden" when it's width is 0.
-	///
-	/// @returns The number of visible columns
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Calculate the number of visible columns.
+	//!
+	//! @note Columns are "hidden" when it's width is 0.
+	//!
+	//! @returns The number of visible columns
 	static int HomeColumnNthVisible(VOID)
 	{
 		int j, hc, count;
@@ -3059,14 +4032,15 @@ namespace grid
 		return count;
 	}
 
-	/// @brief Create an Edit control to edit GCT_EDIT fields.
-	///
-	/// @param hInstance The handle of an instance.
-	/// @param hwndParent The handle of the parent (the visible listbox).
-	/// @param id An id tag for this control.
-	/// @param fEditMode TRUE if EDIT control in edit mode FALSE for overwrite.
-	///
-	/// @returns HWND A handle to the edit control.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Create an Edit control to edit GCT_EDIT fields.
+	//!
+	//! @param hInstance The handle of an instance.
+	//! @param hwndParent The handle of the parent (the visible listbox).
+	//! @param id An id tag for this control.
+	//! @param fEditMode TRUE if EDIT control in edit mode FALSE for overwrite.
+	//!
+	//! @returns HWND A handle to the edit control.
 	static HWND CreateEdit(HINSTANCE hInstance, HWND hwndParent, INT id, BOOL fEditMode)//DWM 1.7: Added fEditMode argument
 	{
 		DWORD dwStyle, dwExStyle;
@@ -3105,12 +4079,13 @@ namespace grid
 		return hwnd;
 	}
 
-	/// @brief Center the text in an edit control.
-	///
-	/// @param hEdit The handle of an edit control.
-	/// @note This only works with mulitline edit controls (ES_MULTILINE).
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Center the text in an edit control.
+	//!
+	//! @param hEdit The handle of an edit control.
+	//! @note This only works with mulitline edit controls (ES_MULTILINE).
+	//!
+	//! @returns VOID.
 	static VOID Edit_CenterTextVertically(HWND hEdit)
 	{
 		RECT rcTxt = {0,0,0,0};
@@ -3130,13 +4105,14 @@ namespace grid
 		Edit_SetRect(hEdit, &rcEdt);
 	}
 
-	/// @brief Create combobox control configured as a dropdown list.
-	///
-	/// @param hInstance The handle of an instance.
-	/// @param hwndParent The handle of the parent (the visible listbox).
-	/// @param id An id tag for this control.
-	///
-	/// @returns HWND A handle to the control.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Create combobox control configured as a dropdown list.
+	//!
+	//! @param hInstance The handle of an instance.
+	//! @param hwndParent The handle of the parent (the visible listbox).
+	//! @param id An id tag for this control.
+	//!
+	//! @returns HWND A handle to the control.
 	static HWND CreateCombo(HINSTANCE hInstance, HWND hwndParent, INT id)
 	{
 		DWORD dwStyle, dwExStyle;
@@ -3175,12 +4151,13 @@ namespace grid
 		return hwnd;
 	}
 
-	/// @brief Calculate the position of the combobox within a rectangle.
-	///
-	/// @param hCombo The handle of a combobox control.
-	/// @param prc The address of a rectangle with the bounds in which to center the combobox.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Calculate the position of the combobox within a rectangle.
+	//!
+	//! @param hCombo The handle of a combobox control.
+	//! @param prc The address of a rectangle with the bounds in which to center the combobox.
+	//!
+	//! @returns VOID.
 	static VOID Combo_CalculateVerticalPos(HWND hCombo, PRECT prc)
 	{
 		RECT rcCombo = {0,0,0,0};
@@ -3192,13 +4169,14 @@ namespace grid
 		prc->top += (hight - hightCombo) / 2;
 	}
 
-	/// @brief Create button control for GCT_BUTTON column.
-	///
-	/// @param hInstance The handle of an instance.
-	/// @param hwndParent The handle of the parent (the visible listbox).
-	/// @param id An id tag for this control.
-	///
-	/// @returns HWND A handle to the button control.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Create button control for GCT_BUTTON column.
+	//!
+	//! @param hInstance The handle of an instance.
+	//! @param hwndParent The handle of the parent (the visible listbox).
+	//! @param id An id tag for this control.
+	//!
+	//! @returns HWND A handle to the button control.
 	static HWND CreateButton(HINSTANCE hInstance, HWND hwndParent, INT id)
 	{
 		DWORD dwStyle;
@@ -3235,14 +4213,15 @@ namespace grid
 		return hwnd;
 	}
 
-	/// @brief Window procedure for the edit control.
-	///
-	/// @param hEdit Handle of editor.
-	/// @param msg Which message?
-	/// @param wParam Message parameter.
-	/// @param lParam Message parameter.
-	///
-	/// @returns LRESULT depends on message.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Window procedure for the edit control.
+	//!
+	//! @param hEdit Handle of editor.
+	//! @param msg Which message?
+	//! @param wParam Message parameter.
+	//! @param lParam Message parameter.
+	//!
+	//! @returns LRESULT depends on message.
 	static LRESULT CALLBACK Edit_Proc(HWND hEdit, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		HWND hGrid = GetParent(hEdit);
@@ -3293,14 +4272,15 @@ namespace grid
 		return DefProc(hEdit, msg, wParam, lParam);
 	}
 
-	/// @brief Window procedure for the button control.
-	///
-	/// @param hButton Handle of button control.
-	/// @param msg Which message?
-	/// @param wParam Message parameter.
-	/// @param lParam Message parameter.
-	///
-	/// @returns LRESULT depends on message.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Window procedure for the button control.
+	//!
+	//! @param hButton Handle of button control.
+	//! @param msg Which message?
+	//! @param wParam Message parameter.
+	//! @param lParam Message parameter.
+	//!
+	//! @returns LRESULT depends on message.
 	static LRESULT CALLBACK Button_Proc(HWND hButton, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		HWND hGrid = GetParent(hButton);
@@ -3354,31 +4334,32 @@ namespace grid
 		return DefProc(hButton, msg, wParam, lParam);
 	}
 
-	/// @brief Window procedure for the combobox control.
-	///
-	/// @param hCombo Handle of the combobox.
-	/// @param msg Which message?
-	/// @param wParam Message parameter.
-	/// @param lParam Message parameter.
-	///
-	/// @par Comments
-	///       The combobox control wraps a listbox (drop down) and an edit control
-	///       child (if it is an editable list box).  The edit control child needs
-	///       to be subclassed in order to handle keyboard events.  Each child control
-	///       posts some notification to the parent combobox control and I use this
-	///       behavior to capture and subclass the child edit control.  This edit control is
-	///       subclassed to this very procedure and so 'hwnd' could be parent combobox or
-	///       child edit control.  Care then, must be taken to differentiate between
-	///       child and parent.  I do this by getting the class name and restricting
-	///       the handling of certain messages to one or the other control type.
-	/// @par Warning
-	///       The drop down list control of a combobox is not a child of the combobox
-	///       it is the child of the desktop so that the list is not clipped by the
-	///       combobox's client area.  Do not sub class it to this procedure since
-	///       doing so will cause the instance data pointer to be reset to NULL!  The
-	///       instance data pointer is attached to the Grid's window.
-	///
-	/// @returns LRESULT depends on message.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Window procedure for the combobox control.
+	//!
+	//! @param hCombo Handle of the combobox.
+	//! @param msg Which message?
+	//! @param wParam Message parameter.
+	//! @param lParam Message parameter.
+	//!
+	//! @par Comments
+	//!       The combobox control wraps a listbox (drop down) and an edit control
+	//!       child (if it is an editable list box).  The edit control child needs
+	//!       to be subclassed in order to handle keyboard events.  Each child control
+	//!       posts some notification to the parent combobox control and I use this
+	//!       behavior to capture and subclass the child edit control.  This edit control is
+	//!       subclassed to this very procedure and so 'hwnd' could be parent combobox or
+	//!       child edit control.  Care then, must be taken to differentiate between
+	//!       child and parent.  I do this by getting the class name and restricting
+	//!       the handling of certain messages to one or the other control type.
+	//! @par Warning
+	//!       The drop down list control of a combobox is not a child of the combobox
+	//!       it is the child of the desktop so that the list is not clipped by the
+	//!       combobox's client area.  Do not sub class it to this procedure since
+	//!       doing so will cause the instance data pointer to be reset to NULL!  The
+	//!       instance data pointer is attached to the Grid's window.
+	//!
+	//! @returns LRESULT depends on message.
 	static LRESULT CALLBACK ComboBox_Proc(HWND hCombo, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		HWND hGrid = GetParent(hCombo);
@@ -3447,27 +4428,29 @@ namespace grid
 		return DefProc(hCombo, msg, wParam, lParam);
 	}
 
-	/// @brief Default window procedure for the grid child windows.
-	///
-	/// @param hwnd Handle of grid or child.
-	/// @param msg Which message?
-	/// @param wParam Message parameter.
-	/// @param lParam Message parameter.
-	///
-	/// @returns LRESULT depends on message.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Default window procedure for the grid child windows.
+	//!
+	//! @param hwnd Handle of grid or child.
+	//! @param msg Which message?
+	//! @param wParam Message parameter.
+	//! @param lParam Message parameter.
+	//!
+	//! @returns LRESULT depends on message.
 	static LRESULT DefProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		return CallWindowProc((WNDPROC)GetProp(hwnd, WPRC), hwnd, msg, wParam, lParam);
 	}
 
-	/// @brief Draw specified borders of a rectangle.
-	///
-	/// @param hdc A handle to a device context.
-	/// @param lprc The address of a RECT structure with drawing coordinates.
-	/// @param dwBorder specifies which borders to draw.
-	/// @param clr The desired line color value.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Draw specified borders of a rectangle.
+	//!
+	//! @param hdc A handle to a device context.
+	//! @param lprc The address of a RECT structure with drawing coordinates.
+	//! @param dwBorder specifies which borders to draw.
+	//! @param clr The desired line color value.
+	//!
+	//! @returns VOID.
 	static VOID DrawBorder(HDC hdc, LPRECT lprc, DWORD dwBorder, COLORREF clr)
 	{
 		LOGPEN oLogPen;
@@ -3492,27 +4475,29 @@ namespace grid
 		DeleteObject(SelectObject(hdc, hOld));
 	}
 
-	/// @brief Draw a line.
-	///
-	/// @param hdc A handle to a device context.
-	/// @param x1 From point x-coordinate.
-	/// @param y1 From point y-coordinate.
-	/// @param x2 To point x-coordinate.
-	/// @param y2 To point y-coordinate.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Draw a line.
+	//!
+	//! @param hdc A handle to a device context.
+	//! @param x1 From point x-coordinate.
+	//! @param y1 From point y-coordinate.
+	//! @param x2 To point x-coordinate.
+	//! @param y2 To point y-coordinate.
+	//!
+	//! @returns VOID.
 	static VOID DrawLine(HDC hdc, LONG x1, LONG y1, LONG x2, LONG y2)
 	{
 		MoveToEx(hdc, x1, y1, NULL);
 		LineTo(hdc, x2, y2);
 	}
 
-	/// @brief Handle WM_KILLFOCUS message.
-	///
-	/// @param hwnd Handle of grid.
-	/// @param hwndNewFocus Handle of the window that recieved focus.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle WM_KILLFOCUS message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param hwndNewFocus Handle of the window that recieved focus.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnKillFocus(HWND hwnd, HWND hwndNewFocus)
 	{
 		g_lpInst->GRIDHASFOCUS = FALSE;
@@ -3521,15 +4506,16 @@ namespace grid
 		RefreshGrid(hwnd);
 	}
 
-	/// @brief Handles WM_LBUTTONDOWN message.
-	///
-	/// @param hwnd Handle of grid.
-	/// @param fDoubleClick TRUE if this is a double click event.
-	/// @param x The xpos of the mouse.
-	/// @param y The ypos of the mouse.
-	/// @param keyFlags Set if certain keys down at time of click.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_LBUTTONDOWN message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param fDoubleClick TRUE if this is a double click event.
+	//! @param x The xpos of the mouse.
+	//! @param y The ypos of the mouse.
+	//! @param keyFlags Set if certain keys down at time of click.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnLButtonDown(HWND hwnd, BOOL fDoubleClick, int x, int y, UINT keyFlags)
 	{
 		int r, c;
@@ -3662,12 +4648,13 @@ namespace grid
 		}
 	}
 
-	/// @brief Notify Parent that the grid lost focus.
-	///
-	/// @param hwnd Handle of the grid
-	/// @param hwndNewFocus Handle of window receiving focus
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that the grid lost focus.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param hwndNewFocus Handle of window receiving focus
+	//!
+	//! @returns VOID
 	static void NotifyLostFocus(HWND hwnd, HWND hwndNewFocus)
 	{
 		g_nmSGFocus.col = g_lpInst->cursorcol - 1;
@@ -3680,11 +4667,12 @@ namespace grid
 		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmSGFocus.hdr.idFrom, &g_nmSGFocus, SNDMSG);
 	}
 
-	/// @brief Gets the column of the mouse pointer.
-	///
-	/// @param x The x coordinate of the mouse pointer
-	///
-	/// @returns The col number of the mouse pointer if successful, otherwise SG_ERROR
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Gets the column of the mouse pointer.
+	//!
+	//! @param x The x coordinate of the mouse pointer
+	//!
+	//! @returns The col number of the mouse pointer if successful, otherwise SG_ERROR
 	static int GetColOfMouse(int x)
 	{
 		int ReturnValue;
@@ -3725,11 +4713,12 @@ namespace grid
 		return ReturnValue;
 	}
 
-	/// @brief Gets the row of the mouse pointer.
-	///
-	/// @param y The y coordinate of the mouse pointer
-	///
-	/// @returns The row number of the mouse pointer if successful, otherwise SG_ERROR
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Gets the row of the mouse pointer.
+	//!
+	//! @param y The y coordinate of the mouse pointer
+	//!
+	//! @returns The row number of the mouse pointer if successful, otherwise SG_ERROR
 	static int GetRowOfMouse(int y)
 	{
 		int ReturnValue;
@@ -3754,14 +4743,15 @@ namespace grid
 		return ReturnValue;
 	}
 
-	/// @brief Handles WM_LBUTTONUP message.
-	///
-	/// @param hwnd Handle of grid.
-	/// @param x The xpos of the mouse.
-	/// @param y The ypos of the mouse.
-	/// @param keyFlags Set if certain keys down at time of click.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_LBUTTONUP message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param x The xpos of the mouse.
+	//! @param y The ypos of the mouse.
+	//! @param keyFlags Set if certain keys down at time of click.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnLButtonUp(HWND hwnd, int x, int y, UINT keyFlags)
 	{
 		if (g_lpInst->COLUMNSIZING)
@@ -3775,14 +4765,15 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles WM_MOUSEMOVE message.
-	///
-	/// @param hwnd Handle of grid.
-	/// @param x The xpos of the mouse.
-	/// @param y The ypos of the mouse.
-	/// @param keyFlags Set if certain keys down at time of move.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_MOUSEMOVE message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param x The xpos of the mouse.
+	//! @param y The ypos of the mouse.
+	//! @param keyFlags Set if certain keys down at time of move.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnMouseMove(HWND hwnd, int x, int y, UINT keyFlags)
 	{
 		int r, c, t, z;
@@ -3865,15 +4856,16 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles WM_MOUSEWHEEL message.
-	///
-	/// @param hwnd Handle of grid.
-	/// @param x The xpos of the mouse.
-	/// @param y The ypos of the mouse.
-	/// @param zDelta The delta of the mouse wheel (rotation distance)
-	/// @param keyFlags Set if certain keys down at time of move.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_MOUSEWHEEL message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param x The xpos of the mouse.
+	//! @param y The ypos of the mouse.
+	//! @param zDelta The delta of the mouse wheel (rotation distance)
+	//! @param keyFlags Set if certain keys down at time of move.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnMouseWheel(HWND hwnd, int x, int y, int zDelta, UINT keyFlags)
 	{
 		UINT code = 0; 
@@ -3904,12 +4896,13 @@ namespace grid
 		}
 	}
 
-	/// @brief Handle WM_SETFOCUS message.
-	///
-	/// @param hwnd Handle of grid.
-	/// @param hwndOldFocus Handle if the window that has lost the keyboard focus.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle WM_SETFOCUS message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param hwndOldFocus Handle if the window that has lost the keyboard focus.
+	//!
+	//! @returns VOID.
 	static void Grid_OnSetFocus(HWND hwnd, HWND hwndOldFocus)
 	{
 		g_lpInst->GRIDHASFOCUS = TRUE;
@@ -3928,12 +4921,13 @@ namespace grid
 		RefreshGrid(hwnd);
 	}
 
-	/// @brief Notify Parent that the grid got focus.
-	///
-	/// @param hwnd Handle of the grid
-	/// @param hwndOldFocus Handle of window losing focus
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Notify Parent that the grid got focus.
+	//!
+	//! @param hwnd Handle of the grid
+	//! @param hwndOldFocus Handle of window losing focus
+	//!
+	//! @returns VOID
 	static void NotifyGotFocus(HWND hwnd, HWND hwndOldFocus)
 	{
 		g_nmSGFocus.col = g_lpInst->cursorcol - 1;
@@ -3946,18 +4940,19 @@ namespace grid
 		FORWARD_WM_NOTIFY(g_lpInst->hWndParent, g_nmSGFocus.hdr.idFrom, &g_nmSGFocus, SNDMSG);
 	}
 
-	/// @brief Handles WM_VSCROLL message.
-	///
-	/// @param hwnd Handle of grid.
-	/// @param hwndCtl If this message is sent by a scroll bar control,
-	///                 this parameter is the handle to the scroll bar control.
-	///                However in this case the message was sent by a standard
-	///                 scroll bar, thus this parameter is NULL.
-	/// @param code The scroll bar value that indicates the user's scrolling request.
-	/// @param pos The current position of the scroll box if the @b code is
-	///             SB_THUMBPOSITION or SB_THUMBTRACK
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_VSCROLL message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param hwndCtl If this message is sent by a scroll bar control,
+	//!                 this parameter is the handle to the scroll bar control.
+	//!                However in this case the message was sent by a standard
+	//!                 scroll bar, thus this parameter is NULL.
+	//! @param code The scroll bar value that indicates the user's scrolling request.
+	//! @param pos The current position of the scroll box if the @b code is
+	//!             SB_THUMBPOSITION or SB_THUMBTRACK
+	//!
+	//! @returns VOID
 	static VOID Grid_OnVScroll(HWND hwnd, HWND hwndCtl, UINT code, int pos)
 	{
 		SetFocus(hwnd);
@@ -4093,12 +5088,13 @@ namespace grid
 		RefreshGrid(hwnd);
 	}
 
-	/// @brief Handle WM_SETTEXT message.
-	///
-	/// @param hwnd Handle of grid.
-	/// @param lpszText A pointer to a null-terminated string that is the window text.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handle WM_SETTEXT message.
+	//!
+	//! @param hwnd Handle of grid.
+	//! @param lpszText A pointer to a null-terminated string that is the window text.
+	//!
+	//! @returns VOID.
 	static VOID Grid_OnSetText(HWND hwnd, LPCTSTR lpszText)
 	{
 		int j, linecount;
@@ -4134,14 +5130,15 @@ namespace grid
 		RefreshGrid(hwnd);
 	}
 
-	/// @brief Handles WM_SIZE message.
-	///
-	/// @param hwnd  Handle of grid.
-	/// @param state Specifies the type of resizing requested.
-	/// @param cx The width of client area.
-	/// @param cy The height of client area.
-	///
-	/// @returns VOID.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles WM_SIZE message.
+	//!
+	//! @param hwnd  Handle of grid.
+	//! @param state Specifies the type of resizing requested.
+	//! @param cx The width of client area.
+	//! @param cy The height of client area.
+	//!
+	//! @returns VOID.
 	static void Grid_OnSize(HWND hwnd, UINT state, int cx, int cy)
 	{
 		static int cheight;
@@ -4215,13 +5212,14 @@ namespace grid
 		InvalidateRect(hwnd, &rect, FALSE);
 	}
 
-	/// @brief Handles SG_INSERTROW message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param wParam  position where to insert the row
-	/// @param lParam The Column header text string
-	///
-	/// @returns position if successful, otherwise SG_ERROR 
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_INSERTROW message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam  position where to insert the row
+	//! @param lParam The Column header text string
+	//!
+	//! @returns position if successful, otherwise SG_ERROR 
 	static LRESULT Grid_OnInsertRow(HWND hwnd, WPARAM wParam, LPARAM lParam)//DWM 2.1: Added
 	{
 		// Author: Ferenc Hechler
@@ -4264,12 +5262,13 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles SG_DELETEROW message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param wParam  The position of the row to delete
-	///
-	/// @returns number of rows if successful, otherwise SG_ERROR 
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_DELETEROW message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam  The position of the row to delete
+	//!
+	//! @returns number of rows if successful, otherwise SG_ERROR 
 	static LRESULT Grid_OnDeleteRow(HWND hwnd, WPARAM wParam)//DWM 2.1: Added
 	{
 		int nPos = wParam + 1;
@@ -4310,13 +5309,14 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles SG_GETITEMDATALENGTH message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param wParam The column that the item belongs to
-	/// @param lParam The row index of the item in the column
-	///
-	/// @returns The length of the data buffer for the item
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_GETITEMDATALENGTH message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam The column that the item belongs to
+	//! @param lParam The row index of the item in the column
+	//!
+	//! @returns The length of the data buffer for the item
 	static LRESULT Grid_OnGetItemDataLength(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	{
 		LPGRIDITEM lpgi;
@@ -4352,13 +5352,14 @@ namespace grid
 		return 0;
 	}
 
-	/// @brief Handles SG_GETITEMDATA message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param wParam This parameter is not used
-	/// @param lParam A pointer to a SGITEM struct with column and row indexes.
-	///
-	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_GETITEMDATA message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam This parameter is not used
+	//! @param lParam A pointer to a SGITEM struct with column and row indexes.
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnGetItemData(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	{
 		LPTSTR end;
@@ -4421,12 +5422,13 @@ namespace grid
 		return ERROR_SUCCESS;
 	}
 
-	/// @brief Handles SG_SETIMAGELIST message.
-	///
-	/// @param wParam The id number of a column of type GCT_IMAGE
-	/// @param lParam This parameter is not used
-	///
-	/// @returns LRESULT the handle of the current image list if any
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETIMAGELIST message.
+	//!
+	//! @param wParam The id number of a column of type GCT_IMAGE
+	//! @param lParam This parameter is not used
+	//!
+	//! @returns LRESULT the handle of the current image list if any
 	static LRESULT Grid_OnGetImageList(WPARAM wParam, LPARAM lParam)
 	{
 		HIMAGELIST himl = 0;
@@ -4439,13 +5441,14 @@ namespace grid
 		return (LRESULT)himl;
 	}
 
-	/// @brief Handles SG_GETITEMPROTECTION message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param wParam A pointer to a SGCELL struct with column and row indexes
-	/// @param lParam This parameter is not used
-	///
-	/// @returns SG_ERROR if desired cell is out of bounds, TRUE if it is protected, otherwise FALSE
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_GETITEMPROTECTION message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam A pointer to a SGCELL struct with column and row indexes
+	//! @param lParam This parameter is not used
+	//!
+	//! @returns SG_ERROR if desired cell is out of bounds, TRUE if it is protected, otherwise FALSE
 	static LRESULT Grid_OnGetItemProtection(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	{
 		LPGRIDITEM lpgi;
@@ -4466,15 +5469,16 @@ namespace grid
 		return lpgi->fProtected;
 	}
 
-	/// @brief Handles SG_REFRESHGRID message.
-	///
-	/// @note: This is called external to the grid and differs from
-	///         RefreshGrid() in that the call to InvalidateRect() is such that
-	///         that background is erased when the BeginPaint function is called.
-	///
-	/// @param hwnd Handle of the grid
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_REFRESHGRID message.
+	//!
+	//! @note: This is called external to the grid and differs from
+	//!         RefreshGrid() in that the call to InvalidateRect() is such that
+	//!         that background is erased when the BeginPaint function is called.
+	//!
+	//! @param hwnd Handle of the grid
+	//!
+	//! @returns VOID
 	static VOID Grid_OnRefresh(HWND hwnd)
 	{
 		RECT rect = {0,0,0,0};
@@ -4484,11 +5488,12 @@ namespace grid
 		UpdateWindow(hwnd);
 	}
 
-	/// @brief Handles SG_RESETCONTENT message.
-	///
-	/// @param hwnd The handle of the grid
-	///
-	/// @returns VOID 
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_RESETCONTENT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//!
+	//! @returns VOID 
 	static VOID Grid_OnResetContent(HWND hwnd)
 	{
 		//DWM 1.3: Found bug in original and while fixing it
@@ -4535,15 +5540,16 @@ namespace grid
 		RefreshGrid(hwnd);
 	}
 
-	/// @brief Handles SG_SELECTCELL message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param col The col index of the cell
-	/// @param row The row index of the cell
-	/// @param fOverwritemode TRUE to overwrite cell contents, FALSE to edit 
-	///         the current contents of the cell.
-	///
-	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SELECTCELL message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param col The col index of the cell
+	//! @param row The row index of the cell
+	//! @param fOverwritemode TRUE to overwrite cell contents, FALSE to edit 
+	//!         the current contents of the cell.
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnSelectCell(HWND hwnd, INT col, INT row, BOOL fOverwritemode)
 	{
 		// don't include row header column and column header row
@@ -4559,13 +5565,14 @@ namespace grid
 		return lResult;
 	}
 
-	/// @brief Handles SG_SETCURSORPOS message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param wParam The col index of the cell
-	/// @param lParam The row index of the cell
-	///
-	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETCURSORPOS message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam The col index of the cell
+	//! @param lParam The row index of the cell
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnSetCursorPos(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	{
 		SGITEM SGitem;
@@ -4590,12 +5597,13 @@ namespace grid
 		return ERROR_SUCCESS;
 	}
 
-	/// @brief Handles SG_SETIMAGELIST message.
-	///
-	/// @param wParam The id number of a column of type GCT_IMAGE
-	/// @param lParam The handle of the new image list
-	///
-	/// @returns LRESULT the handle of the old image list if any
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETIMAGELIST message.
+	//!
+	//! @param wParam The id number of a column of type GCT_IMAGE
+	//! @param lParam The handle of the new image list
+	//!
+	//! @returns LRESULT the handle of the old image list if any
 	static LRESULT Grid_OnSetImageList(WPARAM wParam, LPARAM lParam)
 	{
 		HIMAGELIST himlOld = 0;
@@ -4609,13 +5617,14 @@ namespace grid
 		return (LRESULT)himlOld;
 	}
 
-	/// @brief Handles SG_SETITEMTEXTALIGNMENT message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param wParam The item text alignment
-	/// @param lParam A pointer to a SGITEM struct with column and row indexes.
-	///
-	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETITEMTEXTALIGNMENT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam The item text alignment
+	//! @param lParam A pointer to a SGITEM struct with column and row indexes.
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnSetItemTextAlignment(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	{
 		LPSGITEM lpsgi = (LPSGITEM) lParam;
@@ -4636,13 +5645,14 @@ namespace grid
 		return SG_ERROR;
 	}
 
-	/// @brief Handles SG_SETITEMPROTECTION message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param wParam BOOL TRUE to protect cell FALSE to allow changes
-	/// @param lParam A pointer to a SGITEM struct with column and row indexes
-	///
-	/// @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETITEMPROTECTION message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam BOOL TRUE to protect cell FALSE to allow changes
+	//! @param lParam A pointer to a SGITEM struct with column and row indexes
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
 	static LRESULT Grid_OnSetItemProtection(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	{
 		LPGRIDITEM lpgi;
@@ -4670,12 +5680,13 @@ namespace grid
 		}
 	}
 
-	/// @brief Handles SG_SETROWHEIGHT message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param wParam The desired height (in pixels) of the rows
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETROWHEIGHT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam The desired height (in pixels) of the rows
+	//!
+	//! @returns VOID
 	static void Grid_OnSetRowHeight(HWND hwnd, WPARAM wParam)
 	{
 		if (wParam < 1)
@@ -4692,13 +5703,14 @@ namespace grid
 		InvalidateRect(hwnd, &rect, FALSE);
 	}
 
-	/// @brief Handles SG_SETTITLEHEIGHT message.
-	///
-	/// @param hwnd The handle of the grid
-	/// @param wParam The desired height (in pixels) of the title
-	/// @param lParam This parameter is not used
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETTITLEHEIGHT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam The desired height (in pixels) of the title
+	//! @param lParam This parameter is not used
+	//!
+	//! @returns VOID
 	static void Grid_OnSetTitleHeight(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	{
 		if ((int)wParam < 0)
@@ -4714,13 +5726,14 @@ namespace grid
 		InvalidateRect(hwnd, &rect, FALSE);
 	}
 
-	/// @brief Add an item to a VECTOR at a given position
-	///
-	/// @param pVector a pointer to a VECTOR instance
-	/// @param nPos at which position to insert the object
-	/// @param object a pointer to an item to store in the vector
-	///
-	/// @returns TRUE if successful, FALSE on invalid position or out of memory.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Add an item to a VECTOR at a given position
+	//!
+	//! @param pVector a pointer to a VECTOR instance
+	//! @param nPos at which position to insert the object
+	//! @param object a pointer to an item to store in the vector
+	//!
+	//! @returns TRUE if successful, FALSE on invalid position or out of memory.
 	static BOOL Vector_Insert(const LPVECTOR pVector, int nPos, PVOID object) //DWM 2.1: Added
 	{
 		// Author: Ferenc Hechler
@@ -4753,12 +5766,13 @@ namespace grid
 		return TRUE;
 	}
 
-	/// @brief Remove an item from a VECTOR at a given position
-	///
-	/// @param pVector a pointer to a VECTOR instance
-	/// @param nPos the position of the object to remove
-	///
-	/// @returns TRUE if successful, FALSE on invalid position or out of memory.
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Remove an item from a VECTOR at a given position
+	//!
+	//! @param pVector a pointer to a VECTOR instance
+	//! @param nPos the position of the object to remove
+	//!
+	//! @returns TRUE if successful, FALSE on invalid position or out of memory.
 	static BOOL Vector_RemoveAt(const LPVECTOR pVector, int nPos) //DWM 2.1: Added
 	{
 		int old_size = Vector_Size(pVector);
@@ -4781,12 +5795,13 @@ namespace grid
 		return TRUE;
 	}
 
-	/// @brief wrapper to set column optional parameter
-	///
-	/// @param col The column number
-	/// @param object Object to store
-	///
-	/// @returns VOID
+	//---------------------------------------------------------------------------------------------------
+	//! @brief wrapper to set column optional parameter
+	//!
+	//! @param col The column number
+	//! @param object Object to store
+	//!
+	//! @returns VOID
 	static VOID SetColOptional(INT col, PVOID object)
 	{
 		LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col);
@@ -4794,4 +5809,4 @@ namespace grid
 			lpgc->pOptional = object;
 	}
 
-} //namespace mainwind
+} //namespace grid

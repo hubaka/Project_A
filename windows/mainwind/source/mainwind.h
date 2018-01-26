@@ -70,7 +70,9 @@ namespace mainwind
 		static void setWindowsIcon(HWND hWnd);
 		void stripFileName(LPTSTR fullPath, char* pFileName, char* pFilePath);
 		void addNewEntryToGrid(char* pFileName, char* pFilePath);
+		void addExistingEntryToGrid(char* pFileName, char* pFilePath, bool encrypt, bool decrypt);
 		void encryptDatabase(void);
+		bool findFile(char* pDirPath, char* pFileName);
 
 	};
 

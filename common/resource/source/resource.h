@@ -44,6 +44,8 @@
 #define IDE_NEWUSER				9021
 #define IDE_OK					9022
 #define IDE_CANCEL				9023
+#define ID_LARGEICON			9024
+#define ID_SMALLICON			9025
 
 //Testing purpose
 #define IDD_TOOLBAR		8001

@@ -8,6 +8,7 @@ add_folder_dependencies(
 	"crypto"
 	"resource"
 	"errhandle"
+	"sqlite"
 )
 
 #

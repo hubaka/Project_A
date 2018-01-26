@@ -36,6 +36,7 @@
 #include "resource.h"
 #include "toolbar.h"
 #include "dbms.h"
+#include "commonparam.h" // reqd. for mainwindow messages
 #include "cryptomain.h"
 #include "mainwind.h"
 
@@ -57,6 +58,7 @@ namespace mainwind
 	static HINSTANCE ghInstance;
 	//HWND hgrid1, hgrid2, hgrid3, hgrid4, hgrid5, htab;
 	HWND hgrid2;
+	static dbms::Dbms* g_pDbms;
 
 
 	//---------------------------------------------------------------------------
@@ -99,7 +101,6 @@ namespace mainwind
 	static void ResizeColumnWidth(HWND hGrid, LPRECT pRect);
 	static BOOL CALLBACK About_DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 	void cryptSelectedFile(const char* pEncryptFilePath, TCHAR* pFilePath, const char *passPhrase, bool isEncrypt);
-	SecByteBlock HexDecodeString(const char *hex);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -119,6 +120,7 @@ namespace mainwind
 			m_rowCnt(0U),
 			m_pEncryptfile(pEncrypter) {
 			ghInstance = hParentInstance;
+			g_pDbms = pDbms;
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -152,12 +154,12 @@ namespace mainwind
 			m_wndClassEx.cbClsExtra    = 0;
 			m_wndClassEx.cbWndExtra    = 0;
 			m_wndClassEx.hInstance     = m_hParentInstance;
-			m_wndClassEx.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
+			m_wndClassEx.hIcon         = LoadIcon(m_hParentInstance, MAKEINTRESOURCE(ID_LARGEICON));
 			m_wndClassEx.hCursor       = LoadCursor(NULL, IDC_ARROW);
 			m_wndClassEx.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
 			m_wndClassEx.lpszMenuName  = NULL;
 			m_wndClassEx.lpszClassName = _T("MainWindowClass");
-			m_wndClassEx.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
+			m_wndClassEx.hIconSm       = LoadIcon(m_hParentInstance, MAKEINTRESOURCE(ID_LARGEICON));
 
 			if(!RegisterClassEx(&m_wndClassEx))
 			{
@@ -191,6 +193,7 @@ namespace mainwind
 			ShowWindow(m_hWnd, m_nCmdShow);
 			UpdateWindow(m_hWnd);
 
+			m_pDbms->attachWindHandle(m_hWnd);
 			m_pEncryptfile->getUserCredentials(m_hParentInstance, m_hWnd);
 	}
 
@@ -216,7 +219,7 @@ namespace mainwind
 			
 			createWindowsMenu(hWnd);
 			pParent->m_hWndToolbar = createToolBar(hWnd);
-			setWindowsIcon(hWnd);
+			//setWindowsIcon(hWnd);
 
 			HWND hStatus = CreateWindowEx(0, STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0,
 						hWnd, (HMENU)IDC_STATUSBAR, GetModuleHandle(NULL), NULL);
@@ -233,8 +236,6 @@ namespace mainwind
 				return 0;
 
 			dialogClass.hInstance = GetModuleHandle(NULL);
-			//dialogClass.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDR_ICO_MAIN));
-			//dialogClass.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(IDR_ICO_SMALL));
 			dialogClass.hbrBackground = (HBRUSH) (COLOR_WINDOW + 1);
 			dialogClass.lpszClassName = _T("DialogClass");
 			if (!RegisterClassEx(&dialogClass))
@@ -254,8 +255,6 @@ namespace mainwind
 			SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)L"Hi there :)");
 			//dialogbar = m_pBar->createToolBar(hWnd);
 			//m_pIGrid->createBabyGrid(hWnd);
-			/*HWND hgrid1 = GetDlgItem(hWnd, ID_BABY_GRID);
-			(BOOL)SNDMSG((hgrid1),SG_SETCOLAUTOWIDTH,(BOOL)(TRUE),0L);*/
 	   }
 	   else
 	   {
@@ -302,10 +301,10 @@ namespace mainwind
 						}
 					case ID_TOOL_OPEN_FOLDER:
 					case ID_SUBMENU_OPEN_FOLDER:
-					{
-						getFolderName();
-						break;
-					}
+						{
+							getFolderName();
+							break;
+						}
 					case ID_MENU_HELP:
 						{
 							MessageBox(m_hWnd, (LPCWSTR)L"No help document", (LPCWSTR)L"Message",
@@ -313,11 +312,15 @@ namespace mainwind
 							break;
 						}
 					case ID_DIALOG_SHOW:
-						ShowWindow(dialogbar, SW_SHOW);
-					break;
+						{
+							ShowWindow(dialogbar, SW_SHOW);
+							break;
+						}
 					case ID_DIALOG_HIDE:
-						ShowWindow(dialogbar, SW_HIDE);
-					break;
+						{
+							ShowWindow(dialogbar, SW_HIDE);
+							break;
+						}
 					default:
 						{
 							break;
@@ -367,6 +370,34 @@ namespace mainwind
 					
 					break;
 				}
+			case MN_FINDDATABASE:
+				{
+					char dirPath[MAX_PATH] = "C:\\Users\\akathire\\Documents\\pIm\\work\\Attendance\\git\\Project_A\\1_builds\\appmain\\";
+					char* pFileName = m_pEncryptfile->getDatabaseName();
+					bool retVal = findFile(dirPath, pFileName);
+					return retVal;
+				}
+			case MN_OPENEXISTINGDATABASE:
+				{
+					char* pFileName = m_pEncryptfile->getDatabaseName();
+					bool retVal = m_pDbms->openExistingDatabase(pFileName);
+					if (retVal == TRUE) {
+						m_pDbms->readDbData();
+					}
+					break;
+				}
+			case MN_CREATENEWDATABASE:
+				{
+					char* pFileName = m_pEncryptfile->getDatabaseName();
+					m_pDbms->createNewDatabase(pFileName);
+					break;
+				}
+			case MN_ADDEXISTINGDATATOGRID:
+				{
+					LPDBITEM lpDBitem = (LPDBITEM)lParam;
+					addExistingEntryToGrid(lpDBitem->sfileName, lpDBitem->sfilePath, lpDBitem->sEncrypted, lpDBitem->sDecrypted);
+					break;
+				}
 			default:
 				return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 		}
@@ -387,6 +418,7 @@ namespace mainwind
 		) { 
 			OPENFILENAME ofn;
 			char szFileName[2*MAX_PATH] = "";
+			char fullFilePath[2 * MAX_PATH] = {0};
 
 			ZeroMemory(&ofn, sizeof(ofn));
 
@@ -403,7 +435,11 @@ namespace mainwind
 				char fileName[MAX_PATH] = {0};
 				char filePath[MAX_PATH] = {0};
 				stripFileName(ofn.lpstrFile, fileName, filePath);
-				addNewEntryToGrid(fileName, filePath);
+				copyTcharToChar(fullFilePath, ofn.lpstrFile, (2 * MAX_PATH));
+				bool retVal = m_pDbms->addDbData(fullFilePath, fileName, filePath, 0, 1);
+				if (retVal == TRUE) {
+					addNewEntryToGrid(fileName, filePath);
+				}
 			}
 		}
 
@@ -815,11 +851,13 @@ namespace mainwind
 					TCHAR tfilePath[MAX_PATH] = { 0 };
 					char filePath[MAX_PATH] = { 0 };
 					bool isEncrypt = false;
+					bool fileEncDone = false;
+					bool fileDecDone = false;
 					uint32_t row = ((LPNMGRID)pnm)->row;
 					SimpleGrid_GetItemText(pnm->hwndFrom, FILENAMECOLUMNNUM, row, tfileName);
 					SimpleGrid_GetItemText(pnm->hwndFrom, PATHCOLUMNNUM, row, tfilePath);
 					StringCchCat(tfilePath, MAX_PATH, tfileName);
-					wcstombs(filePath, tfilePath, MAX_PATH); //copying to local array
+					wcstombs(filePath, tfilePath, MAX_PATH); //copying from tchar to char array
 
 					bool cellProtected = SimpleGrid_GetItemProtection(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row);
 					if (((((LPNMGRID)pnm)->col) == 2) && (cellProtected == false))
@@ -828,7 +866,8 @@ namespace mainwind
 						cryptSelectedFile(filePath, tfilePath, "password", isEncrypt);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row, TRUE);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((((LPNMGRID)pnm)->col)+1), ((LPNMGRID)pnm)->row, FALSE);
-						//m_pDbms->addDbData(m_fileName, m_filePath, 1, 1);
+						fileEncDone = true;
+						g_pDbms->updateDbData(filePath, fileEncDone, fileDecDone);
 					}
 					else if (((((LPNMGRID)pnm)->col) == 3) && (cellProtected == false))
 					{
@@ -836,13 +875,23 @@ namespace mainwind
 						cryptSelectedFile(filePath, tfilePath, "password", isEncrypt);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row, TRUE);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((((LPNMGRID)pnm)->col)-1), ((LPNMGRID)pnm)->row, FALSE);
-						//m_pDbms->addDbData(m_fileName, m_filePath, 1, 1);
+						fileDecDone = true;
+						g_pDbms->updateDbData(filePath, fileEncDone, fileDecDone);
 					}
 					SimpleGrid_DeleteButton(hgrid2, 0);
 				}
 				else if (GCT_IMAGE == dwType)
 				{
-					// TODO - code to delete row
+					uint32_t row = ((LPNMGRID)pnm)->row;
+					TCHAR tfileName[MAX_PATH] = { 0 };
+					TCHAR tfilePath[MAX_PATH] = { 0 };
+					char filePath[MAX_PATH] = { 0 };
+					SimpleGrid_GetItemText(pnm->hwndFrom, FILENAMECOLUMNNUM, row, tfileName);
+					SimpleGrid_GetItemText(pnm->hwndFrom, PATHCOLUMNNUM, row, tfilePath);
+					StringCchCat(tfilePath, MAX_PATH, tfileName);
+					wcstombs(filePath, tfilePath, MAX_PATH); //copying from tchar to char array
+					SimpleGrid_DeleteRow(hgrid2, row);
+					g_pDbms->deleteDbData(filePath);
 				}
 				//SimpleGrid_RefreshGrid(hgrid2);
 			}   //if(pnm.code==BGN_CELLCLICKED)
@@ -1648,6 +1697,7 @@ namespace mainwind
 				}
 			}
 		} while (FindNextFile(hFind, &ffd) != 0);
+		FindClose(hFind);
 
 		hFind = FindFirstFile(pDirPath, &ffd);
 
@@ -1659,12 +1709,17 @@ namespace mainwind
 			{
 				if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 				{
-					//MessageBox(m_hWnd, ffd.cFileName, (LPCWSTR)L"Message",
-					//	MB_OK | MB_ICONINFORMATION);
-					addNewEntryToGrid(fileName, filePath);
+					char fullFilePath[2 * MAX_PATH] = { 0 };
+					strcpy(fullFilePath, filePath);
+					strcat(fullFilePath, fileName);
+					bool retVal = m_pDbms->addDbData(fullFilePath, fileName, filePath, 0, 1);
+					if (retVal == TRUE) {
+						addNewEntryToGrid(fileName, filePath);
+					}
 				}
 			}
 		} while (FindNextFile(hFind, &ffd) != 0);
+		FindClose(hFind);
 
 	}
 
@@ -1689,12 +1744,85 @@ namespace mainwind
 	//!
 	//! \return		
 	//!
-	SecByteBlock HexDecodeString(const char *hex)
+	bool 
+		MainWind::findFile(char* pDirPath, char* pFileName) {
+
+		bool retVal = FALSE;
+		TCHAR fileName[MAX_PATH] = { 0 };
+		TCHAR filePath[MAX_PATH] = { 0 };
+		HANDLE hFind;
+		WIN32_FIND_DATA ffd;
+		LARGE_INTEGER filesize;
+
+		mbstowcs(fileName, pFileName, MAX_PATH);
+		mbstowcs(filePath, pDirPath, MAX_PATH);
+		StringCchCat(filePath, MAX_PATH, fileName);
+		hFind = FindFirstFile(filePath, &ffd);
+		if (INVALID_HANDLE_VALUE == hFind) {
+			retVal = FALSE;
+		}
+		else {
+			retVal = TRUE;
+			FindClose(hFind);
+		}
+		return retVal;
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	pFileName
+	//! \param[in]	pFilePath
+	//!
+	//! \return		
+	//!
+	void
+		MainWind::addExistingEntryToGrid(char* pFileName, char* pFilePath, bool encrypt, bool decrypt)
 	{
-		StringSource ss(hex, true, new HexDecoder);
-		SecByteBlock result((size_t)ss.MaxRetrievable());
-		ss.Get(result, result.size());
-		return result;
+		// Set cells to data
+
+		// Add one row to enter this data
+		SimpleGrid_AddRow(hgrid2, _T(""));
+
+		// cbMultiByte [in] - "fourth parameter of MultiByteToWideChar"
+		// Size, in bytes, of the string indicated by the lpMultiByteStr parameter. 
+		// Alternatively, this parameter can be set to -1 if the string is null-terminated. 
+		// Note that, if cbMultiByte is 0, the function fails.
+		// If this parameter is -1, the function processes the entire input string, 
+		//including the terminating null character. Therefore, the resulting Unicode 
+		//string has a terminating null character, and the length returned by the function includes this character.
+		int wchars_num = MultiByteToWideChar(0, 0, pFileName, -1, NULL, 0);
+		wchar_t wFileName[MAX_PATH] = { 0 };
+		wchar_t wFilePath[MAX_PATH] = { 0 };
+		MultiByteToWideChar(0, 0, pFileName, -1, wFileName, wchars_num);
+		wchars_num = MultiByteToWideChar(0, 0, pFilePath, -1, NULL, 0);
+		MultiByteToWideChar(0, 0, pFilePath, -1, wFilePath, wchars_num);
+		// Column number
+		// Row number
+		// Item (cell) value
+		SGITEM lpItems[] = {
+			FILENAMECOLUMNNUM, m_rowCnt, (LPARAM)(wFileName),
+			PATHCOLUMNNUM, m_rowCnt, (LPARAM)(wFilePath),
+			ENCRYPTBUTTONCOLUMNNUM, m_rowCnt, (LPARAM)_T("Encrypt"),
+			DECRYPTBUTTONCOLUMNNUM, m_rowCnt, (LPARAM)_T("Decrypt"),
+			REMOVEFILECOLUMNNUM, m_rowCnt, (LPARAM)0
+		};
+		for (uint32_t idx = 0; idx < NELEMS(lpItems); idx++) {
+			SimpleGrid_SetItemData(hgrid2, &lpItems[idx]);
+			SimpleGrid_SetItemProtection(hgrid2, &lpItems[idx], TRUE);
+		}
+		if (encrypt == TRUE) {
+			SimpleGrid_SetItemProtection(hgrid2, &lpItems[2], TRUE);
+			SimpleGrid_SetItemProtection(hgrid2, &lpItems[3], FALSE);
+		}
+		else if (decrypt == TRUE) {
+			SimpleGrid_SetItemProtection(hgrid2, &lpItems[2], FALSE);
+			SimpleGrid_SetItemProtection(hgrid2, &lpItems[3], TRUE);
+		}
+		SimpleGrid_SetItemProtection(hgrid2, &lpItems[4], FALSE);
+		m_rowCnt++;
+		SimpleGrid_RefreshGrid(hgrid2);
+
 	}
 
 } //namespace mainwind

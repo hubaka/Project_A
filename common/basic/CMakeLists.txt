@@ -11,6 +11,7 @@ add_folder_dependencies()
 add_public_header_files(
 	"sys.h"
 	"systypes.h"
+	"commonparam.h"
 )
 #
 # List of source files, relative to the module source folder

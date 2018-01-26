@@ -27,9 +27,14 @@
 #include "toolbar.h"	// reqd. for toolbar class
 #include "dbms.h"		// reqd. for database class
 #include "cryptomain.h"	// reqd. for crypt class
-#include "appmain.h"	// reqd. for database class
+#include "appmain.h"	// reqd. for appmain header inclusion
 
 #pragma comment(lib,"COMCTL32.LIB")	// reqd. for InitCommonControlsEx() fxn
+
+// The following applies visual styles to dialog and window
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 extern HWND g_hDialogWind;	// window handle of grid
 

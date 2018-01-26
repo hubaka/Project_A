@@ -2592,7 +2592,7 @@ namespace grid
 	Grid_OnSetFont(
 		HWND hwnd, HFONT hfont, BOOL fRedraw
 	){
-		HFONT hFontCus = CreateFont(17, 0, 0, 0, FW_THIN, FALSE, FALSE, FALSE,
+		HFONT hFontCus = CreateFont(17, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
 			ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
 			PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("Consolas "));
 		g_lpInst->hfont = hFontCus;

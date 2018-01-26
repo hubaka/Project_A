@@ -30,7 +30,8 @@ namespace encryptmain
 	public:
 		EncryptDBFile(void);
 		~EncryptDBFile(void);
-		void getUserCredentials(HINSTANCE	hParentInstance, HWND hParentWindow);
+		void getUserCredentials(HINSTANCE hParentInstance, HWND hParentWindow);
+		char* getDatabaseName(void);
 
 	private:
 

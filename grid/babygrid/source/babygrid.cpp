@@ -22,6 +22,7 @@
 #include <commctrl.h>
 #include <uxtheme.h>
 #include "sys.h"
+#include "commonparam.h"
 #include "resource.h"
 #include "errhandle.h"
 #include "babygrid.h"
@@ -63,6 +64,8 @@ namespace grid
 		LPTSTR lpszMisc;        //!< Item (cell) specific data string
 		DWORD dwAllignment;     //!< Item (cell) text allignment
 		BOOL fProtected;        //!< Item (cell) protection status
+		HFONT hEncFont;			//!< Font for encrypt button
+		HFONT hDecFont;			//!< Font for decrypt button
 	} GRIDITEM   , *LPGRIDITEM;
 
 	//---------------------------------------------------------------------------
@@ -1212,6 +1215,26 @@ namespace grid
 	static VOID SetColOptional(INT col, PVOID object);
 
 	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETENCRYPTFONT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam 
+	//! @param lParam 
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnSetEncryptFont(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETDECRYPTFONT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam row of the decrypt button
+	//! @param lParam font value which needs to set as decrypt buttong
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnSetDecryptFont(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+	//---------------------------------------------------------------------------------------------------
 	//! @def StringArray_Replace(lpszTarget, lpszReplace)
 	//!
 	//! @brief Replace an allocated string array.
@@ -1677,6 +1700,22 @@ namespace grid
 				}
 				break;
 			}
+			case SG_SETENCRYPTFONT:
+				{
+					SGITEM sgi;
+					sgi.col = 3;
+					sgi.row = wParam + 1;
+					Grid_OnSetEncryptFont(hWnd, (WPARAM)& sgi, lParam);
+					break;
+				}
+			case SG_SETDECRYPTFONT:
+				{
+					SGITEM sgi;
+					sgi.col = 4;
+					sgi.row = wParam + 1;
+					Grid_OnSetDecryptFont(hWnd, (WPARAM)& sgi, lParam);
+					break;
+				}
 			}
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
@@ -2592,7 +2631,7 @@ namespace grid
 	Grid_OnSetFont(
 		HWND hwnd, HFONT hfont, BOOL fRedraw
 	){
-		HFONT hFontCus = CreateFont(17, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+		HFONT hFontCus = CreateFont(20, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
 			ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
 			PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("Consolas "));
 		g_lpInst->hfont = hFontCus;
@@ -2882,15 +2921,30 @@ namespace grid
 				{
 					if (isProtected)
 					{
-						SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-						hbrush = CreateSolidBrush(g_lpInst->clrProtect);
+						char encbuf[12] = "Encrypt";
+						char decbuf[12] = "Decrypt";
+						TCHAR enccmpbuf[12];
+						TCHAR deccmpbuf[12];
+						copyCharToTchar(enccmpbuf, encbuf, 12);
+						copyCharToTchar(deccmpbuf, decbuf, 12);
+						if ((wcscmp(buffer, enccmpbuf) == 0) || (wcscmp(buffer, deccmpbuf) == 0)) {
+							SetTextColor(hdc, RGB(204, 0, 0)); // setting the text to red color
+							hbrush = CreateSolidBrush(g_lpInst->clrProtect);
+						}
+						else {
+							SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+							hbrush = CreateSolidBrush(g_lpInst->clrProtect);
+						}
 					}
 					else //Normal in cell text color
 					{
-						if (GCT_LINK == iColumnType)
+						if (GCT_LINK == iColumnType) {
 							SetTextColor(hdc, g_lpInst->clrLink);
-						else
-							SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+						}
+						else {
+							//SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+							SetTextColor(hdc, RGB(0, 204, 102)); // setting the text to green color
+						}
 
 						hbrush = CreateSolidBrush(g_lpInst->clrBackground);
 					}
@@ -2933,7 +2987,25 @@ namespace grid
 					DrawFrameControl(hdc, &rect, DFC_BUTTON, DFCS_BUTTONPUSH);
 					if (g_lpInst->ELLIPSIS)
 					{
-						DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX, NULL);
+						char encbuf[12] = "Encrypt";
+						char decbuf[12] = "Decrypt";
+						TCHAR enccmpbuf[12];
+						TCHAR deccmpbuf[12];
+						copyCharToTchar(enccmpbuf, encbuf, 12);
+						copyCharToTchar(deccmpbuf, decbuf, 12);
+						if (wcscmp(buffer, enccmpbuf) == 0) {
+							//set font for grid body
+							SelectObject(hdc, (lpgi->hEncFont));
+							DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX, NULL);
+						}
+						else if (wcscmp(buffer, deccmpbuf) == 0) {
+							//set font for grid body
+							SelectObject(hdc, (lpgi->hDecFont));
+							DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX, NULL);
+						}
+						else {
+							DrawTextEx(hdc, buffer, -1, &rect, DT_END_ELLIPSIS | DT_LEFT | DT_VCENTER | DT_CENTER | DT_SINGLELINE | DT_NOPREFIX, NULL);
+						}
 					}
 					else
 					{
@@ -5807,6 +5879,72 @@ namespace grid
 		LPGRIDCOLUMN lpgc = (LPGRIDCOLUMN)Vector_Get(g_lpInst->data, col);
 		if(NULL != lpgc)
 			lpgc->pOptional = object;
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETENCRYPTFONT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam row of the encrypt button
+	//! @param lParam font value which needs to set as encrypt buttong
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnSetEncryptFont(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+
+		int retVal = SG_ERROR;
+		LPGRIDITEM lpgi;
+		LPSGITEM LPSGitem = (LPSGITEM)wParam;
+
+		if (OutOfRange(LPSGitem))
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+
+		lpgi = GetCellData(LPSGitem->col, LPSGitem->row);
+		if (NULL == lpgi)
+		{
+			SetLastError(ERROR_INVALID_DATA);
+		}
+		else {
+			lpgi->hEncFont = (HFONT)lParam;
+			retVal = TRUE;
+		}
+		return  retVal;
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! @brief Handles SG_SETDECRYPTFONT message.
+	//!
+	//! @param hwnd The handle of the grid
+	//! @param wParam row of the decrypt button
+	//! @param lParam font value which needs to set as decrypt buttong
+	//!
+	//! @returns ERROR_SUCCESS otherwise SG_ERROR if desired cell is out of bounds
+	static LRESULT Grid_OnSetDecryptFont(HWND hwnd, WPARAM wParam, LPARAM lParam)
+	{
+
+		int retVal = SG_ERROR;
+		LPGRIDITEM lpgi;
+		LPSGITEM LPSGitem = (LPSGITEM)wParam;
+
+		if (OutOfRange(LPSGitem))
+		{
+			SetLastError(ERROR_INVALID_INDEX);
+			return SG_ERROR;
+		}
+
+		lpgi = GetCellData(LPSGitem->col, LPSGitem->row);
+		if (NULL == lpgi)
+		{
+			SetLastError(ERROR_INVALID_DATA);
+		}
+		else {
+			lpgi->hDecFont = (HFONT)lParam;
+			retVal = TRUE;
+		}
+		return  retVal;
 	}
 
 } //namespace grid

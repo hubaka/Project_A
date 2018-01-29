@@ -44,6 +44,7 @@ namespace dbms
 	static int32_t sqlCallback(void *data, int argc, char **argv, char **azColName);
 	static int32_t sqlReadCallback(void *data, int argc, char **argv, char **azColName);
 	static uint32_t gRowCount = 0;
+	static bool	g_isFileEncrypted = FALSE;
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -224,7 +225,12 @@ namespace dbms
 	sqlCallback(void *data, int argc, char **argv, char **azColName)
 	{
 		uint32_t idx = 0;
-		gRowCount = atoi(argv[idx]);
+		if ((strcmp(azColName[idx], "ENCRYPTED")) == 0) {
+			g_isFileEncrypted = atoi(argv[idx]);
+		}
+		else {
+			gRowCount = atoi(argv[idx]);
+		}
 	   return 0;
 	}
 
@@ -396,28 +402,66 @@ namespace dbms
 	//!
 	//! \return		
 	//!
-	bool
+	void
 		Dbms::deleteDbData(char* pFullPath) {
-		bool retVal = FALSE;
 		char*	pSql;
 		int32_t sqRetVal;
 		char*	pErrMsg;
 		std::string str;
 
 		/* Create SQL statement */
-		char* pCmd = "DELETE ";
+		char* pDelteCmd = "DELETE ";
 		char* pTable = "ENCRYPTTABLE ";
 
-		createDeleteCmdString(pCmd, pTable, pFullPath);
+		memset(cmdString, 0, (MAXCMDLENGTH * sizeof(char)));
+		strcpy(cmdString, pDelteCmd);
+		createCmdString(pTable, pFullPath);
 		pSql = &cmdString[0];
 
 		/* Execute SQL statement */
 		sqRetVal = sqlite3_exec(m_pData, pSql, NULL, 0, &pErrMsg);
 		if (sqRetVal != SQLITE_OK) {
-			g_errHandle.getErrorInfo((LPTSTR)L"Database creation Failed!");
+			g_errHandle.getErrorInfo((LPTSTR)L"Couldn't Delete Selection!");
+		}
+	
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	pFileName
+	//! \param[in]	pFilePath
+	//! \param[in]	isEncrypted
+	//! \param[in]	isDecrypted
+	//!
+	//! \return		
+	//!
+	bool
+		Dbms::checkDbEncrypt(char* pFullPath) {
+		uint8_t retVal = FALSE;
+		char*	pSql;
+		int32_t sqRetVal;
+		char*	pErrMsg;
+		std::string str;
+
+		/* Create SQL statement */
+		char* pSelectCmd = "SELECT ENCRYPTED ";
+		char* pTable = "ENCRYPTTABLE ";
+
+		//pSql = "SELECT ENCRYPTED FROM ENCRYPTTABLE WHERE ";
+
+		memset(cmdString, 0, (MAXCMDLENGTH * sizeof(char)));
+		strcpy(cmdString, pSelectCmd);
+		createCmdString(pTable, pFullPath);
+		pSql = &cmdString[0];
+
+		/* Execute SQL statement */
+		sqRetVal = sqlite3_exec(m_pData, pSql, sqlCallback, 0, &pErrMsg);
+		if (sqRetVal != SQLITE_OK) {
+			g_errHandle.getErrorInfo((LPTSTR)L"Couldn't Delete Selection!");
 		}
 		else {
-			retVal = TRUE;
+			retVal = g_isFileEncrypted;
 		}
 		return retVal;
 	}
@@ -430,7 +474,7 @@ namespace dbms
 	//! \return		
 	//!
 	void
-		Dbms::createDeleteCmdString(char* pCmd, char* pTable, char* pFullPath)
+		Dbms::createCmdString(char* pTable, char* pFullPath)
 	{
 		char* pStr = &cmdString[0];
 		char* pFromStr = "from ";
@@ -441,8 +485,8 @@ namespace dbms
 		char* pstrQuote = "'";
 		char intString[sizeof(uint32_t)];
 
-		memset(cmdString, 0, (MAXCMDLENGTH * sizeof(char)));
-		uint32_t cmdLength = strlen(pCmd) + strlen(pFromStr) + strlen(pTable) + strlen(pWhereStr) + strlen(pFullPathStr) + sizeof(pEqualStr) \
+		//memset(cmdString, 0, (MAXCMDLENGTH * sizeof(char)));
+		uint32_t cmdLength = strlen(pFromStr) + strlen(pTable) + strlen(pWhereStr) + strlen(pFullPathStr) + sizeof(pEqualStr) \
 			+ strlen(pstrQuote) + strlen(pFullPath) + strlen(pstrQuote) + strlen(pEndStr) + 1; // extra 1 for NULL terminator
 
 		if ((cmdLength > MAXCMDLENGTH))
@@ -450,8 +494,8 @@ namespace dbms
 			g_errHandle.getErrorInfo((LPTSTR)L"cmd length is invalid!");
 		}
 		//sample update command for coding
-		// "DELETE from COMPANY where ID=2;"
-		strcpy(pStr, pCmd);
+		// "DELETE from ENCRYPTTABLE where FULLPATH=pFullPath;"
+		//strcpy(pStr, pCmd);
 		strcat(pStr, pFromStr);
 		strcat(pStr, pTable);
 		strcat(pStr, pWhereStr);
@@ -481,13 +525,6 @@ namespace dbms
 		char*	pErrMsg;
 		std::string str;
 
-		/* Create SQL statement */
-		char* pCmd = "DELETE ";
-		char* pTable = "ENCRYPTTABLE ";
-
-		/*createDeleteCmdString(pCmd, pTable, pFullPath);
-		pSql = &cmdString[0];*/
-
 		pSql = "SELECT * FROM ENCRYPTTABLE";
 		/* Execute SQL statement */
 		sqRetVal = sqlite3_exec(m_pData, pSql, sqlReadCallback, 0, &pErrMsg);
@@ -498,47 +535,6 @@ namespace dbms
 			retVal = TRUE;
 		}
 		return retVal;
-	}
-
-	//---------------------------------------------------------------------------------------------------
-	//! \brief		
-	//!
-	//! \param[in]	
-	//!
-	//! \return		
-	//!
-	void
-		Dbms::createReadCmdString(char* pCmd, char* pTable, char* pFullPath)
-	{
-		char* pStr = &cmdString[0];
-		char* pFromStr = "from ";
-		char* pWhereStr = "WHERE ";
-		char* pFullPathStr = "FULLPATH ";
-		char* pEqualStr = "= ";
-		char* pEndStr = "; ";
-		char* pstrQuote = "'";
-		char intString[sizeof(uint32_t)];
-
-		memset(cmdString, 0, (MAXCMDLENGTH * sizeof(char)));
-		uint32_t cmdLength = strlen(pCmd) + strlen(pFromStr) + strlen(pTable) + strlen(pWhereStr) + strlen(pFullPathStr) + sizeof(pEqualStr) \
-			+ strlen(pstrQuote) + strlen(pFullPath) + strlen(pstrQuote) + strlen(pEndStr) + 1; // extra 1 for NULL terminator
-
-		if ((cmdLength > MAXCMDLENGTH))
-		{
-			g_errHandle.getErrorInfo((LPTSTR)L"cmd length is invalid!");
-		}
-		//sample update command for coding
-		// "DELETE from COMPANY where ID=2;"
-		strcpy(pStr, pCmd);
-		strcat(pStr, pFromStr);
-		strcat(pStr, pTable);
-		strcat(pStr, pWhereStr);
-		strcat(pStr, pFullPathStr);
-		strcat(pStr, pEqualStr);
-		strcat(pStr, pstrQuote);
-		strcat(pStr, pFullPath);
-		strcat(pStr, pstrQuote);
-		strcat(pStr, pEndStr);
 	}
 
 	//---------------------------------------------------------------------------------------------------

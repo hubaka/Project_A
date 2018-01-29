@@ -2,11 +2,11 @@
 //! $URL: $
 //!
 //!
-//! \file       
+//! \file       sys.h
 //! \author     Anand.Kathiresan
-//! \date       
+//! \date       2017
 //!
-//! \brief      @ Header file for 
+//! \brief      @ Header file for common macro definitons
 //!
 //! @(#)$Id:    $
 //!
@@ -26,13 +26,20 @@
 
 PVOID safeMalloc(size_t memsize);
 
+//---------------------------------------------------------------------------
+//! @def SMALLOC(memsize)
+//!
+//! @brief Safe memory allocation
+//!
+//! @param size of memory to be allocated
 #define SMALLOC(memsize) safeMalloc((size_t)memsize)
 
-/// @def NELEMS(a)
-///
-/// @brief Computes number of elements of an array.
-///
-/// @param a An array.
+//---------------------------------------------------------------------------
+//! @def NELEMS(a)
+//!
+//! @brief Computes number of elements of an array.
+//!
+//! @param a An array.
 #define NELEMS(a) (sizeof(a) / sizeof((a)[0]))
 
 #endif //SYS_H

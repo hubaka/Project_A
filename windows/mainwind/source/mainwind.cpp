@@ -59,6 +59,8 @@ namespace mainwind
 	//HWND hgrid1, hgrid2, hgrid3, hgrid4, hgrid5, htab;
 	HWND hgrid2;
 	static dbms::Dbms* g_pDbms;
+	static HFONT g_EncryptEnableButton, g_EncryptDisableButton, g_DecryptEnableButton, g_DecryptDisableButton;
+	static uint32_t	g_rowCnt;
 
 
 	//---------------------------------------------------------------------------
@@ -117,10 +119,22 @@ namespace mainwind
 		) : m_hParentInstance(hParentInstance),
 			m_nCmdShow(nCmdShow),
 			m_pDbms(pDbms),
-			m_rowCnt(0U),
 			m_pEncryptfile(pEncrypter) {
 			ghInstance = hParentInstance;
 			g_pDbms = pDbms;
+
+			g_EncryptEnableButton = CreateFont(17, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+				ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+				PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("Consolas "));
+			g_EncryptDisableButton = CreateFont(17, 0, 0, 0, FW_THIN, FALSE, FALSE, TRUE,
+				ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+				PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("Consolas "));
+			g_DecryptEnableButton = CreateFont(17, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+				ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+				PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("Consolas "));
+			g_DecryptDisableButton = CreateFont(17, 0, 0, 0, FW_THIN, FALSE, FALSE, TRUE,
+				ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+				PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("Consolas "));
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -866,6 +880,8 @@ namespace mainwind
 						cryptSelectedFile(filePath, tfilePath, "password", isEncrypt);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row, TRUE);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((((LPNMGRID)pnm)->col)+1), ((LPNMGRID)pnm)->row, FALSE);
+						SimpleGrid_SetEncryptFont(hgrid2, ((LPNMGRID)pnm)->row, g_EncryptDisableButton);
+						SimpleGrid_SetDecryptFont(hgrid2, ((LPNMGRID)pnm)->row, g_DecryptEnableButton);
 						fileEncDone = true;
 						g_pDbms->updateDbData(filePath, fileEncDone, fileDecDone);
 					}
@@ -875,6 +891,8 @@ namespace mainwind
 						cryptSelectedFile(filePath, tfilePath, "password", isEncrypt);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row, TRUE);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((((LPNMGRID)pnm)->col)-1), ((LPNMGRID)pnm)->row, FALSE);
+						SimpleGrid_SetEncryptFont(hgrid2, ((LPNMGRID)pnm)->row, g_EncryptEnableButton);
+						SimpleGrid_SetDecryptFont(hgrid2, ((LPNMGRID)pnm)->row, g_DecryptDisableButton);
 						fileDecDone = true;
 						g_pDbms->updateDbData(filePath, fileEncDone, fileDecDone);
 					}
@@ -890,10 +908,23 @@ namespace mainwind
 					SimpleGrid_GetItemText(pnm->hwndFrom, PATHCOLUMNNUM, row, tfilePath);
 					StringCchCat(tfilePath, MAX_PATH, tfileName);
 					wcstombs(filePath, tfilePath, MAX_PATH); //copying from tchar to char array
-					SimpleGrid_DeleteRow(hgrid2, row);
-					g_pDbms->deleteDbData(filePath);
+					bool isDbEncrypted = g_pDbms->checkDbEncrypt(filePath);
+					if (isDbEncrypted == FALSE) {
+						g_pDbms->deleteDbData(filePath);
+						SimpleGrid_DeleteRow(hgrid2, row);
+						g_rowCnt--;
+					}
+					else {
+						int msgRetVal = MessageBox(NULL, (LPCWSTR)L"File is encrypted. \nDo you want to proceed with deletion?\n", (LPCWSTR)L"Message",
+							MB_YESNO | MB_ICONQUESTION);
+						if (msgRetVal == IDYES) {
+							g_pDbms->deleteDbData(filePath);
+							SimpleGrid_DeleteRow(hgrid2, row);
+							g_rowCnt--;
+						}
+					}
 				}
-				//SimpleGrid_RefreshGrid(hgrid2);
+				SimpleGrid_RefreshGrid(hgrid2);
 			}   //if(pnm.code==BGN_CELLCLICKED)
 			return TRUE;
 		}
@@ -1010,7 +1041,7 @@ namespace mainwind
 		//Set the heading font for Grid 2
 		HFONT hFont = CreateFont(20, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
 			ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-			PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("Roman"));
+			PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("Consolas"));
 
 		SimpleGrid_SetHeadingFont(hgrid2,hFont);
 
@@ -1025,9 +1056,9 @@ namespace mainwind
 		//based on the length of the text entered into the cells
 		SimpleGrid_SetColAutoWidth(hgrid2, TRUE);
 		//allow column resizing
-		SimpleGrid_SetAllowColResize(hgrid2, FALSE);
+		SimpleGrid_SetAllowColResize(hgrid2, TRUE);
 		//use column header text
-		SimpleGrid_SetColsNumbered(hgrid2, TRUE); // aka - 2nd argument of this fxn call shall be changed later to FALSE
+		SimpleGrid_SetColsNumbered(hgrid2, FALSE); // aka - 2nd argument of this fxn call shall be changed later to FALSE
 
 		RECT rect;
 		GetClientRect(hWnd, &rect);
@@ -1478,7 +1509,7 @@ namespace mainwind
 			GCT_EDIT, _T("\nFile Path\n"),  NULL,
 			GCT_BUTTON, _T("\nEncrypt File\n"), NULL, 
 			GCT_BUTTON, _T("\nDecrypt File\n"), NULL,
-			GCT_IMAGE, _T("Image Column"),  hImageList
+			GCT_IMAGE, _T("\nDelete\n"),  hImageList
 		};
 		for(int i = 0; i < NELEMS(lpColumns); ++i) {
 			SimpleGrid_AddColumn(hGrid, &lpColumns[i]);
@@ -1547,11 +1578,11 @@ namespace mainwind
 		// Row number
 		// Item (cell) value
 		SGITEM lpItems[] = {
-			FILENAMECOLUMNNUM, m_rowCnt, (LPARAM)(wFileName),
-			PATHCOLUMNNUM, m_rowCnt, (LPARAM)(wFilePath),
-			ENCRYPTBUTTONCOLUMNNUM, m_rowCnt, (LPARAM)_T("Encrypt"),
-			DECRYPTBUTTONCOLUMNNUM, m_rowCnt, (LPARAM)_T("Decrypt"),
-			REMOVEFILECOLUMNNUM, m_rowCnt, (LPARAM)0
+			FILENAMECOLUMNNUM, g_rowCnt, (LPARAM)(wFileName),
+			PATHCOLUMNNUM, g_rowCnt, (LPARAM)(wFilePath),
+			ENCRYPTBUTTONCOLUMNNUM, g_rowCnt, (LPARAM)_T("Encrypt"),
+			DECRYPTBUTTONCOLUMNNUM, g_rowCnt, (LPARAM)_T("Decrypt"),
+			REMOVEFILECOLUMNNUM, g_rowCnt, (LPARAM)0
 		};
 		for (uint32_t idx = 0; idx < NELEMS(lpItems); idx++) {
 			SimpleGrid_SetItemData(hgrid2, &lpItems[idx]);
@@ -1560,7 +1591,9 @@ namespace mainwind
 		// TODO - protection of buttongs to be set based on new file or database content
 		SimpleGrid_SetItemProtection(hgrid2, &lpItems[2], FALSE);
 		SimpleGrid_SetItemProtection(hgrid2, &lpItems[4], FALSE);
-		m_rowCnt++;
+		SimpleGrid_SetEncryptFont(hgrid2, g_rowCnt, g_EncryptEnableButton);
+		SimpleGrid_SetDecryptFont(hgrid2, g_rowCnt, g_DecryptDisableButton);
+		g_rowCnt++;
 		SimpleGrid_RefreshGrid(hgrid2);
 
 	}
@@ -1801,26 +1834,30 @@ namespace mainwind
 		// Row number
 		// Item (cell) value
 		SGITEM lpItems[] = {
-			FILENAMECOLUMNNUM, m_rowCnt, (LPARAM)(wFileName),
-			PATHCOLUMNNUM, m_rowCnt, (LPARAM)(wFilePath),
-			ENCRYPTBUTTONCOLUMNNUM, m_rowCnt, (LPARAM)_T("Encrypt"),
-			DECRYPTBUTTONCOLUMNNUM, m_rowCnt, (LPARAM)_T("Decrypt"),
-			REMOVEFILECOLUMNNUM, m_rowCnt, (LPARAM)0
+			FILENAMECOLUMNNUM, g_rowCnt, (LPARAM)(wFileName),
+			PATHCOLUMNNUM, g_rowCnt, (LPARAM)(wFilePath),
+			ENCRYPTBUTTONCOLUMNNUM, g_rowCnt, (LPARAM)_T("Encrypt"),
+			DECRYPTBUTTONCOLUMNNUM, g_rowCnt, (LPARAM)_T("Decrypt"),
+			REMOVEFILECOLUMNNUM, g_rowCnt, (LPARAM)0
 		};
 		for (uint32_t idx = 0; idx < NELEMS(lpItems); idx++) {
 			SimpleGrid_SetItemData(hgrid2, &lpItems[idx]);
 			SimpleGrid_SetItemProtection(hgrid2, &lpItems[idx], TRUE);
 		}
 		if (encrypt == TRUE) {
+			SimpleGrid_SetEncryptFont(hgrid2, g_rowCnt, g_EncryptDisableButton);
+			SimpleGrid_SetDecryptFont(hgrid2, g_rowCnt, g_DecryptEnableButton);
 			SimpleGrid_SetItemProtection(hgrid2, &lpItems[2], TRUE);
 			SimpleGrid_SetItemProtection(hgrid2, &lpItems[3], FALSE);
 		}
 		else if (decrypt == TRUE) {
+			SimpleGrid_SetEncryptFont(hgrid2, g_rowCnt, g_EncryptEnableButton);
+			SimpleGrid_SetDecryptFont(hgrid2, g_rowCnt, g_DecryptDisableButton);
 			SimpleGrid_SetItemProtection(hgrid2, &lpItems[2], FALSE);
 			SimpleGrid_SetItemProtection(hgrid2, &lpItems[3], TRUE);
 		}
 		SimpleGrid_SetItemProtection(hgrid2, &lpItems[4], FALSE);
-		m_rowCnt++;
+		g_rowCnt++;
 		SimpleGrid_RefreshGrid(hgrid2);
 
 	}

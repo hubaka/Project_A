@@ -2,11 +2,11 @@
 //! $URL: $
 //!
 //!
-//! \file       
+//! \file       systypes.h
 //! \author     Anand.Kathiresan
-//! \date       
+//! \date       2017
 //!
-//! \brief      @ Header file for 
+//! \brief      @ Header file of data types macros
 //!
 //! @(#)$Id:    $
 //!

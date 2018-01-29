@@ -56,7 +56,6 @@ namespace mainwind
 		int				m_nCmdShow;
 		HWND*			m_hWndToolbar;
 		dbms::Dbms*		m_pDbms;
-		uint32_t		m_rowCnt;
 		encryptmain::EncryptDBFile*	m_pEncryptfile;
 
 		static LRESULT	CALLBACK StaticWndProc(HWND, UINT, WPARAM, LPARAM);

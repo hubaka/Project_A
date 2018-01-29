@@ -248,6 +248,8 @@ typedef struct tagSGITEM{
 #define SG_INSERTROW WM_USER + 0x33             //!<SimpleGrid_InsertRow()
 #define SG_DELETEROW WM_USER + 0x34             //!<SimpleGrid_DeleteRow()
 #define SG_DELETEBUTTON WM_USER + 0x35          //!<SimpleGrid_DeleteButton()
+#define SG_SETENCRYPTFONT WM_USER + 0x36          //!<SimpleGrid_SetEncryptFont()
+#define SG_SETDECRYPTFONT WM_USER + 0x37          //!<SimpleGrid_SetDecryptFont()
 
 //---------------------------------------------------------------------------
 //! \name Grid Column types.
@@ -1020,6 +1022,30 @@ static uint32_t GSA_RIGHT       = 3;   //!< Item Text alignment: Right justified
 //!
 //! @returns TRUE if the deletion of button is successful, otherwise SG_ERROR
 #define SimpleGrid_DeleteButton(hGrid,fEnable) (BOOL)SNDMSG((hGrid),SG_DELETEBUTTON,(WPARAM)(fEnable),0L)
+
+//---------------------------------------------------------------------------
+//! @def SimpleGrid_SetEncryptFont(hGrid,iRow,hFont)
+//!
+//! @brief sets the font of encrypt button
+//!
+//! @param hGrid The handle of the grid.
+//! @param iRow	 Row number of the encrypt button
+//! @param hFont Font of hte encrypt button to be set
+//!
+//! @returns nothing
+#define SimpleGrid_SetEncryptFont(hGrid,iRow,hFont) (BOOL)SNDMSG((hGrid),SG_SETENCRYPTFONT,(WPARAM)iRow, (LPARAM)(hFont))
+
+//---------------------------------------------------------------------------
+//! @def SimpleGrid_SetDecryptFont(hGrid,iRow,hFont)
+//!
+//! @brief sets the font of decrypt button
+//!
+//! @param hGrid The handle of the grid.
+//! @param iRow	 Row number of the decrypt button
+//! @param hFont Font of hte decrypt button to be set
+//!
+//! @returns nothing
+#define SimpleGrid_SetDecryptFont(hGrid,iRow,hFont) (BOOL)SNDMSG((hGrid),SG_SETDECRYPTFONT,(WPARAM)iRow, (LPARAM)(hFont))
 
 //---------------------------------------------------------------------------
 //! @}

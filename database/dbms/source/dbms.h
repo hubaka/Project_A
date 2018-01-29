@@ -55,7 +55,8 @@ namespace dbms
 		bool openExistingDatabase(const char* pFileName);
 		bool addDbData(char* pFullPath, char* pFileName, char* pFilePath, bool isEncrypted, bool isDecrypted);
 		bool updateDbData(char* pFullPath, bool  isEncrypted, bool  isDecrypted);
-		bool deleteDbData(char* pFullPath);
+		bool checkDbEncrypt(char* pFullPath);
+		void deleteDbData(char* pFullPath);
 		void closeDatabase(sqlite3* pDatabase);
 		bool readDbData(void);
 		void attachWindHandle(HWND hWindHandle);
@@ -66,9 +67,8 @@ namespace dbms
 		void createDatabaseTable(void);
 		void createInsertCmdString(char* pCmd, char* pTable, char* pColumns, char* pFullPath, char* pFileName, char* pFilePath, bool  isEncrypted, bool  isDecrypted);
 		void createUpdateCmdString(char* pCmd, char* pTable, char* pEncrypted, char* pFullPath, char* pDecrypted, bool  isEncrypted, bool  isDecrypted);
-		void createDeleteCmdString(char* pCmd, char* pTable, char* pFullPath);
-		void getRowCount();
-		void createReadCmdString(char* pCmd, char* pTable, char* pFullPath);
+		void createCmdString(char* pTable, char* pFullPath);
+		void getRowCount(void);
 
 	};
 

@@ -4,9 +4,9 @@
 //!
 //! \file       
 //! \author     Anand.Kathiresan
-//! \date       
+//! \date       2017
 //!
-//! \brief      @ Source file for 
+//! \brief      @ Source file for common macro definitions
 //!
 //! @(#)$Id:    $
 //!

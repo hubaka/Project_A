@@ -26,12 +26,13 @@
 
 PVOID safeMalloc(size_t memsize);
 
-//---------------------------------------------------------------------------
-//! @def SMALLOC(memsize)
+//---------------------------------------------------------------------------------------------------
+//! \brief		Safe malloc
 //!
-//! @brief Safe memory allocation
+//! \param[in]	size	-	The desired allocation size.
 //!
-//! @param size of memory to be allocated
+//! \return		A pointer to the new allocation.
+//!
 #define SMALLOC(memsize) safeMalloc((size_t)memsize)
 
 //---------------------------------------------------------------------------

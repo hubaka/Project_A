@@ -2,11 +2,11 @@
 //! $URL: $
 //!
 //!
-//! \file       
+//! \file       mainwind.cpp
 //! \author     Anand.Kathiresan
-//! \date       
+//! \date       2017
 //!
-//! \brief      @ Header file for 
+//! \brief      @ Source file for mainwindow creation
 //!
 //! @(#)$Id:    $
 //!
@@ -22,7 +22,7 @@
 #include <tchar.h>
 #include <strsafe.h>
 #include <commctrl.h> // included in order to use tool bar related functionalities
-#include <Shlobj.h>		// to include LPBROWSEINFO
+#include <Shlobj.h>		// to include LPBROWSEINFO/BROWSEINFO
 #include <sqlite3.h>  // included for database
 #include <Shlwapi.h>	// for stripping filename for full file path
 #include <time.h>
@@ -68,6 +68,8 @@ namespace mainwind
 	static TCHAR g_tdbfilePath[MAX_PATH] = {0};
 	static char g_fileName[MAX_PATH] = {0};
 	static char	g_filePassword[MAX_PATH] = {0};
+	static const uint8_t MAINDBOPENED = 0x55;
+	static const uint8_t MAINDBCLOSED = 0xAA;
 
 	//---------------------------------------------------------------------------
 	// Defines and Macros
@@ -121,7 +123,8 @@ namespace mainwind
 		encryptmain::EncryptDBFile* pEncrypter
 		) : m_hParentInstance(hParentInstance),
 			m_nCmdShow(nCmdShow),
-			m_pDbms(pDbms) {
+			m_pDbms(pDbms),
+			m_dBOpened(MAINDBCLOSED) {
 			ghInstance = hParentInstance;
 			g_pDbms = pDbms;
 			g_pEncryptfile = pEncrypter;
@@ -363,10 +366,13 @@ namespace mainwind
 				}
 			case WM_CLOSE:
 				{
-					openCryptDatabase();
-					bool retVal = m_pDbms->closeDatabase();
-					if (retVal == TRUE) {
-						closeCryptDatabase();
+					if (m_dBOpened == MAINDBOPENED) {
+						openCryptDatabase();
+						bool retVal = m_pDbms->closeDatabase();
+						if (retVal == TRUE) {
+							closeCryptDatabase();
+							m_dBOpened = MAINDBCLOSED;
+						}
 					}
 					DestroyWindow(m_hWnd);
 					procRetVal = TRUE;
@@ -435,6 +441,7 @@ namespace mainwind
 						openCryptDatabase();
 						m_pDbms->readDbData();
 						closeCryptDatabase();
+						m_dBOpened = MAINDBOPENED;
 					}
 					break;
 				}

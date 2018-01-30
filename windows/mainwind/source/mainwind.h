@@ -2,11 +2,11 @@
 //! $URL: $
 //!
 //!
-//! \file       
+//! \file       mainwind.h
 //! \author     Anand.Kathiresan
-//! \date       
+//! \date       2017
 //!
-//! \brief      @ Header file for 
+//! \brief      @ Header file for Mainwindow creation
 //!
 //! @(#)$Id:    $
 //!
@@ -57,6 +57,7 @@ namespace mainwind
 		HWND*			m_hWndToolbar;
 		dbms::Dbms*		m_pDbms;
 		char			m_exePath[MAX_PATH];
+		bool			m_dBOpened;
 
 		static LRESULT	CALLBACK StaticWndProc(HWND, UINT, WPARAM, LPARAM);
 		LRESULT CALLBACK mainWndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);

@@ -2,11 +2,11 @@
 //! $URL: $
 //!
 //!
-//! \file       
+//! \file       dbms.h
 //! \author     Anand.Kathiresan
-//! \date       
+//! \date       2017
 //!
-//! \brief      @ Header file for 
+//! \brief      @ Header file for database management
 //!
 //! @(#)$Id:    $
 //!

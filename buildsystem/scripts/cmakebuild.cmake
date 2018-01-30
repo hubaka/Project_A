@@ -614,5 +614,11 @@ macro(_add_module_exe)
 		#							instead of "windows console project"
 		set_target_properties(${LIBRARYNAME} PROPERTIES LINK_FLAGS_DEBUG   "/NODEFAULTLIB:msvcrt /NODEFAULTLIB:libcd /SUBSYSTEM:WINDOWS")
 		set_target_properties(${LIBRARYNAME} PROPERTIES LINK_FLAGS_RELEASE "/NODEFAULTLIB:msvcrtd /NODEFAULTLIB:libcd /SUBSYSTEM:WINDOWS")
+		# RuntimeLibrary
+		  # 0 (MultiThreaded) == /MT
+		  # 1 (MultiThreadedDebug) == /MTd
+		  # 2 (MultiThreadedDLL) == /MD
+		  # 3 (MultiThreadedDebugDLL) == /MDd
+		#set_target_properties(${LIBRARYNAME} PROPERTIES COMPILE_FLAGS "/MT")
 	endif()
 endmacro()

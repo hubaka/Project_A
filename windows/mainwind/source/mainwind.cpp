@@ -57,11 +57,17 @@ namespace mainwind
 
 	static HINSTANCE ghInstance;
 	//HWND hgrid1, hgrid2, hgrid3, hgrid4, hgrid5, htab;
-	HWND hgrid2;
+	static HWND hgrid2;
 	static dbms::Dbms* g_pDbms;
 	static HFONT g_EncryptEnableButton, g_EncryptDisableButton, g_DecryptEnableButton, g_DecryptDisableButton;
 	static uint32_t	g_rowCnt;
-
+	static encryptmain::EncryptDBFile*	g_pEncryptfile;
+	static errhandle::ErrHandle g_errHandle;
+	static HWND dialogbar;
+	static char g_dbFilePath[MAX_PATH] = {0};
+	static TCHAR g_tdbfilePath[MAX_PATH] = {0};
+	static char g_fileName[MAX_PATH] = {0};
+	static char	g_filePassword[MAX_PATH] = {0};
 
 	//---------------------------------------------------------------------------
 	// Defines and Macros
@@ -83,13 +89,9 @@ namespace mainwind
 	#define SimpleDialog_ReSize(hDialog, clrProtect) (BOOL)SNDMSG((hDialog),WM_SIZE,(WPARAM)(UINT)(clrProtect),0L)
 	#define HANDLE_DLGMSG(hWnd,message,fn)  case (message): return SetDlgMsgResult((hWnd),(message),HANDLE_##message((hWnd),(wParam),(lParam),(fn)))  /* added 05-01-29 */
 
-	static errhandle::ErrHandle g_errHandle;
-
-	//static LRESULT CALLBACK mainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static BOOL CALLBACK dlgWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static BOOL Main_OnInitDialog(HWND hWnd, HWND hwndFocus, LPARAM lParam);
 	static BOOL Main_OnNotify(HWND hWnd, INT id, LPNMHDR pnm);
-	static HWND dialogbar;
 	static void LoadGrid1(HWND hGrid);
 	static void LoadGrid2(HWND hGrid, LPRECT pRect);
 	static void Main_OnSize(HWND hwnd, UINT state, int cx, int cy);
@@ -102,7 +104,8 @@ namespace mainwind
 	static void ResetGrid5(HWND hGrid);
 	static void ResizeColumnWidth(HWND hGrid, LPRECT pRect);
 	static BOOL CALLBACK About_DlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-	void cryptSelectedFile(const char* pEncryptFilePath, TCHAR* pFilePath, const char *passPhrase, bool isEncrypt);
+	static void closeCryptDatabase(void);
+	static void openCryptDatabase(void);
 
 	//---------------------------------------------------------------------------------------------------
 	//! \brief		
@@ -118,10 +121,10 @@ namespace mainwind
 		encryptmain::EncryptDBFile* pEncrypter
 		) : m_hParentInstance(hParentInstance),
 			m_nCmdShow(nCmdShow),
-			m_pDbms(pDbms),
-			m_pEncryptfile(pEncrypter) {
+			m_pDbms(pDbms) {
 			ghInstance = hParentInstance;
 			g_pDbms = pDbms;
+			g_pEncryptfile = pEncrypter;
 
 			g_EncryptEnableButton = CreateFont(17, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
 				ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
@@ -135,6 +138,14 @@ namespace mainwind
 			g_DecryptDisableButton = CreateFont(17, 0, 0, 0, FW_THIN, FALSE, FALSE, TRUE,
 				ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
 				PROOF_QUALITY, VARIABLE_PITCH | FF_MODERN, _T("Consolas "));
+
+			// get the path of the current exe
+			TCHAR tExePath[MAX_PATH];
+			int32_t retVal = GetModuleFileName(NULL, tExePath, MAX_PATH);
+			if (retVal != 0) {
+				char fileName[MAX_PATH] = { 0 };
+				stripFileName(tExePath, fileName, m_exePath);
+			}
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -208,7 +219,7 @@ namespace mainwind
 			UpdateWindow(m_hWnd);
 
 			m_pDbms->attachWindHandle(m_hWnd);
-			m_pEncryptfile->getUserCredentials(m_hParentInstance, m_hWnd);
+			g_pEncryptfile->getUserCredentials(m_hParentInstance, m_hWnd);
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -296,6 +307,7 @@ namespace mainwind
 							WPARAM	wParam,			// Additional Message Information
 							LPARAM	lParam)			// Additional Message Information
 	{
+		bool procRetVal = FALSE;
 		switch(uMsg)
 		{
 			case WM_COMMAND: 
@@ -305,38 +317,45 @@ namespace mainwind
 					case ID_MENU_EXIT:
 						{
 							PostMessage(m_hWnd, WM_CLOSE, 0, 0);
+							procRetVal = TRUE;
 							break;
 						}
 					case ID_TOOL_OPEN_FILE:
 					case ID_SUBMENU_OPEN_FILE:
 						{
 							getFileName();
+							procRetVal = TRUE;
 							break;
 						}
 					case ID_TOOL_OPEN_FOLDER:
 					case ID_SUBMENU_OPEN_FOLDER:
 						{
 							getFolderName();
+							procRetVal = TRUE;
 							break;
 						}
 					case ID_MENU_HELP:
 						{
 							MessageBox(m_hWnd, (LPCWSTR)L"No help document", (LPCWSTR)L"Message",
 								MB_OK | MB_ICONINFORMATION);
+							procRetVal = TRUE;
 							break;
 						}
 					case ID_DIALOG_SHOW:
 						{
 							ShowWindow(dialogbar, SW_SHOW);
+							procRetVal = TRUE;
 							break;
 						}
 					case ID_DIALOG_HIDE:
 						{
 							ShowWindow(dialogbar, SW_HIDE);
+							procRetVal = TRUE;
 							break;
 						}
 					default:
 						{
+							procRetVal = FALSE;
 							break;
 						}
 					}
@@ -344,14 +363,20 @@ namespace mainwind
 				}
 			case WM_CLOSE:
 				{
-					encryptDatabase();
+					openCryptDatabase();
+					bool retVal = m_pDbms->closeDatabase();
+					if (retVal == TRUE) {
+						closeCryptDatabase();
+					}
 					DestroyWindow(m_hWnd);
+					procRetVal = TRUE;
 					break;
 				}
 			case WM_DESTROY:
 				{
 					DestroyWindow(g_hDialogWind);
 					PostQuitMessage(0);
+					procRetVal = TRUE;
 					break;
 				}
 			case WM_SIZE :
@@ -381,41 +406,83 @@ namespace mainwind
 					SimpleGrid_RefreshGrid(g_hDialogWind);
 					SimpleDialog_ReSize(g_hDialogWind, 0);
 					MoveWindow(g_hDialogWind, 0, 28, rect.right, rect.bottom - 60, TRUE);
-					
+					procRetVal = TRUE;
 					break;
 				}
 			case MN_FINDDATABASE:
 				{
-					char dirPath[MAX_PATH] = "C:\\Users\\akathire\\Documents\\pIm\\work\\Attendance\\git\\Project_A\\1_builds\\appmain\\";
-					char* pFileName = m_pEncryptfile->getDatabaseName();
-					bool retVal = findFile(dirPath, pFileName);
-					return retVal;
+					// TODO - to be changed to roaming data / specific application path
+					//char dirPath[MAX_PATH] = "C:\\Users\\akathire\\Documents\\pIm\\work\\Attendance\\git\\Project_A\\1_builds\\appmain\\";
+					char* pFileName = g_pEncryptfile->getDatabaseName();
+					procRetVal = findFile(m_exePath, pFileName);
+					break;
 				}
 			case MN_OPENEXISTINGDATABASE:
 				{
-					char* pFileName = m_pEncryptfile->getDatabaseName();
-					bool retVal = m_pDbms->openExistingDatabase(pFileName);
-					if (retVal == TRUE) {
+					// receive and store database related informations
+					char* pFileName = g_pEncryptfile->getDatabaseName();
+					char* pFilePassword = g_pEncryptfile->getDatabasePassword();
+					strcpy(g_dbFilePath, m_exePath);	// copying the exe's absolute path
+					strcat(g_dbFilePath, pFileName); // concatenating the file name and path
+					copyCharToTchar(g_tdbfilePath, g_dbFilePath, MAX_PATH);
+					strcpy(g_fileName, pFileName);	// copying the exe's absolute path
+					strcpy(g_filePassword, pFilePassword);	// copying the exe's absolute path
+
+					closeCryptDatabase();
+					procRetVal = m_pDbms->openExistingDatabase(g_dbFilePath);
+					closeCryptDatabase();
+					if (procRetVal == TRUE) {
+						openCryptDatabase();
 						m_pDbms->readDbData();
+						closeCryptDatabase();
 					}
 					break;
 				}
+			case MN_VERIFYUSERCREDENTIALS:
+			{
+				// receive and store database related informations
+				char* pFileName = g_pEncryptfile->getDatabaseName();
+				char* pFilePassword = g_pEncryptfile->getDatabasePassword();
+				strcpy(g_dbFilePath, m_exePath);	// copying the exe's absolute path
+				strcat(g_dbFilePath, pFileName); // concatenating the file name and path
+				copyCharToTchar(g_tdbfilePath, g_dbFilePath, MAX_PATH);
+				strcpy(g_fileName, pFileName);	// copying the exe's absolute path
+				strcpy(g_filePassword, pFilePassword);	// copying the exe's absolute path
+
+				closeCryptDatabase();
+				procRetVal = m_pDbms->validateExistingDatabase(g_dbFilePath);
+				closeCryptDatabase();
+				break;
+			}
 			case MN_CREATENEWDATABASE:
 				{
-					char* pFileName = m_pEncryptfile->getDatabaseName();
-					m_pDbms->createNewDatabase(pFileName);
+					char dbFilePath[MAX_PATH] = { 0 };
+					strcpy(dbFilePath, m_exePath);	// copying the exe's absolute path
+					char* pFileName = g_pEncryptfile->getDatabaseName();
+					strcat(dbFilePath, pFileName); // concatenating the file name and path
+					procRetVal = m_pDbms->createNewDatabase(dbFilePath);
+					if (procRetVal == TRUE) {
+						TCHAR tfilePath[MAX_PATH] = { 0 };
+						char* pFilePassword = g_pEncryptfile->getDatabasePassword();
+						copyCharToTchar(tfilePath, dbFilePath, MAX_PATH);
+						g_pEncryptfile->cryptDatabase(dbFilePath, tfilePath, pFileName, pFilePassword);
+					}
+					else {
+						MessageBox(m_hWnd, (LPCWSTR)L"Could not open new Database!", (LPCWSTR)L"Error!", MB_OK | MB_ICONERROR);
+					}
 					break;
 				}
 			case MN_ADDEXISTINGDATATOGRID:
 				{
 					LPDBITEM lpDBitem = (LPDBITEM)lParam;
 					addExistingEntryToGrid(lpDBitem->sfileName, lpDBitem->sfilePath, lpDBitem->sEncrypted, lpDBitem->sDecrypted);
+					procRetVal = TRUE;
 					break;
 				}
 			default:
 				return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 		}
-		return 0;
+		return procRetVal;
 	}
 
 
@@ -450,7 +517,9 @@ namespace mainwind
 				char filePath[MAX_PATH] = {0};
 				stripFileName(ofn.lpstrFile, fileName, filePath);
 				copyTcharToChar(fullFilePath, ofn.lpstrFile, (2 * MAX_PATH));
+				openCryptDatabase();
 				bool retVal = m_pDbms->addDbData(fullFilePath, fileName, filePath, 0, 1);
+				closeCryptDatabase();
 				if (retVal == TRUE) {
 					addNewEntryToGrid(fileName, filePath);
 				}
@@ -864,7 +933,6 @@ namespace mainwind
 					TCHAR tfileName[MAX_PATH] = { 0 };
 					TCHAR tfilePath[MAX_PATH] = { 0 };
 					char filePath[MAX_PATH] = { 0 };
-					bool isEncrypt = false;
 					bool fileEncDone = false;
 					bool fileDecDone = false;
 					uint32_t row = ((LPNMGRID)pnm)->row;
@@ -876,25 +944,31 @@ namespace mainwind
 					bool cellProtected = SimpleGrid_GetItemProtection(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row);
 					if (((((LPNMGRID)pnm)->col) == 2) && (cellProtected == false))
 					{
-						isEncrypt = true;
-						cryptSelectedFile(filePath, tfilePath, "password", isEncrypt);
+						char* pFileName = g_pEncryptfile->getDatabaseName();
+						char* pFilePassword = g_pEncryptfile->getDatabasePassword();
+						g_pEncryptfile->cryptDatabase(filePath, tfilePath, pFileName, pFilePassword);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row, TRUE);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((((LPNMGRID)pnm)->col)+1), ((LPNMGRID)pnm)->row, FALSE);
 						SimpleGrid_SetEncryptFont(hgrid2, ((LPNMGRID)pnm)->row, g_EncryptDisableButton);
 						SimpleGrid_SetDecryptFont(hgrid2, ((LPNMGRID)pnm)->row, g_DecryptEnableButton);
 						fileEncDone = true;
+						openCryptDatabase();
 						g_pDbms->updateDbData(filePath, fileEncDone, fileDecDone);
+						closeCryptDatabase();
 					}
 					else if (((((LPNMGRID)pnm)->col) == 3) && (cellProtected == false))
 					{
-						isEncrypt = false;
-						cryptSelectedFile(filePath, tfilePath, "password", isEncrypt);
+						char* pFileName = g_pEncryptfile->getDatabaseName();
+						char* pFilePassword = g_pEncryptfile->getDatabasePassword();
+						g_pEncryptfile->cryptDatabase(filePath, tfilePath, pFileName, pFilePassword);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((LPNMGRID)pnm)->col, ((LPNMGRID)pnm)->row, TRUE);
 						SimpleGrid_SetItemProtectionEx(hgrid2, ((((LPNMGRID)pnm)->col)-1), ((LPNMGRID)pnm)->row, FALSE);
 						SimpleGrid_SetEncryptFont(hgrid2, ((LPNMGRID)pnm)->row, g_EncryptEnableButton);
 						SimpleGrid_SetDecryptFont(hgrid2, ((LPNMGRID)pnm)->row, g_DecryptDisableButton);
 						fileDecDone = true;
+						openCryptDatabase();
 						g_pDbms->updateDbData(filePath, fileEncDone, fileDecDone);
+						closeCryptDatabase();
 					}
 					SimpleGrid_DeleteButton(hgrid2, 0);
 				}
@@ -908,17 +982,24 @@ namespace mainwind
 					SimpleGrid_GetItemText(pnm->hwndFrom, PATHCOLUMNNUM, row, tfilePath);
 					StringCchCat(tfilePath, MAX_PATH, tfileName);
 					wcstombs(filePath, tfilePath, MAX_PATH); //copying from tchar to char array
+					openCryptDatabase();
 					bool isDbEncrypted = g_pDbms->checkDbEncrypt(filePath);
+					closeCryptDatabase();
 					if (isDbEncrypted == FALSE) {
+						openCryptDatabase();
 						g_pDbms->deleteDbData(filePath);
+						closeCryptDatabase();
 						SimpleGrid_DeleteRow(hgrid2, row);
 						g_rowCnt--;
 					}
 					else {
-						int msgRetVal = MessageBox(NULL, (LPCWSTR)L"File is encrypted. \nDo you want to proceed with deletion?\n", (LPCWSTR)L"Message",
+						int msgRetVal = MessageBox(NULL, (LPCWSTR)L"File is encrypted. \nIf you proceed with deletion, then original content will be lost \
+															\n\nDo you want to proceed with deletion?\n", (LPCWSTR)L"Message",
 							MB_YESNO | MB_ICONQUESTION);
 						if (msgRetVal == IDYES) {
+							openCryptDatabase();
 							g_pDbms->deleteDbData(filePath);
+							closeCryptDatabase();
 							SimpleGrid_DeleteRow(hgrid2, row);
 							g_rowCnt--;
 						}
@@ -1630,42 +1711,6 @@ namespace mainwind
 	//!
 	//! \return		
 	//!
-	void cryptSelectedFile(const char* pEncryptFilePath, TCHAR* pFilePath, const char *passPhrase, bool isEncrypt)
-	{
-		char encryptFileName[MAX_PATH] = { 0 };
-		TCHAR fileName[MAX_PATH] = { 0 };
-
-		strcpy(encryptFileName, pEncryptFilePath);
-		strcat(encryptFileName, ".crypt");
-		mbstowcs(fileName, encryptFileName, MAX_PATH);
-
-		if (isEncrypt)
-		{
-			//SecByteBlock key = HexDecodeString(hexKey);
-			//SecByteBlock iv = HexDecodeString(hexIV);
-			//CTR_Mode<AES>::Encryption aes(key, key.size(), iv);
-			//CryptoPP::FileSource(pEncryptFilePath, true, new CryptoPP::StreamTransformationFilter(aes, new CryptoPP::FileSink(encryptFileName)));
-
-			//CryptoPP::FileSource f(in, true, new CryptoPP::DefaultEncryptorWithMAC(passPhrase, new CryptoPP::FileSink(out)));
-			CryptoPP::FileSource(pEncryptFilePath, true, new CryptoPP::HexEncoder(new CryptoPP::FileSink(encryptFileName)));
-		}
-		else
-		{
-			CryptoPP::FileSource(pEncryptFilePath, true, new CryptoPP::HexDecoder(new CryptoPP::FileSink(encryptFileName)));
-		}
-
-		DeleteFile(pFilePath);
-		MoveFile(fileName, pFilePath);
-
-	}
-
-	//---------------------------------------------------------------------------------------------------
-	//! \brief		
-	//!
-	//! \param[in]	
-	//!
-	//! \return		
-	//!
 	void
 		MainWind::getFolderName(
 			void
@@ -1745,7 +1790,9 @@ namespace mainwind
 					char fullFilePath[2 * MAX_PATH] = { 0 };
 					strcpy(fullFilePath, filePath);
 					strcat(fullFilePath, fileName);
+					openCryptDatabase();
 					bool retVal = m_pDbms->addDbData(fullFilePath, fileName, filePath, 0, 1);
+					closeCryptDatabase();
 					if (retVal == TRUE) {
 						addNewEntryToGrid(fileName, filePath);
 					}
@@ -1754,20 +1801,6 @@ namespace mainwind
 		} while (FindNextFile(hFind, &ffd) != 0);
 		FindClose(hFind);
 
-	}
-
-	//---------------------------------------------------------------------------------------------------
-	//! \brief		
-	//!
-	//! \param[in]	
-	//!
-	//! \return		
-	//!
-	void
-		MainWind::encryptDatabase(
-			void
-		) {
-		// TODO - encrypt database code
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -1862,4 +1895,29 @@ namespace mainwind
 
 	}
 
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void
+		closeCryptDatabase(void) {
+		g_pDbms->closeDatabase();
+		g_pEncryptfile->cryptDatabase(g_dbFilePath, g_tdbfilePath, g_fileName, g_filePassword);
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	void
+		openCryptDatabase(void) {
+		g_pEncryptfile->cryptDatabase(g_dbFilePath, g_tdbfilePath, g_fileName, g_filePassword);
+		g_pDbms->openExistingDatabase(g_dbFilePath);
+	}
 } //namespace mainwind

@@ -26,6 +26,8 @@ namespace dbms
 {
 
 	static HWND g_hMainWindHandle;
+	static const uint8_t DBOPENED = 0x55;
+	static const uint8_t DBCLOSED = 0xAA;
 
 	//---------------------------------------------------------------------------
 	//! @def MainWindow_AddExistingDatabasetoGrid(hWnd)
@@ -43,6 +45,7 @@ namespace dbms
 	static errhandle::ErrHandle g_errHandle;
 	static int32_t sqlCallback(void *data, int argc, char **argv, char **azColName);
 	static int32_t sqlReadCallback(void *data, int argc, char **argv, char **azColName);
+	static int32_t sqlValidateDbCallback(void *data, int argc, char **argv, char **azColName);
 	static uint32_t gRowCount = 0;
 	static bool	g_isFileEncrypted = FALSE;
 
@@ -55,7 +58,8 @@ namespace dbms
 	//!
 	Dbms::Dbms(
 		void
-		) {	
+		) : m_pData(0),
+		m_isDbOpened(DBCLOSED) {
 		;
 	}
 
@@ -69,7 +73,7 @@ namespace dbms
 	Dbms::~Dbms(
 		void
 		) {
-		;
+		m_pData = 0;
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -247,16 +251,16 @@ namespace dbms
 		bool retVal = FALSE;
 		// return value is ZERO, on successful creation of db file by sqlite3_open_v2
 		int32_t sqRetVal = sqlite3_open_v2(pFileName, &m_pData, (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE), NULL);
-		if (sqRetVal)
+		if (sqRetVal != SQLITE_OK)
 		{
-			closeDatabase(m_pData);
 			g_errHandle.getErrorInfo((LPTSTR)L"Database opening Failed!");
 			retVal = FALSE;
 		}
 		else {
 			// create database
+			m_isDbOpened = DBOPENED;
 			createDatabaseTable();
-			closeDatabase(m_pData);
+			closeDatabase();
 			retVal = TRUE;
 		}
 		return retVal;
@@ -274,15 +278,16 @@ namespace dbms
 
 		bool retVal = FALSE;
 		// return value is ZERO, on successful creation of db file by sqlite3_open_v2
-		int32_t sqRetVal = sqlite3_open(pFileName, &m_pData);
-		if (sqRetVal)
+		int32_t sqRetVal = sqlite3_open_v2(pFileName, &m_pData, SQLITE_OPEN_READWRITE, NULL);
+		if (sqRetVal != SQLITE_OK)
 		{
-			closeDatabase(m_pData);
+			closeDatabase();
 			g_errHandle.getErrorInfo((LPTSTR)L"Database opening Failed!");
 			retVal = FALSE;
 		}
 		else {
 			//getRowCount();
+			m_isDbOpened = DBOPENED;
 			retVal = TRUE;
 		}
 		return retVal;
@@ -295,11 +300,18 @@ namespace dbms
 	//!
 	//! \return		
 	//!
-	void
-		Dbms::closeDatabase(sqlite3* pDatabase) {
-		if (pDatabase != NULL) {
-			sqlite3_close(pDatabase);
+	bool
+		Dbms::closeDatabase(void) {
+		bool retVal = FALSE;
+		if ((m_pData != NULL) && (m_isDbOpened == DBOPENED)) {
+			int32_t sqRetVal = sqlite3_close(m_pData);
+			if (sqRetVal != SQLITE_OK) {
+				g_errHandle.getErrorInfo((LPTSTR)L"Database creation Failed!");
+			}
+			m_isDbOpened = DBCLOSED;
+			retVal = TRUE;
 		}
+		return retVal;
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -568,6 +580,59 @@ namespace dbms
 		Dbms::attachWindHandle(HWND hWindowHandle)
 	{
 		g_hMainWindHandle = hWindowHandle;
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	pFileName
+	//!
+	//! \return		
+	//!
+	bool
+		Dbms::validateExistingDatabase(const char* pFileName) {
+
+		bool retVal = FALSE;
+		// return value is ZERO, on successful creation of db file by sqlite3_open_v2
+		int32_t sqRetVal = sqlite3_open_v2(pFileName, &m_pData, SQLITE_OPEN_READWRITE, NULL);
+		if (sqRetVal != SQLITE_OK)
+		{
+			closeDatabase();
+			g_errHandle.getErrorInfo((LPTSTR)L"Database opening Failed!");
+			retVal = FALSE;
+		}
+		else {
+			//getRowCount();
+			m_isDbOpened = DBOPENED;
+			char*	pSql;
+			int32_t sqRetVal;
+			char*	pErrMsg;
+
+			pSql = "SELECT COUNT(FULLPATH) FROM ENCRYPTTABLE;";
+			/* Execute SQL statement */
+			sqRetVal = sqlite3_exec(m_pData, pSql, sqlValidateDbCallback, 0, &pErrMsg);
+			if ((sqRetVal != SQLITE_OK) || (pErrMsg != 0)){
+				retVal = FALSE;
+			}
+			else {
+				retVal = TRUE;
+			}
+		}
+		return retVal;
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	
+	//!
+	//! \return		
+	//!
+	int32_t
+		sqlValidateDbCallback(void *data, int argc, char **argv, char **azColName)
+	{
+		gRowCount = atoi(argv[0]);
+		return 0;
 	}
 
 } //namespace dbms

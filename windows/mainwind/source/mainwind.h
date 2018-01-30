@@ -56,7 +56,7 @@ namespace mainwind
 		int				m_nCmdShow;
 		HWND*			m_hWndToolbar;
 		dbms::Dbms*		m_pDbms;
-		encryptmain::EncryptDBFile*	m_pEncryptfile;
+		char			m_exePath[MAX_PATH];
 
 		static LRESULT	CALLBACK StaticWndProc(HWND, UINT, WPARAM, LPARAM);
 		LRESULT CALLBACK mainWndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -70,7 +70,6 @@ namespace mainwind
 		void stripFileName(LPTSTR fullPath, char* pFileName, char* pFilePath);
 		void addNewEntryToGrid(char* pFileName, char* pFilePath);
 		void addExistingEntryToGrid(char* pFileName, char* pFilePath, bool encrypt, bool decrypt);
-		void encryptDatabase(void);
 		bool findFile(char* pDirPath, char* pFileName);
 
 	};

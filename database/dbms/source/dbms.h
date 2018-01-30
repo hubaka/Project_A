@@ -57,12 +57,14 @@ namespace dbms
 		bool updateDbData(char* pFullPath, bool  isEncrypted, bool  isDecrypted);
 		bool checkDbEncrypt(char* pFullPath);
 		void deleteDbData(char* pFullPath);
-		void closeDatabase(sqlite3* pDatabase);
+		bool closeDatabase(void);
 		bool readDbData(void);
 		void attachWindHandle(HWND hWindHandle);
+		bool validateExistingDatabase(const char* pFileName);
 	private:
 		sqlite3*	m_pData;
 		char		cmdString[MAXCMDLENGTH];
+		uint8_t     m_isDbOpened;
 
 		void createDatabaseTable(void);
 		void createInsertCmdString(char* pCmd, char* pTable, char* pColumns, char* pFullPath, char* pFileName, char* pFilePath, bool  isEncrypted, bool  isDecrypted);

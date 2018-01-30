@@ -32,6 +32,8 @@ namespace encryptmain
 		~EncryptDBFile(void);
 		void getUserCredentials(HINSTANCE hParentInstance, HWND hParentWindow);
 		char* getDatabaseName(void);
+		char* getDatabasePassword(void);
+		void cryptDatabase(const char* pEncryptFilePath, TCHAR* pFilePath, const char *pPassPhraseOne, const char *pPassPhraseTwo);
 
 	private:
 

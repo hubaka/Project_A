@@ -47,6 +47,7 @@ namespace encryptmain
 	static bool	newUserCreation = FALSE;
 	static HWND gParentWindow;
 	char	gFileName[MAX_PATH] = {0};
+	char	gFilePassword[MAX_PATH] = { 0 };
 
 	//---------------------------------------------------------------------------
 	//! @def MainWindow_Close(hWnd)
@@ -79,6 +80,16 @@ namespace encryptmain
 	#define MainWindow_CreateNewDatabase(hWnd) (BOOL)SNDMSG((hWnd),MN_CREATENEWDATABASE, 0L,0L)
 
 	//---------------------------------------------------------------------------
+	//! @def MainWindow_VerifyUserCredentials(hWnd)
+	//!
+	//! @brief Sends MN_VERIFYUSERCREDENTIALS signal to verify user credentials
+	//!
+	//! @param hWnd Handle of window
+	//!
+	//! @returns The return value is TRUE, if the user credentials is correct
+	#define MainWindow_VerifyUserCredentials(hWnd) (BOOL)SNDMSG((hWnd),MN_VERIFYUSERCREDENTIALS, 0L,0L)
+
+	//---------------------------------------------------------------------------
 	//! @def MainWindow_FindDatabase(hWnd)
 	//!
 	//! @brief Sends MN_FINDDATABASE signal to find database
@@ -90,7 +101,7 @@ namespace encryptmain
 
 	static INT_PTR CALLBACK PasswordProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 	static INT_PTR CALLBACK NewUserProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-	static void createNewFileName(char* pFileName);
+	static void createNewFileName(char* pUserName, char* pUserPassword);
 	static SecByteBlock HexDecodeString(const char *hex);
 
 	//---------------------------------------------------------------------------------------------------
@@ -162,6 +173,7 @@ namespace encryptmain
 		WORD passWord;
 		WORD userName;
 		char  fileName[16];
+		char  filePassword[16];
 		bool retVal = FALSE;
 
 		switch (message)
@@ -226,20 +238,28 @@ namespace encryptmain
 							// Null-terminate the string. 
 							lpszUsername[userName] = 0;
 							lpszPassword[passWord] = 0;
-							wcstombs(fileName, lpszUsername, 16); //copying to local char array
+							copyTcharToChar(fileName, lpszUsername, 16); //copying to local char array
+							copyTcharToChar(filePassword, lpszPassword, 16); //copying to local char array
 							// Call a local password-parsing function. 
-							createNewFileName(fileName);
-							//MessageBox(hDlg, lpszUsername, L"Did it work?", MB_OK);
-							//MessageBox(hDlg, lpszPassword, L"Did it work?", MB_OK);
+							createNewFileName(fileName, filePassword);
 
 							bool isExistDatabase = MainWindow_FindDatabase(gParentWindow);
 							if (isExistDatabase) {
-								// message to mainwindow to open existing database
-								MainWindow_OpenExistingDatabase(gParentWindow);
 
-								newUserCreation = FALSE;
-								EndDialog(hDlg, TRUE);
-								retVal = TRUE;
+								bool retVal = MainWindow_VerifyUserCredentials(gParentWindow);
+								if (retVal == TRUE) {
+									// message to mainwindow to open existing database
+									MainWindow_OpenExistingDatabase(gParentWindow);
+
+									newUserCreation = FALSE;
+									EndDialog(hDlg, TRUE);
+									retVal = TRUE;
+								}
+								else {
+									MessageBox(hDlg, L"Password Mismatch\nPlease verify and re-enter password\n", L"Error", MB_OK);
+									newUserCreation = FALSE;
+									retVal = TRUE;
+								}
 							}
 							else {
 								MessageBox(hDlg, L"User name doesn't exist", L"Error", MB_OK);
@@ -287,6 +307,7 @@ namespace encryptmain
 		WORD rePassWordSize;
 		WORD nameCredentialsSize;
 		char  fileName[16];
+		char  filePassword[16];
 		bool retVal = FALSE;
 
 		switch (message)
@@ -359,11 +380,10 @@ namespace encryptmain
 						}
 						else
 						{
-							//MessageBox(hDlg, lpszUsername, L"Did it work?", MB_OK);
-							//MessageBox(hDlg, lpszPassword, L"Did it work?", MB_OK);
-							wcstombs(fileName, lpszUsername, 16); //copying to local char array
+							copyTcharToChar(fileName, lpszUsername, 16); //copying to local char array
+							copyTcharToChar(filePassword, lpszPassword, 16); //copying to local char array
 							// Call a local password-parsing function. 
-							createNewFileName(fileName);
+							createNewFileName(fileName, filePassword);
 
 							bool isExistDatabase = MainWindow_FindDatabase(gParentWindow);
 							if (isExistDatabase == FALSE) {
@@ -423,34 +443,15 @@ namespace encryptmain
 	//!
 	//! \return		
 	//!
-	void createNewFileName(char* pUserName)
-	{
-		
+	void createNewFileName(char* pUserName, char* pUserPassword)
+	{	
 		SHA256 hash;
 		string encFileName;
+		string encFilePassword;
 		StringSource s1(pUserName, true, new HashFilter(hash, new HexEncoder(new StringSink(encFileName))));
 		strcpy(gFileName, encFileName.c_str());
-		// example to print char or string in messagebox
-		//TCHAR *param = new TCHAR[digest.size() + 1];
-		//std::copy(digest.begin(), digest.end(), param);
-		//MessageBox(NULL, param, L"Did it work?", MB_OK);
-
-		//sqlite3*	m_pData;
-		//int32_t retVal = sqlite3_open("abcd.db", &m_pData);
-		//if (retVal)
-		//{
-		//	//cerr << "Error opening SQLite3 database: " << sqlite3_errmsg(m_pData) << endl << endl;
-		//	sqlite3_close(m_pData);
-		//	g_errHandle.getErrorInfo((LPTSTR)L"Database opening Failed!");
-		//}
-
-		// encoding testing
-		//SecByteBlock key = HexDecodeString(digest1.c_str());
-		//SecByteBlock iv = HexDecodeString(digest2.c_str());
-		//CTR_Mode<AES>::Encryption aes(key, key.size(), iv);
-		//FileSource(infile, true, new StreamTransformationFilter(aes, new FileSink(outfile)));
-		// encoding testing
-
+		StringSource s2(pUserPassword, true, new HashFilter(hash, new HexEncoder(new StringSink(encFilePassword))));
+		strcpy(gFilePassword, encFilePassword.c_str());
 	}
 
 	//---------------------------------------------------------------------------------------------------
@@ -463,6 +464,48 @@ namespace encryptmain
 	char* 
 		EncryptDBFile::getDatabaseName(void) {
 		return (gFileName);
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	nothing
+	//!
+	//! \return		
+	//!
+	char*
+		EncryptDBFile::getDatabasePassword(void) {
+		return (gFilePassword);
+	}
+
+	//---------------------------------------------------------------------------------------------------
+	//! \brief		
+	//!
+	//! \param[in]	nothing
+	//!
+	//! \return		
+	//!
+	void
+		EncryptDBFile::cryptDatabase(const char* pEncryptFilePath, TCHAR* pFilePath, const char *pPassPhraseOne, const char *pPassPhraseTwo) {
+		
+		char encryptFileName[MAX_PATH] = { 0 };
+		TCHAR fileName[MAX_PATH] = { 0 };
+
+		strcpy(encryptFileName, pEncryptFilePath);
+		strcat(encryptFileName, ".crypt");
+		mbstowcs(fileName, encryptFileName, MAX_PATH);
+
+		SecByteBlock key = HexDecodeString(pPassPhraseOne);
+		SecByteBlock iv = HexDecodeString(pPassPhraseTwo);
+		CTR_Mode<AES>::Encryption aes(key, key.size(), iv);
+		CryptoPP::FileSource(pEncryptFilePath, true, new CryptoPP::StreamTransformationFilter(aes, new CryptoPP::FileSink(encryptFileName)));
+
+		int32_t retVal = DeleteFile(pFilePath);
+		if (retVal == 0) {
+			g_errHandle.getErrorInfo((LPTSTR)L"File Deletion Failed");
+		}
+		MoveFile(fileName, pFilePath);
+
 	}
 
 }

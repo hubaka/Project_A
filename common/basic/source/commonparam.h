@@ -27,6 +27,7 @@
 #define MN_OPENEXISTINGDATABASE WM_USER + 0x02          //!<Open existing Database
 #define MN_FINDDATABASE WM_USER + 0x03					//!<FIND Database 
 #define MN_ADDEXISTINGDATATOGRID WM_USER + 0x04			//!<Add existing database entry to grid
+#define MN_VERIFYUSERCREDENTIALS WM_USER + 0x05			//!<verify user credentials
 
 //---------------------------------------------------------------------------
 //! @var copyTcharToChar

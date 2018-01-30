@@ -24,7 +24,6 @@
 #include <commctrl.h> // included in order to use tool bar related functionalities
 #include <Shlobj.h>		// to include LPBROWSEINFO/BROWSEINFO
 #include <sqlite3.h>  // included for database
-#include <Shlwapi.h>	// for stripping filename for full file path
 #include <time.h>
 #include "files.h" // to include crypto's file source
 #include "hex.h" // to include crypto's hexencoder
@@ -40,12 +39,9 @@
 #include "cryptomain.h"
 #include "mainwind.h"
 
-#pragma comment(lib,"Shlwapi.lib")
 #pragma comment(lib,"cryptlib.lib")
 
 HWND g_hDialogWind = NULL;
-static grid::IGrid*	m_pIGrid;
-static bar::ToolBar*	m_pBar;
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 #define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
@@ -70,6 +66,9 @@ namespace mainwind
 	static char	g_filePassword[MAX_PATH] = {0};
 	static const uint8_t MAINDBOPENED = 0x55;
 	static const uint8_t MAINDBCLOSED = 0xAA;
+	static grid::IGrid*	g_pIGrid;
+	static bar::ToolBar* g_pBar;
+	static const uint32_t MAXROWCOUNT = 5;
 
 	//---------------------------------------------------------------------------
 	// Defines and Macros
@@ -201,7 +200,7 @@ namespace mainwind
 			m_hWnd = CreateWindowEx(
 							WS_EX_CLIENTEDGE,					// Extended Style For The Window
 							_T("MainWindowClass"),				// Class Name
-							(LPCWSTR)L"The Title",				// Window Title
+							(LPCWSTR)L"Patukaka",				// Window Title
 							WS_OVERLAPPEDWINDOW,
 							//(WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX),				// Defined Window Style
 							CW_USEDEFAULT,						// Window Position
@@ -256,7 +255,7 @@ namespace mainwind
 				g_errHandle.getErrorInfo((LPTSTR)L"StatusBar creation!");
 			}
 
-			m_pIGrid->createBabyGrid(hWnd);
+			g_pIGrid->createBabyGrid(hWnd);
 			WNDCLASSEX dialogClass;
 			// Get system dialog information.
 			dialogClass.cbSize = sizeof(dialogClass);
@@ -280,9 +279,7 @@ namespace mainwind
 			// TODO - Need to set the status bar
 			int statwidths[] = {100, -1};
 			SendMessage(hStatus, SB_SETPARTS, sizeof(statwidths)/sizeof(int), (LPARAM)statwidths);
-			SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)L"Hi there :)");
-			//dialogbar = m_pBar->createToolBar(hWnd);
-			//m_pIGrid->createBabyGrid(hWnd);
+			SendMessage(hStatus, SB_SETTEXT, 0, (LPARAM)L"");
 	   }
 	   else
 	   {
@@ -339,7 +336,7 @@ namespace mainwind
 						}
 					case ID_MENU_HELP:
 						{
-							MessageBox(m_hWnd, (LPCWSTR)L"No help document", (LPCWSTR)L"Message",
+							MessageBox(m_hWnd, (LPCWSTR)L"No help document\n\t-Anand Kathiresan", (LPCWSTR)L"Message",
 								MB_OK | MB_ICONINFORMATION);
 							procRetVal = TRUE;
 							break;
@@ -524,11 +521,16 @@ namespace mainwind
 				char filePath[MAX_PATH] = {0};
 				stripFileName(ofn.lpstrFile, fileName, filePath);
 				copyTcharToChar(fullFilePath, ofn.lpstrFile, (2 * MAX_PATH));
-				openCryptDatabase();
-				bool retVal = m_pDbms->addDbData(fullFilePath, fileName, filePath, 0, 1);
-				closeCryptDatabase();
-				if (retVal == TRUE) {
-					addNewEntryToGrid(fileName, filePath);
+				if (g_rowCnt != MAXROWCOUNT) {
+					openCryptDatabase();
+					bool retVal = m_pDbms->addDbData(fullFilePath, fileName, filePath, 0, 1);
+					closeCryptDatabase();
+					if (retVal == TRUE) {
+						addNewEntryToGrid(fileName, filePath);
+					}
+				}
+				else {
+					MessageBox(m_hWnd, (LPCWSTR)L"Reached MAXIMUM FILE LIMIT", (LPCWSTR)L"Message", MB_OK | MB_ICONINFORMATION);
 				}
 			}
 		}
@@ -644,7 +646,7 @@ namespace mainwind
 			grid::IGrid *p_grid
 		) { 
 			if (p_grid != NULL) {
-				m_pIGrid = p_grid;
+				g_pIGrid = p_grid;
 			}
 			else {
 				MessageBox(NULL, (LPCWSTR)L"Unable to attach Grid", (LPCWSTR)L"Error!",
@@ -664,7 +666,7 @@ namespace mainwind
 			bar::ToolBar *p_bar
 		) { 
 			if (p_bar != NULL) {
-				m_pBar = p_bar;
+				g_pBar = p_bar;
 			}
 			else {
 				MessageBox(NULL, (LPCWSTR)L"Unable to attach bar", (LPCWSTR)L"Error!",
@@ -1700,7 +1702,7 @@ namespace mainwind
 		uint32_t pathColWidth = ((pRect->right) * 39)/100;
 		uint32_t encColWidth = ((pRect->right) * 20) / 100;
 		uint32_t decColWidth = ((pRect->right) * 20) / 100;
-		uint32_t imageColWidth = 51;
+		uint32_t imageColWidth = 100;
 		pathColWidth = ((((pRect->right) - fileColWidth) - encColWidth) - decColWidth) - 54 - imageColWidth;
 
 		// setting column width of file name and path name
@@ -1708,6 +1710,7 @@ namespace mainwind
 		SimpleGrid_SetColWidth(hGrid, PATHCOLUMNNUM, pathColWidth);
 		SimpleGrid_SetColWidth(hGrid, ENCRYPTBUTTONCOLUMNNUM, encColWidth);
 		SimpleGrid_SetColWidth(hGrid, DECRYPTBUTTONCOLUMNNUM, decColWidth);
+		SimpleGrid_SetColWidth(hGrid, REMOVEFILECOLUMNNUM, imageColWidth);
 
 	}
 
@@ -1797,11 +1800,17 @@ namespace mainwind
 					char fullFilePath[2 * MAX_PATH] = { 0 };
 					strcpy(fullFilePath, filePath);
 					strcat(fullFilePath, fileName);
-					openCryptDatabase();
-					bool retVal = m_pDbms->addDbData(fullFilePath, fileName, filePath, 0, 1);
-					closeCryptDatabase();
-					if (retVal == TRUE) {
-						addNewEntryToGrid(fileName, filePath);
+					if (g_rowCnt != MAXROWCOUNT) {
+						openCryptDatabase();
+						bool retVal = m_pDbms->addDbData(fullFilePath, fileName, filePath, 0, 1);
+						closeCryptDatabase();
+						if (retVal == TRUE) {
+							addNewEntryToGrid(fileName, filePath);
+						}
+					}
+					else {
+						MessageBox(m_hWnd, (LPCWSTR)L"Reached MAXIMUM FILE LIMIT", (LPCWSTR)L"Message", MB_OK | MB_ICONINFORMATION);
+						break;
 					}
 				}
 			}

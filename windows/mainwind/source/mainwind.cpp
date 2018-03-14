@@ -23,6 +23,7 @@
 #include <strsafe.h>
 #include <commctrl.h> // included in order to use tool bar related functionalities
 #include <Shlobj.h>		// to include LPBROWSEINFO/BROWSEINFO
+#include <Htmlhelp.h>	// to include HtmlHelp
 #include <sqlite3.h>  // included for database
 #include <time.h>
 #include "files.h" // to include crypto's file source
@@ -39,7 +40,8 @@
 #include "cryptomain.h"
 #include "mainwind.h"
 
-#pragma comment(lib,"cryptlib.lib")
+#pragma comment(lib,"libcrypt.lib")
+#pragma comment(lib,"Htmlhelp.lib")
 
 HWND g_hDialogWind = NULL;
 
@@ -336,9 +338,16 @@ namespace mainwind
 						}
 					case ID_MENU_HELP:
 						{
-							MessageBox(m_hWnd, (LPCWSTR)L"No help document\n\t-Anand Kathiresan", (LPCWSTR)L"Message",
-								MB_OK | MB_ICONINFORMATION);
+							HWND helpWind = HtmlHelp(m_hWnd, (LPCWSTR)L"help.chm", HH_DISPLAY_TOPIC, NULL);
+							/*MessageBox(m_hWnd, (LPCWSTR)L"No help document\n\t-Anand Kathiresan", (LPCWSTR)L"Message",
+								MB_OK | MB_ICONINFORMATION);*/
 							procRetVal = TRUE;
+							break;
+						}
+					case ID_MENU_ABOUT:
+						{
+							MessageBox(m_hWnd, (LPCWSTR)L"Version 1.0\n\t-Anand Kathiresan", (LPCWSTR)L"Message",
+							MB_OK | MB_ICONINFORMATION);
 							break;
 						}
 					case ID_DIALOG_SHOW:
@@ -408,7 +417,7 @@ namespace mainwind
 					GetClientRect(m_hWnd, &rect);
 					SimpleGrid_RefreshGrid(g_hDialogWind);
 					SimpleDialog_ReSize(g_hDialogWind, 0);
-					MoveWindow(g_hDialogWind, 0, 28, rect.right, rect.bottom - 60, TRUE);
+					MoveWindow(g_hDialogWind, 0, 42, rect.right, rect.bottom - 60, TRUE);
 					procRetVal = TRUE;
 					break;
 				}
@@ -570,11 +579,13 @@ namespace mainwind
 				tbb[0].fsState = TBSTATE_ENABLED;
 				tbb[0].fsStyle = TBSTYLE_BUTTON;
 				tbb[0].idCommand = ID_TOOL_OPEN_FILE;
+				tbb[0].iString = (INT_PTR)L"Add File";
 
 				tbb[1].iBitmap = STD_FILEOPEN;
 				tbb[1].fsState = TBSTATE_ENABLED;
 				tbb[1].fsStyle = TBSTYLE_BUTTON;
 				tbb[1].idCommand = ID_TOOL_OPEN_FOLDER;
+				tbb[1].iString = (INT_PTR)L"Add Folder";
 
 				SendMessage(hWndToolbar, TB_ADDBUTTONS, sizeof(tbb)/sizeof(TBBUTTON), (LPARAM)&tbb);
 				return (&hWndToolbar);
@@ -601,6 +612,7 @@ namespace mainwind
 				AppendMenu(hOpenSubMenu, MF_STRING, ID_SUBMENU_OPEN_FOLDER, (LPCWSTR)L"&Add Folder");
 				AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hOpenSubMenu, (LPCWSTR)L"&Encrypt");
 				AppendMenu(hMenu, MF_STRING, ID_MENU_HELP, (LPCWSTR)L"&Help");
+				AppendMenu(hMenu, MF_STRING, ID_MENU_ABOUT, (LPCWSTR)L"&About");
 				SetMenu(hWnd, hMenu);
 
 		}
@@ -1834,10 +1846,10 @@ namespace mainwind
 		TCHAR filePath[MAX_PATH] = { 0 };
 		HANDLE hFind;
 		WIN32_FIND_DATA ffd;
-		LARGE_INTEGER filesize;
+		//LARGE_INTEGER filesize;
 
-		mbstowcs(fileName, pFileName, MAX_PATH);
-		mbstowcs(filePath, pDirPath, MAX_PATH);
+		copyCharToTchar(fileName, pFileName, MAX_PATH);
+		copyCharToTchar(filePath, pDirPath, MAX_PATH);
 		StringCchCat(filePath, MAX_PATH, fileName);
 		hFind = FindFirstFile(filePath, &ffd);
 		if (INVALID_HANDLE_VALUE == hFind) {

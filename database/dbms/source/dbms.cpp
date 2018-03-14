@@ -156,7 +156,7 @@ namespace dbms
 		char* pValueStartStr = "VALUES (";
 		char* pValueEndStr = ");";
 		char* pValueSep = ", ";
-		char* pstrQuote = "'";
+		char* pstrQuote = "\"";
 		char intString[sizeof(uint32_t)];
 
 		memset(cmdString, 0, (MAXCMDLENGTH * sizeof(char)));
@@ -369,7 +369,7 @@ namespace dbms
 		char* pFullPathStr = "FULLPATH ";
 		char* pEndStr = ";";
 		char* pCommaStr = ", ";
-		char* pstrQuote = "'";
+		char* pstrQuote = "\"";
 		char intString[sizeof(uint32_t)];
 
 		memset(cmdString, 0, (MAXCMDLENGTH * sizeof(char)));
@@ -494,7 +494,7 @@ namespace dbms
 		char* pFullPathStr = "FULLPATH ";
 		char* pEqualStr = "= ";
 		char* pEndStr = "; ";
-		char* pstrQuote = "'";
+		char* pstrQuote = "\"";
 		char intString[sizeof(uint32_t)];
 
 		//memset(cmdString, 0, (MAXCMDLENGTH * sizeof(char)));

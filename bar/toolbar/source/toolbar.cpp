@@ -64,13 +64,13 @@ namespace bar
 			if(m_hToolbar != NULL)
 			{
 				ShowWindow(m_hToolbar, SW_SHOW);
-				return m_hToolbar;
 			}
 			else
 			{
 				MessageBox(hWnd, (LPCWSTR)L"CreateDialog returned NULL", (LPCWSTR)L"Warning!",  
 						MB_OK | MB_ICONINFORMATION);
 			}
+			return m_hToolbar;
 		}
 
 	BOOL CALLBACK 

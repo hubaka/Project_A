@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 2.8)
 if(MSVC)
     add_definitions(-DUNICODE -D_UNICODE)
 	include(libpath)
+	set(RUNTIMELIB "/MTd")
 endif()
 
 if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
@@ -469,7 +470,7 @@ macro(install_module_lib)
 		configure_file(${_header} ${_LIB_INSTALL_DIR} COPYONLY)
 	endforeach()
 	set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${_clean_headers}")
-
+	set_target_properties(${LIBRARYNAME} PROPERTIES COMPILE_FLAGS ${RUNTIMELIB})
 endmacro()
 
 #-----------------------------------------------------------------------------------------
@@ -619,6 +620,6 @@ macro(_add_module_exe)
 		  # 1 (MultiThreadedDebug) == /MTd
 		  # 2 (MultiThreadedDLL) == /MD
 		  # 3 (MultiThreadedDebugDLL) == /MDd
-		#set_target_properties(${LIBRARYNAME} PROPERTIES COMPILE_FLAGS "/MT")
+		set_target_properties(${LIBRARYNAME} PROPERTIES COMPILE_FLAGS ${RUNTIMELIB})
 	endif()
 endmacro()

@@ -43,7 +43,7 @@
 //! @Param[in]	pTcharVar	input TCHAR string
 //! @Param[out]	pCharVar	output CHAR string
 //! @Param[in]	sizeinbytes	size of the string to be copied, in bytes
-#define copyCharToTchar(pTcharVar, pCharVar, sizeinbytes) mbstowcs(pTcharVar, pCharVar, sizeinbytes);
+#define copyCharToTchar(pTcharVar, pCharVar, sizeinbytes) mbstowcs_s(NULL, pTcharVar, sizeinbytes, pCharVar, sizeinbytes);
 
 //---------------------------------------------------------------------------
 //! @var copyTcharToTchar

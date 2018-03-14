@@ -1,0 +1,16 @@
+﻿  adhoc.cpp
+  bench.cpp
+  datatest.cpp
+  dlltest.cpp
+  fipsalgt.cpp
+  regtest.cpp
+  test.cpp
+  validat1.cpp
+  validat2.cpp
+  validat3.cpp
+  bench2.cpp
+  Generating code
+  All 18085 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  cryptest.vcxproj -> C:\Users\akathire\Documents\pIm\work\Attendance\git\New folder\cryptopp563\Win32\Output\Release\cryptest.exe
+  cryptest.vcxproj -> Win32\Output\Release\cryptest.pdb (Full PDB)

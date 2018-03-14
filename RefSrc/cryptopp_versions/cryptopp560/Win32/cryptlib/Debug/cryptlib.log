@@ -1,0 +1,248 @@
+﻿  Performing Custom Build Tools
+  pch.cpp
+  3way.cpp
+  adler32.cpp
+  algebra.cpp
+  algparam.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  arc4.cpp
+  asn.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  authenc.cpp
+  base32.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  base64.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  basecode.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  bfinit.cpp
+  blowfish.cpp
+  blumshub.cpp
+  camellia.cpp
+  cast.cpp
+  casts.cpp
+  cbcmac.cpp
+  ccm.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  channels.cpp
+  cmac.cpp
+  Generating Code...
+  Compiling...
+  cpu.cpp
+  crc.cpp
+  cryptlib.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  default.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  des.cpp
+  dessp.cpp
+  dh.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  dh2.cpp
+  dsa.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  eax.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  ec2n.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  ecp.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  elgamal.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  emsa2.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  esign.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  files.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\files.cpp(75): warning C4244: '=': conversion from 'std::streamsize' to 'std::size_t', possible loss of data
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\files.cpp(198): warning C4244: '-=': conversion from 'std::streamsize' to 'std::size_t', possible loss of data
+  filters.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  fips140.cpp
+  fipstest.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  gcm.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  Generating Code...
+  Compiling...
+  gf256.cpp
+  gf2n.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  gf2_32.cpp
+  gfpcrypt.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  gost.cpp
+  gzip.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  hex.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  hmac.cpp
+  hrtimer.cpp
+  ida.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  idea.cpp
+  integer.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  luc.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  mars.cpp
+  marss.cpp
+  md2.cpp
+  md4.cpp
+  md5.cpp
+  misc.cpp
+  modes.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  Generating Code...
+  Compiling...
+  mqueue.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  mqv.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  nbtheory.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  network.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  oaep.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  osrng.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  panama.cpp
+  pkcspad.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  polynomi.cpp
+  pssr.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  pubkey.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  queue.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  rabin.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  randpool.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  rc2.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  rc5.cpp
+  rc6.cpp
+  rdtables.cpp
+  rijndael.cpp
+  ripemd.cpp
+  Generating Code...
+  Compiling...
+  rng.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  rsa.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  rw.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  safer.cpp
+  salsa.cpp
+  seal.cpp
+  seed.cpp
+  serpent.cpp
+  sha.cpp
+  shacal2.cpp
+  shark.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  sharkbox.cpp
+  simple.cpp
+  skipjack.cpp
+  socketft.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\socketft.cpp(102): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: see declaration of 'inet_addr'
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\socketft.cpp(136): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: see declaration of 'inet_addr'
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\socketft.cpp(140): warning C4996: 'gethostbyname': Use getaddrinfo() or GetAddrInfoW() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(2238): note: see declaration of 'gethostbyname'
+  sosemanuk.cpp
+  square.cpp
+  squaretb.cpp
+  strciphr.cpp
+  tea.cpp
+  Generating Code...
+  Compiling...
+  tftables.cpp
+  tiger.cpp
+  tigertab.cpp
+  trdlocal.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\trdlocal.cpp(38): warning C4297: 'CryptoPP::ThreadLocalStorage::~ThreadLocalStorage': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\trdlocal.cpp(38): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  ttmac.cpp
+  twofish.cpp
+  vmac.cpp
+  wait.cpp
+  wake.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\wake.cpp(34): warning C4838: conversion from 'unsigned long' to 'long' requires a narrowing conversion
+  whrlpool.cpp
+  winpipes.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  xtr.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  xtrcrypt.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  zdeflate.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\zdeflate.cpp(390): error C2653: 'stdext': is not a class or namespace name
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\zdeflate.cpp(394): error C3861: 'unchecked_mismatch': identifier not found
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\zdeflate.cpp(394): error C2228: left of '.first' must have class/struct/union
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\zdeflate.cpp(394): note: type is 'unknown-type'
+  zinflate.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  zlib.cpp
+c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): warning C4297: 'CryptoPP::AlgorithmParametersBase::~AlgorithmParametersBase': function assumed not to throw an exception but does
+  c:\users\akathire\documents\pim\work\attendance\git\new folder\cryptopp560\algparam.h(277): note: destructor or deallocator has a (possibly implicit) non-throwing exception specification
+  Generating Code...
